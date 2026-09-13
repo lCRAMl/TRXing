@@ -1,0 +1,151 @@
+{
+  "_comment": [
+    "Vorgabewerte und Modellparameter der Vakuumrechnung.",
+    "",
+    "WICHTIG (Spezifikation 25): keiner der Werte in 'assumptions' und",
+    "'leakage_presets' stammt aus einem Herstellerdatenblatt. Es sind",
+    "Modellparameter, die der Benutzer an seine Anlage anpassen muss. Die",
+    "Oberflaeche kennzeichnet sie als Annahme. Datenblattwerte stehen",
+    "ausschliesslich in suction_cups.json.",
+    "",
+    "Zur Groessenordnung: ein offener Sauger SPB2 30 zieht bei -0,6 bar durch",
+    "seine 4-mm-Bohrung ungedrosselt rund 7 m3/h Fremdluft, ein SPB2 50 durch",
+    "seine 6,1-mm-Bohrung rund 17 m3/h. Das uebersteigt die Leistung vieler",
+    "Vakuumerzeuger. Strombegrenzer oder Rueckschlagventile sind deshalb der",
+    "Regelfall, nicht die Ausnahme - siehe restrictor."
+  ],
+  "version": 1,
+
+  "plate": {
+    "length_mm": 800,
+    "width_mm": 600,
+    "thickness_mm": 15,
+    "edge_margin_mm": 25,
+    "min_spacing_mm": 10
+  },
+
+  "operation": {
+    "default_cup_id": "spb2_30",
+    "arrangement": "grid_spread",
+    "target_vacuum_pa": 60000,
+    "ambient_pa": 101325,
+    "safety_factor": 2.0,
+    "acceleration_ms2": 0.0,
+    "grip": "horizontal",
+    "friction_factor": 0.5,
+    "package_count": 1,
+    "count_partial_as_sealed": false,
+    "solve_operating_point": true
+  },
+
+  "pump": {
+    "name": "Vakuumerzeuger (Vorgabe)",
+    "nominal_flow_m3s": 0.0083,
+    "max_vacuum_pa": 85000,
+    "curve_points": []
+  },
+
+  "_restrictor_comment": [
+    "Voreingestellt ist das Rueckschlagventil, weil Saugerplatten zum",
+    "Palettieren in der Praxis so aufgebaut sind: ohne Absperrung reissen die",
+    "nicht belegten Sauger das Vakuum der ganzen Platte ein (siehe die",
+    "Groessenordnungen oben).",
+    "",
+    "Zum Vergleich laesst sich 'none' einstellen - dann rechnet die Software",
+    "mit voller Bohrung und zeigt, wie stark der Einbruch ausfaellt.",
+    "",
+    "check_valve_leak_ratio ist der Anteil des ungedrosselten Querschnitts, der",
+    "bei geschlossenem Ventil offen bleibt. Kein Ventil schliesst vollstaendig.",
+    "Der Wert ist eine Modellannahme und in keinem Datenblatt enthalten."
+  ],
+  "restrictor": {
+    "mode": "check_valve",
+    "diameter_mm": 1.0,
+    "check_valve_leak_ratio": 0.005,
+    "discharge_coefficient_factor": 0.8
+  },
+
+  "leakage": {
+    "model": "none",
+    "permeability_value": 0.0,
+    "unit_label": "",
+    "reference_vacuum_pa": 60000,
+    "pressure_exponent_factor": 1.0
+  },
+
+  "leakage_presets": [
+    {
+      "id": "sealed",
+      "name": "Dicht (Folie, beschichteter Karton)",
+      "model": "none",
+      "permeability_value": 0.0,
+      "unit_label": "",
+      "pressure_exponent_factor": 1.0
+    },
+    {
+      "id": "carton_low",
+      "name": "Karton, dicht geschlossen (Schaetzwert)",
+      "model": "flow_per_area",
+      "permeability_value": 0.05,
+      "unit_label": "l/min je cm2 bei -0,6 bar",
+      "pressure_exponent_factor": 1.0
+    },
+    {
+      "id": "carton_medium",
+      "name": "Karton, ueblich (Schaetzwert)",
+      "model": "flow_per_area",
+      "permeability_value": 0.15,
+      "unit_label": "l/min je cm2 bei -0,6 bar",
+      "pressure_exponent_factor": 1.0
+    },
+    {
+      "id": "carton_high",
+      "name": "Karton, offenporig oder gewellt (Schaetzwert)",
+      "model": "flow_per_area",
+      "permeability_value": 0.40,
+      "unit_label": "l/min je cm2 bei -0,6 bar",
+      "pressure_exponent_factor": 1.0
+    },
+    {
+      "id": "constant_per_cup",
+      "name": "Fester Strom je Sauger",
+      "model": "constant",
+      "permeability_value": 1.0,
+      "unit_label": "l/min je wirksamem Sauger",
+      "pressure_exponent_factor": 1.0
+    },
+    {
+      "id": "darcy",
+      "name": "Druckproportional (Darcy)",
+      "model": "pressure_linear",
+      "permeability_value": 0.0025,
+      "unit_label": "l/min je cm2 und 1000 Pa",
+      "pressure_exponent_factor": 1.0
+    }
+  ],
+
+  "assumptions": {
+    "discharge_coefficient_factor": {
+      "value": 0.8,
+      "description": "Ausflussbeiwert scharfkantiger Bohrungen. Modellannahme, nicht aus dem Datenblatt."
+    },
+    "air_temperature_k": {
+      "value": 293.15,
+      "description": "Bezugstemperatur der Stroemungsrechnung."
+    },
+    "partial_contact_leaks": {
+      "value": true,
+      "description": "Ein Sauger mit unterbrochener Dichtlippe leckt wie ein offener. Abschaltbar."
+    },
+    "marginal_margin_ratio": {
+      "value": 0.1,
+      "description": "Band ueber dem Grenzwert, das noch als grenzwertig statt sicher gilt."
+    }
+  },
+
+  "limits": {
+    "max_cup_count": 2000,
+    "min_plate_edge_mm": 50,
+    "max_plate_edge_mm": 3000
+  }
+}

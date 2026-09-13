@@ -1,0 +1,90 @@
+{
+  "_comment": [
+    "Palettenkatalog. Die Grundmasse sind genormt (EPAL/ISO), die Grenzwerte",
+    "fuer Last und Hoehe sind betrieblich und deshalb ausdruecklich als",
+    "Konfiguration gefuehrt - sie haengen vom Lagersystem, vom Transportweg",
+    "und von der Ladungssicherung ab.",
+    "",
+    "max_load_height_mm ist die zulaessige Hoehe des Stapels UEBER dem Deck,",
+    "deck_height_mm die Bauhoehe der leeren Palette. Die Summe ist die Hoehe,",
+    "die ins Regal passen muss.",
+    "",
+    "overhang_mm erlaubt Ueberstand ueber die Palettenkante je Seite,",
+    "edge_clearance_mm haelt Abstand nach innen. Beide wirken gegeneinander."
+  ],
+  "version": 1,
+  "pallets": [
+    {
+      "id": "euro_1200x800",
+      "name": "Europalette EPAL 1 (1200 x 800)",
+      "length_mm": 1200,
+      "width_mm": 800,
+      "max_load_kg": 1500,
+      "max_load_height_mm": 1650,
+      "deck_height_mm": 144,
+      "tare_weight_kg": 25,
+      "overhang_mm": 0,
+      "edge_clearance_mm": 0
+    },
+    {
+      "id": "industrial_1200x1000",
+      "name": "Industriepalette (1200 x 1000)",
+      "length_mm": 1200,
+      "width_mm": 1000,
+      "max_load_kg": 1500,
+      "max_load_height_mm": 1650,
+      "deck_height_mm": 144,
+      "tare_weight_kg": 30,
+      "overhang_mm": 0,
+      "edge_clearance_mm": 0
+    },
+    {
+      "id": "duesseldorf_800x600",
+      "name": "Duesseldorfer Palette (800 x 600)",
+      "length_mm": 800,
+      "width_mm": 600,
+      "max_load_kg": 500,
+      "max_load_height_mm": 1200,
+      "deck_height_mm": 144,
+      "tare_weight_kg": 10,
+      "overhang_mm": 0,
+      "edge_clearance_mm": 0
+    },
+    {
+      "id": "quarter_600x400",
+      "name": "Viertelpalette (600 x 400)",
+      "length_mm": 600,
+      "width_mm": 400,
+      "max_load_kg": 250,
+      "max_load_height_mm": 1000,
+      "deck_height_mm": 144,
+      "tare_weight_kg": 6,
+      "overhang_mm": 0,
+      "edge_clearance_mm": 0
+    },
+    {
+      "id": "iso_1200x1200",
+      "name": "ISO-Palette (1200 x 1200)",
+      "length_mm": 1200,
+      "width_mm": 1200,
+      "max_load_kg": 2000,
+      "max_load_height_mm": 1800,
+      "deck_height_mm": 150,
+      "tare_weight_kg": 35,
+      "overhang_mm": 0,
+      "edge_clearance_mm": 0
+    },
+    {
+      "id": "euro_overhang_1200x800",
+      "name": "Europalette mit 20 mm Ueberstand",
+      "length_mm": 1200,
+      "width_mm": 800,
+      "max_load_kg": 1500,
+      "max_load_height_mm": 1650,
+      "deck_height_mm": 144,
+      "tare_weight_kg": 25,
+      "overhang_mm": 20,
+      "edge_clearance_mm": 0
+    }
+  ]
+}

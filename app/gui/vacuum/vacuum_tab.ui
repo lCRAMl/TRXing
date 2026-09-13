@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>VacuumTab</class>
+ <widget class="QWidget" name="VacuumTab">
+  <property name="windowTitle">
+   <string>Vakuumplatte</string>
+  </property>
+  <layout class="QVBoxLayout" name="root">
+   <property name="leftMargin"><number>12</number></property>
+   <property name="topMargin"><number>10</number></property>
+   <property name="rightMargin"><number>12</number></property>
+   <property name="bottomMargin"><number>10</number></property>
+   <property name="spacing"><number>8</number></property>
+   <item>
+    <widget class="StaleBanner" name="banner"/>
+   </item>
+   <item>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation"><enum>Qt::Horizontal</enum></property>
+     <widget class="QScrollArea" name="controls_scroll">
+      <property name="widgetResizable"><bool>true</bool></property>
+      <property name="frameShape"><enum>QFrame::NoFrame</enum></property>
+      <property name="minimumSize">
+       <size><width>360</width><height>0</height></size>
+      </property>
+      <widget class="QWidget" name="controls">
+       <layout class="QVBoxLayout" name="controls_layout">
+        <property name="leftMargin"><number>0</number></property>
+        <property name="topMargin"><number>0</number></property>
+        <property name="rightMargin"><number>8</number></property>
+        <property name="bottomMargin"><number>0</number></property>
+        <property name="spacing"><number>8</number></property>
+
+        <item>
+         <widget class="QGroupBox" name="plate_box">
+          <property name="title"><string>Platte und Sauger</string></property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+            <horstretch>0</horstretch><verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <layout class="QFormLayout" name="plate_form">
+           <property name="leftMargin"><number>10</number></property>
+           <property name="topMargin"><number>16</number></property>
+           <property name="rightMargin"><number>10</number></property>
+           <property name="bottomMargin"><number>10</number></property>
+           <item row="0" column="0">
+            <widget class="QLabel" name="cup_caption">
+             <property name="text"><string>Sauger-Typ</string></property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="cup_box">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch><verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength"><number>12</number></property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLabel" name="cup_info">
+             <property name="text"><string/></property>
+             <property name="wordWrap"><bool>true</bool></property>
+             <property name="minimumSize"><size><width>240</width><height>0</height></size></property>
+             <property name="alignment"><set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set></property>
+             <property name="role" stdset="0"><string>note</string></property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="plate_length_caption">
+             <property name="text"><string>Plattenlaenge [mm]</string></property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="NumberField" name="plate_length"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="plate_width_caption">
+             <property name="text"><string>Plattenbreite [mm]</string></property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="NumberField" name="plate_width"/>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="edge_margin_caption">
+             <property name="text"><string>Randabstand [mm]</string></property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="NumberField" name="edge_margin"/>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="min_spacing_caption">
+             <property name="text"><string>Saugerabstand [mm]</string></property>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <widget class="NumberField" name="min_spacing"/>
+           </item>
+           <item row="6" column="1">
+            <widget class="QLabel" name="min_spacing_info">
+             <property name="text"><string/></property>
+             <property name="wordWrap"><bool>true</bool></property>
+             <property name="minimumSize"><size><width>240</width><height>0</height></size></property>
+             <property name="alignment"><set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set></property>
+             <property name="role" stdset="0"><string>note</string></property>
+            </widget>
+           </item>
+           <item row="7" column="0">
+            <widget class="QLabel" name="arrangement_caption">
+             <property name="text"><string>Saugermuster</string></property>
+            </widget>
+           </item>
+           <item row="7" column="1">
+            <widget class="QComboBox" name="arrangement_box">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch><verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength"><number>12</number></property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1">
+            <widget class="QLabel" name="arrangement_info">
+             <property name="text"><string/></property>
+             <property name="wordWrap"><bool>true</bool></property>
+             <property name="minimumSize"><size><width>240</width><height>0</height></size></property>
+             <property name="alignment"><set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set></property>
+             <property name="role" stdset="0"><string>note</string></property>
+            </widget>
+           </item>
+           <item row="9" column="0">
+            <widget class="QLabel" name="cup_count_caption">
+             <property name="text"><string>Saugeranzahl</string></property>
+            </widget>
+           </item>
+           <item row="9" column="1">
+            <widget class="IntField" name="cup_count"/>
+           </item>
+           <item row="10" column="1">
+            <widget class="QLabel" name="cup_limit">
+             <property name="text"><string/></property>
+             <property name="wordWrap"><bool>true</bool></property>
+             <property name="minimumSize"><size><width>240</width><height>0</height></size></property>
+             <property name="alignment"><set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set></property>
+             <property name="role" stdset="0"><string>note</string></property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+
+        <item>
+         <widget class="QGroupBox" name="package_box">
+          <property name="title"><string>Pakete</string></property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+            <horstretch>0</horstretch><verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <layout class="QFormLayout" name="package_form">
+           <property name="leftMargin"><number>10</number></property>
+           <property name="topMargin"><number>16</number></property>
+           <property name="rightMargin"><number>10</number></property>
+           <property name="bottomMargin"><number>10</number></property>
+           <item row="0" column="0">
+            <widget class="QLabel" name="package_count_caption">
+             <property name="text"><string>Anzahl Pakete</string></property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="IntField" name="package_count"/>
+           </item>
+           <item row="1" column="1">
+            <widget class="QCheckBox" name="use_pallet_pattern">
+             <property name="text">
+              <string>Muster aus der Palettierung uebernehmen</string>
+             </property>
+             <property name="checked"><bool>true</bool></property>
+             <property name="toolTip">
+              <string>Ordnet die Pakete nach dem in der Palettierung gewaehlten Muster an.
+Aus: gleichmaessiges Raster.</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLabel" name="package_info">
+             <property name="text"><string/></property>
+             <property name="wordWrap"><bool>true</bool></property>
+             <property name="minimumSize"><size><width>240</width><height>0</height></size></property>
+             <property name="alignment"><set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set></property>
+             <property name="role" stdset="0"><string>note</string></property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+
+        <item>
+         <widget class="QGroupBox" name="physics_box">
+          <property name="title"><string>Vakuum und Sicherheit</string></property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+            <horstretch>0</horstretch><verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <layout class="QFormLayout" name="physics_form">
+           <property name="leftMargin"><number>10</number></property>
+           <property name="topMargin"><number>16</number></property>
+           <property name="rightMargin"><number>10</number></property>
+           <property name="bottomMargin"><number>10</number></property>
+           <item row="0" column="0">
+            <widget class="QLabel" name="vacuum_caption">
+             <property name="text"><string>Vakuum [mbar]</string></property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="NumberField" name="vacuum"/>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="flow_caption">
+             <property name="text"><string>Volumenstrom [m3/h]</string></property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="NumberField" name="flow"/>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="restrictor_caption">
+             <property name="text"><string>Absperrung je Sauger</string></property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QComboBox" name="restrictor_box">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch><verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength"><number>12</number></property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+             <property name="toolTip">
+              <string>Absperrung je Saugerposition. Ohne Begrenzung reissen unbelegte Sauger
+das Vakuum der ganzen Platte ein. Keine Datenblattangabe.</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="leakage_caption">
+             <property name="text"><string>Kartonpermeabilitaet</string></property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QComboBox" name="leakage_box">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch><verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength"><number>12</number></property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="permeability_caption">
+             <property name="text"><string>Permeabilitaetswert</string></property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="NumberField" name="permeability"/>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="safety_caption">
+             <property name="text"><string>Sicherheitsfaktor</string></property>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <widget class="NumberField" name="safety"/>
+           </item>
+           <item row="6" column="0">
+            <widget class="QLabel" name="acceleration_caption">
+             <property name="text"><string>Beschleunigung [m/s2]</string></property>
+            </widget>
+           </item>
+           <item row="6" column="1">
+            <widget class="NumberField" name="acceleration"/>
+           </item>
+           <item row="7" column="0">
+            <widget class="QLabel" name="grip_caption">
+             <property name="text"><string>Ansaugrichtung</string></property>
+            </widget>
+           </item>
+           <item row="7" column="1">
+            <widget class="QComboBox" name="grip_box">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch><verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumContentsLength"><number>12</number></property>
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="0">
+            <widget class="QLabel" name="friction_caption">
+             <property name="text"><string>Reibbeiwert</string></property>
+            </widget>
+           </item>
+           <item row="8" column="1">
+            <widget class="NumberField" name="friction"/>
+           </item>
+           <item row="9" column="1">
+            <widget class="QCheckBox" name="partial_counts">
+             <property name="text">
+              <string>Teilweise aufliegende Sauger als tragend zaehlen</string>
+             </property>
+             <property name="toolTip">
+              <string>Aus (empfohlen): ein unterbrochener Dichtlippenring traegt nicht.
+Ein: optimistische Annahme, nur bei sehr nachgiebiger Dichtlippe vertretbar.</string>
+             </property>
+            </widget>
+           </item>
+           <item row="10" column="1">
+            <widget class="QCheckBox" name="solve_point">
+             <property name="text">
+              <string>Arbeitspunkt loesen statt Sollvakuum annehmen</string>
+             </property>
+             <property name="checked"><bool>true</bool></property>
+             <property name="toolTip">
+              <string>Ein (empfohlen): rechnet das Vakuum, das sich gegen die Leckage tatsaechlich einstellt.
+Aus: rechnet mit dem eingestellten Sollvakuum und warnt nur bei Ueberlast.</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+
+        <item>
+         <widget class="QPushButton" name="calculate_button">
+          <property name="text"><string>Berechnen</string></property>
+          <property name="default"><bool>true</bool></property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="controls_spacer">
+          <property name="orientation"><enum>Qt::Vertical</enum></property>
+          <property name="sizeHint" stdset="0">
+           <size><width>20</width><height>40</height></size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+
+     <widget class="QWidget" name="view_panel">
+      <layout class="QVBoxLayout" name="view_layout">
+       <property name="leftMargin"><number>0</number></property>
+       <property name="topMargin"><number>0</number></property>
+       <property name="rightMargin"><number>0</number></property>
+       <property name="bottomMargin"><number>0</number></property>
+       <property name="spacing"><number>6</number></property>
+       <item>
+        <widget class="Vacuum2DView" name="view">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch><verstretch>3</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="result_row">
+         <item>
+          <widget class="ResultGrid" name="results">
+           <property name="title"><string>Ergebnis</string></property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+             <horstretch>1</horstretch><verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="ResultGrid" name="flow_results">
+           <property name="title"><string>Vakuum, Kraft und Volumenstrom</string></property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+             <horstretch>1</horstretch><verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>NumberField</class>
+   <extends>QWidget</extends>
+   <header>app.gui.common.widgets</header>
+  </customwidget>
+  <customwidget>
+   <class>IntField</class>
+   <extends>QWidget</extends>
+   <header>app.gui.common.widgets</header>
+  </customwidget>
+  <customwidget>
+   <class>ResultGrid</class>
+   <extends>QGroupBox</extends>
+   <header>app.gui.common.widgets</header>
+  </customwidget>
+  <customwidget>
+   <class>StaleBanner</class>
+   <extends>QFrame</extends>
+   <header>app.gui.common.widgets</header>
+  </customwidget>
+  <customwidget>
+   <class>Vacuum2DView</class>
+   <extends>QWidget</extends>
+   <header>app.visualization.vacuum_2d</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

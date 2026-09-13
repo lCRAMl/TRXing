@@ -1,0 +1,498 @@
+# Projektauftrag: Python Qt6 Berechnungs-Suite
+
+Du bist der leitende Softwarearchitekt und Implementierer dieses Projekts.
+
+Erstelle eine professionelle, langfristig wartbare und maximal flexible Desktop-Anwendung für Windows mit Python und Qt6.
+
+## 1. Ziel der Anwendung
+
+Die Anwendung ist eine modular erweiterbare Sammlung verschiedener technischer Berechnungsprogramme.
+
+Die aktuelle Version besitzt exakt drei Tabs:
+
+1. **Paketdaten**
+2. **Palettierung**
+3. **Vakuumplatte**
+
+Weitere Berechnungsprogramme sollen später als neue Tabs ergänzt werden können, ohne bestehende Tabs oder die Kernarchitektur umzubauen.
+
+Die Anwendung soll deshalb von Anfang an plugin-/modulartig aufgebaut werden.
+
+Wichtig:
+
+* GUI und Berechnungslogik strikt trennen.
+* Keine Berechnungsformeln direkt in Widgets.
+* Keine Datei-/Config-Zugriffe direkt aus Widgets.
+* Keine SQL- oder Infrastrukturzugriffe aus der GUI.
+* Fachlogik muss ohne Qt testbar sein.
+* GUI darf ausschließlich über Services bzw. klar definierte DTOs mit der Fachlogik kommunizieren.
+* Keine zyklischen Abhängigkeiten.
+* Neue Berechnungsmodule sollen mit möglichst wenig Code registriert werden können.
+
+---
+
+# 2. Architekturelle Leitlinien
+
+Orientiere dich strukturell an diesem Layer-Modell des Referenzprojekts:
+
+```text
+                         ┌───────────────────────┐
+                         │         GUI           │
+                         │ Fenster / Tabs / UI   │
+                         └───────────┬───────────┘
+                                     │ DTOs
+                         ┌───────────▼───────────┐
+                         │       SERVICES        │
+                         │ öffentliche GUI-API   │
+                         └──────┬──────────┬──────┘
+                                │          │
+                    ┌───────────▼───┐  ┌──▼────────────────┐
+                    │    ENGINES    │  │   REPOSITORIES / │
+                    │ Fachlogik     │  │ CONFIG / DATA    │
+                    └───────────┬───┘  └──┬────────────────┘
+                                │         │
+                         ┌──────▼─────────▼─────┐
+                         │       CORE / DTO      │
+                         │ Qt-freie Modelle etc.│
+                         └───────────────────────┘
+
+Querschnitt:
+core
+config
+jobs
+errors
+logging
+visualization adapters
+```
+
+Das Referenzprojekt verbietet Rückwärtsabhängigkeiten und prüft diese Regeln automatisiert per AST. Übernehme dieses Prinzip.
+
+## 3. Empfohlene Projektstruktur
+
+Erzeuge eine Struktur in dieser Richtung:
+
+```text
+project/
+│
+├── main.py
+├── pyproject.toml
+├── README.md
+│
+├── app/
+│   ├── __init__.py
+│   │
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── errors.py
+│   │   ├── cancellation.py
+│   │   ├── result.py
+│   │   └── primitives.py
+│   │
+│   ├── dto/
+│   │   ├── __init__.py
+│   │   ├── package.py
+│   │   ├── pallet.py
+│   │   ├── suction.py
+│   │   ├── vacuum.py
+│   │   └── common.py
+│   │
+│   ├── config/
+│   │   ├── __init__.py
+│   │   ├── loader.py
+│   │   ├── schema.py
+│   │   └── settings_service.py
+│   │
+│   ├── engines/
+│   │   ├── __init__.py
+│   │   ├── palletizing/
+│   │   │   ├── __init__.py
+│   │   │   ├── optimizer.py
+│   │   │   ├── constraints.py
+│   │   │   ├── patterns.py
+│   │   │   └── geometry.py
+│   │   │
+│   │   └── vacuum/
+│   │       ├── __init__.py
+│   │       ├── calculator.py
+│   │       ├── leakage.py
+│   │       ├── force.py
+│   │       └── geometry.py
+│   │
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── package_service.py
+│   │   ├── pallet_service.py
+│   │   ├── vacuum_service.py
+│   │   └── module_service.py
+│   │
+│   ├── jobs/
+│   │   ├── __init__.py
+│   │   ├── job_manager.py
+│   │   ├── worker.py
+│   │   └── job_types.py
+│   │
+│   ├── visualization/
+│   │   ├── __init__.py
+│   │   ├── pallet_2d.py
+│   │   ├── pallet_3d.py
+│   │   ├── vacuum_2d.py
+│   │   └── adapters.py
+│   │
+│   └── gui/
+│       ├── __init__.py
+│       ├── main_window.py
+│       ├── tab_manager.py
+│       │
+│       ├── package/
+│       │   └── package_tab.py
+│       │
+│       ├── pallet/
+│       │   └── pallet_tab.py
+│       │
+│       ├── vacuum/
+│       │   └── vacuum_tab.py
+│       │
+│       └── common/
+│           ├── status_bar.py
+│           ├── problem_panel.py
+│           ├── loading_widget.py
+│           └── widgets.py
+│
+├── config/
+│   ├── pallets.json
+│   ├── pallet_patterns.json
+│   ├── suction_cups.json
+│   └── vacuum_defaults.json
+│
+└── tests/
+    ├── test_architecture.py
+    ├── test_package.py
+    ├── test_palletizing.py
+    ├── test_vacuum.py
+    ├── test_config.py
+    ├── test_jobs.py
+    └── test_gui.py
+```
+
+Du darfst die Struktur verbessern, wenn du eine bessere Lösung begründen kannst. Behalte aber die Layer-Prinzipien bei.
+
+---
+
+# 4. Abhängigkeitsregeln
+
+Diese Regeln sind verbindlich:
+
+### core
+
+Darf importieren:
+
+* Python Standard Library
+
+Darf NICHT importieren:
+
+* PyQt6
+* GUI
+* Services
+* Engines
+* Config-Implementierungen
+
+`core` muss vollständig Qt-frei bleiben.
+
+### dto
+
+Nur einfache, immutable Datenobjekte.
+
+Bevorzugt:
+
+```python
+@dataclass(frozen=True, slots=True)
+class PackageSpec:
+    ...
+```
+
+Keine GUI-Objekte, keine Widgets, keine Berechnung.
+
+### engines
+
+Dürfen:
+
+* `core`
+* `dto`
+* reine Standardbibliothek
+* mathematische Libraries
+
+Dürfen NICHT:
+
+* PyQt6
+* Widgets
+* Services
+* GUI
+* direkte Dateizugriffe
+
+Berechnungsengines müssen vollständig unabhängig von Qt testbar sein.
+
+### services
+
+Services orchestrieren:
+
+```text
+GUI
+ ↓
+Service
+ ↓
+JobManager
+ ↓
+Engine
+ ↓
+DTO
+ ↓
+Service
+ ↓
+GUI
+```
+
+Die GUI bekommt niemals eine Engine direkt.
+
+### GUI
+
+Die GUI darf ausschließlich:
+
+* Benutzereingaben lesen
+* DTOs erzeugen
+* Services aufrufen
+* Signale empfangen
+* Widgets aktualisieren
+* Visualisierungen darstellen
+
+Keine Formeln, keine Optimierungsalgorithmen, keine Konfigurationsdateien direkt lesen.
+
+---
+
+# 5. Running Skeleton
+
+Baue zuerst ein vollständig laufendes Skeleton, bevor die eigentlichen komplizierten Berechnungsalgorithmen implementiert werden.
+
+Der Startablauf muss logisch ungefähr so aussehen:
+
+```text
+main.py
+   │
+   ▼
+Application.bootstrap()
+   │
+   ├── Config laden
+   ├── Logging initialisieren
+   ├── ErrorReporter initialisieren
+   ├── JobManager initialisieren
+   ├── Services erzeugen
+   ├── TabManager erzeugen
+   └── MainWindow erzeugen
+           │
+           ├── Tab: Paketdaten
+           ├── Tab: Palettierung
+           └── Tab: Vakuumplatte
+```
+
+Erzeuge dafür eine zentrale Composition Root / Application-Klasse.
+
+Beispiel:
+
+```python
+application = Application.bootstrap()
+application.run()
+```
+
+Die GUI soll niemals selbst Services mit komplexen Konstruktoren zusammenbauen.
+
+Alle Abhängigkeiten werden zentral zusammengesetzt.
+
+---
+
+# 6. Tab-System
+
+Die Tabs müssen selbstständig registrierbare Module sein.
+
+Definiere beispielsweise ein Konzept wie:
+
+```python
+class CalculationModule(Protocol):
+    module_id: str
+    title: str
+
+    def create_widget(self, context: AppContext) -> QWidget:
+        ...
+```
+
+Der `TabManager` erhält eine Liste registrierter Module:
+
+```python
+modules = [
+    PackageModule(),
+    PalletModule(),
+    VacuumModule(),
+]
+```
+
+Später muss man beispielsweise einfach:
+
+```python
+modules.append(SomeNewCalculationModule())
+```
+
+hinzufügen können.
+
+Kein Code in `MainWindow` darf spezifisch auf "Tab 1", "Tab 2", "Tab 3" zugeschnitten sein.
+
+Keine fest verdrahteten `if tab == 2`-Strukturen.
+
+---
+
+# 7. GUI-Reaktionsfähigkeit
+
+Der GUI-Thread darf niemals länger laufende Berechnungen ausführen.
+
+Das Referenzprojekt trennt interaktive, IO- und CPU-Arbeiten über Worker/Pools und fordert, dass Signalhandler niemals auf Ergebnisse warten.
+Für dieses Projekt:
+
+```text
+GUI Thread
+   │
+   ├── interactive jobs
+   │
+   └── calculation jobs
+         │
+         ├── pallet optimizer
+         └── vacuum calculation
+```
+
+Verwende einen zentralen `JobManager`.
+
+Berechnungen laufen:
+
+```python
+service.calculate_async(...)
+```
+
+und liefern später:
+
+```text
+job_started
+progress
+result_ready
+job_failed
+job_cancelled
+```
+
+zurück.
+
+Niemals:
+
+```python
+future.result()
+```
+
+im GUI-Thread.
+
+---
+
+# 8. Abbruch und veraltete Ergebnisse
+
+Jede asynchrone Anfrage bekommt eine monoton steigende `request_id`.
+
+Das Referenzprojekt verwendet genau dieses Muster, damit alte Berechnungsergebnisse nicht anschließend die aktuelle Ansicht überschreiben.
+
+Beispiel:
+
+```text
+request 41 startet
+request 42 startet
+request 41 beendet
+→ Ergebnis verwerfen
+
+request 42 beendet
+→ Ergebnis anzeigen
+```
+
+Zusätzlich:
+
+```python
+CancellationToken
+```
+
+für kooperativen Abbruch.
+
+Eine neue Berechnung kann dadurch eine alte Berechnung abbrechen bzw. deren Ergebnis ungültig machen.
+
+---
+
+# 9. Fehlerbehandlung
+
+Übernehme das Error-Modell des Referenzprojekts:
+
+```text
+Component
+    ↓
+AppError
+    ↓
+ErrorReporter
+    ├── Logging
+    ├── Problem Store
+    └── GUI Error Sink
+```
+
+Die Referenz verwendet die Stufen:
+
+```text
+INFO
+WARNING
+ERROR
+CRITICAL
+```
+
+und verlangt, dass ein fehlerhafter Sink die übrigen Fehlerausgänge nicht zerstört.
+
+Implementiere:
+
+```python
+@dataclass(frozen=True, slots=True)
+class AppError:
+    severity: Severity
+    source: str
+    message: str
+    technical_message: str | None
+    exception_type: str | None
+    timestamp: float
+```
+
+Fehler sollen grundsätzlich nicht dazu führen, dass der gesamten Anwendung ein Worker-Pool oder ein Tab stirbt.
+
+Unbehandelte Exceptions zusätzlich über globale Excepthooks abfangen.
+
+Im GUI keine modalen Fehlermeldungsdialoge bei normalen Berechnungsfehlern.
+
+Stattdessen:
+
+* Statusbar
+* Problemindikator
+* aufklappbare Problemliste
+
+Nur bei wirklich kritischen Startfehlern darf ein Dialog verwendet werden.
+
+---
+
+# 10. Architektur automatisch testen
+
+Erzeuge `tests/test_architecture.py`.
+
+Prüfe mindestens:
+
+* keine verbotenen Layer-Imports
+* Engines importieren niemals GUI
+* core importiert kein Qt
+* DTOs importieren keine GUI
+* GUI enthält keine Berechnungsformeln
+* Config wird nicht direkt in GUI gelesen
+* Visualisierung enthält keine Fachlogik
+* neue Module müssen dem Modulvertrag entsprechen
+
+Die Architektur soll nicht nur dokumentiert, sondern maschinell geschützt werden.

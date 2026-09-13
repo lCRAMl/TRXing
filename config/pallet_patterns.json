@@ -1,0 +1,128 @@
+{
+  "_comment": [
+    "Palettiermuster. Ein Muster bundelt zwei Entscheidungen:",
+    "  strategy  wie eine Lage in der Ebene aufgebaut wird",
+    "  z_mode    wie die naechste Lage zur vorigen steht",
+    "",
+    "Verfuegbare Strategien (registriert in app/engines/patterns/):",
+    "  auto           bester Kandidat aus allen generischen Strategien",
+    "  max_count      dichteste Packung (Guillotine, optional CP-SAT)",
+    "  uniform_grid   reines Raster, eine Ausrichtung, volle Reihen",
+    "  guillotine_mix Hauptraster plus gedrehte Reststreifen",
+    "  running_bond   Laeuferverband, jede zweite Reihe um eine halbe Kante versetzt",
+    "  checkerboard   Schachbrett, Ausrichtung wechselt je Feld",
+    "  pinwheel       Windrad, vier Quadranten mit wechselnder Ausrichtung",
+    "  spiral         konzentrische Ringe mit wechselnder Ausrichtung",
+    "  perimeter      geschlossener Randring, Kern in anderer Ausrichtung",
+    "  ring           geschlossener Randring, Kern bleibt frei",
+    "",
+    "z_mode: identical (Saeule), mirror (Verband), rotate90 (Kreuzverband).",
+    "",
+    "Hinweis zur Geometrie: checkerboard, pinwheel, spiral und perimeter",
+    "wechseln die Ausrichtung innerhalb einer Lage. Feldweise - also von Paket",
+    "zu Paket - geht das nur bei quadratischer Grundflaeche ohne Luecke auf.",
+    "Bei rechteckigen Paketen wechseln sie deshalb bandweise: jedes Band",
+    "besteht aus vollen Reihen einer Ausrichtung, und zwischen zwei Paketen",
+    "bleibt nie Platz. Der Wechsel wird im Rechenweg vermerkt.",
+    "",
+    "Einzige Ausnahme ist ring: sein freier Kern ist die Definition des",
+    "Musters. Wer eine geschlossene Lage will, waehlt perimeter.",
+    "",
+    "Neue Muster brauchen keinen Eingriff in den Tab: Eintrag hier ergaenzen,",
+    "sofern die Strategie in app/engines/patterns/ registriert ist."
+  ],
+  "version": 1,
+  "patterns": [
+    {
+      "id": "auto",
+      "name": "Automatisch (bester Kandidat)",
+      "strategy": "auto",
+      "z_mode": "mirror",
+      "description": "Vergleicht alle generischen Strategien und waehlt die mit der hoechsten Stueckzahl."
+    },
+    {
+      "id": "aligned",
+      "name": "Ausgerichtet (Block)",
+      "strategy": "uniform_grid",
+      "z_mode": "identical",
+      "description": "Alle Pakete gleich ausgerichtet, Lagen deckungsgleich uebereinander."
+    },
+    {
+      "id": "column",
+      "name": "Saeulenstapel",
+      "strategy": "uniform_grid",
+      "z_mode": "identical",
+      "description": "Wie Block - jedes Paket steht exakt auf dem darunter, beste Lastabtragung, schwacher Verbund."
+    },
+    {
+      "id": "rotated",
+      "name": "Gedreht (Kreuzverband)",
+      "strategy": "uniform_grid",
+      "z_mode": "rotate90",
+      "description": "Jede zweite Lage um 90 Grad gedreht - verzahnt die Lagen miteinander."
+    },
+    {
+      "id": "brick",
+      "name": "Laeuferverband (Brick)",
+      "strategy": "running_bond",
+      "z_mode": "mirror",
+      "description": "Reihen um eine halbe Paketlaenge versetzt, Lagen gespiegelt."
+    },
+    {
+      "id": "cross",
+      "name": "Kreuzverband",
+      "strategy": "guillotine_mix",
+      "z_mode": "rotate90",
+      "description": "Hauptraster mit gedrehten Reststreifen, Lagen wechselnd gedreht."
+    },
+    {
+      "id": "alternating",
+      "name": "Wechselverband",
+      "strategy": "max_count",
+      "z_mode": "rotate90",
+      "description": "Dichteste Lage, jede zweite Lage gedreht."
+    },
+    {
+      "id": "checkerboard",
+      "name": "Schachbrett",
+      "strategy": "checkerboard",
+      "z_mode": "identical",
+      "description": "Ausrichtung wechselt abwechselnd - bei quadratischem Paket feldweise, sonst bandweise. Immer lueckenlos."
+    },
+    {
+      "id": "pinwheel",
+      "name": "Windrad",
+      "strategy": "pinwheel",
+      "z_mode": "mirror",
+      "description": "Ausrichtung wechselt in Zweiergruppen; bei quadratischem Paket als vier Quadranten. Immer lueckenlos."
+    },
+    {
+      "id": "spiral",
+      "name": "Spiralverband",
+      "strategy": "spiral",
+      "z_mode": "mirror",
+      "description": "Ausrichtung wechselt von aussen nach innen; bei quadratischem Paket ringweise. Immer lueckenlos."
+    },
+    {
+      "id": "perimeter",
+      "name": "Randverband",
+      "strategy": "perimeter",
+      "z_mode": "identical",
+      "description": "Aeussere Baender in einer, Kern in der anderen Ausrichtung. Geschlossene Lage ohne Luecken."
+    },
+    {
+      "id": "ring",
+      "name": "Ringstapel (hohl)",
+      "strategy": "ring",
+      "z_mode": "identical",
+      "description": "Geschlossener Aussenring, Kern bleibt ausdruecklich frei - fuer eine geschlossene Lage den Randverband waehlen."
+    },
+    {
+      "id": "max_count",
+      "name": "Dichteste Packung",
+      "strategy": "max_count",
+      "z_mode": "mirror",
+      "description": "Maximale Stueckzahl je Lage ohne Ruecksicht auf Regelmaessigkeit."
+    }
+  ]
+}

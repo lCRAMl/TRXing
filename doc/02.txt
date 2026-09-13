@@ -1,0 +1,731 @@
+# 11. Tab 1 – Paketdaten
+
+Der erste Tab ist die zentrale Eingabemaske für das zu berechnende Paket.
+
+Aktuell benötigte Parameter:
+
+```text
+Länge
+Breite
+Höhe
+Gewicht
+```
+
+Einheiten primär:
+
+```text
+mm
+kg
+```
+
+Intern ausschließlich SI-kompatible bzw. eindeutig definierte Einheiten verwenden.
+
+Beispiel-Dataclass:
+
+```python
+@dataclass(frozen=True, slots=True)
+class PackageSpec:
+    length_mm: float
+    width_mm: float
+    height_mm: float
+    weight_kg: float
+```
+
+Validierung:
+
+* Werte > 0
+* sinnvolle Grenzwerte
+* keine NaN/Infinity-Werte
+* eindeutige Fehlermeldungen
+
+Die Package-Spezifikation muss zentral gehalten werden und von Tab 2 und Tab 3 verwendet werden können.
+
+Tab 1 ist deshalb die "Quelle der Wahrheit" für das aktuelle Paket.
+
+Ändert der Benutzer beispielsweise die Breite, müssen abhängige Berechnungen in Tab 2 und Tab 3 ihre bisherige Darstellung als veraltet erkennen.
+
+---
+
+# 12. Tab 2 – Palettierung
+
+Ziel:
+
+Mehrere identische Pakete auf einer Palette optimal anordnen.
+
+Dabei müssen verschiedene Palettentypen und Palettiermuster unterstützt werden.
+
+## 12.1 Eingaben
+
+Mindestens:
+
+```text
+Paket
+Palettentyp
+Palettiermuster
+maximale Palettenhöhe
+maximale Gesamtlast der Palette
+maximale Belastbarkeit des Pakets
+Anzahl gewünschter Pakete (optional)
+```
+
+Palettentypen werden NICHT im Code hardcodiert.
+
+Sie werden aus:
+
+```text
+config/pallets.json
+```
+
+geladen.
+
+Beispiel:
+
+```json
+{
+  "pallets": [
+    {
+      "id": "euro_1200x800",
+      "name": "Europalette",
+      "length_mm": 1200,
+      "width_mm": 800,
+      "max_load_kg": 1500,
+      "max_height_mm": 1800
+    }
+  ]
+}
+```
+
+Zusätzliche Felder dürfen später ergänzt werden.
+
+---
+
+# 12.2 Palettiermuster
+
+Palettiermuster ebenfalls als externe Konfiguration:
+
+```text
+config/pallet_patterns.json
+```
+
+Beispiele:
+
+```text
+aligned
+rotated
+brick
+column
+cross
+alternating
+custom
+```
+
+Die Architektur muss neue Muster erlauben, ohne den Tab umzubauen.
+
+Ein Muster soll über eine Strategie bzw. ein Strategy-Interface implementiert werden.
+
+Beispiel:
+
+```python
+class PalletPattern(Protocol):
+    pattern_id: str
+
+    def generate_layer(
+        self,
+        package: PackageSpec,
+        pallet: PalletSpec,
+    ) -> list[Placement]:
+        ...
+```
+
+Die konkrete Geometrie darf ausschließlich in der Engine existieren.
+
+---
+
+# 12.3 Optimierungsziele
+
+Die Berechnung soll mehrere Ziele berücksichtigen.
+
+Primäres Ziel:
+
+```text
+maximale Anzahl Pakete
+```
+
+Sekundäres Ziel:
+
+```text
+maximale Flächenausnutzung / Platzausnutzung
+```
+
+Weitere harte Constraints:
+
+```text
+Paket darf Palette nicht überschreiten
+Palette darf maximal zulässige Gesamtlast nicht überschreiten
+maximale Palettenhöhe darf nicht überschritten werden
+Paket darf nicht unzulässig belastet werden
+```
+
+Für die Paketbelastbarkeit muss berücksichtigt werden, wie viele Pakete darüber stehen.
+
+Beispiel:
+
+```text
+oberstes Paket
+→ 0 Pakete darüber
+
+zweite Ebene
+→ 1 Paket darüber
+
+dritte Ebene
+→ 2 Pakete darüber
+```
+
+Die zulässige Belastung des jeweiligen Pakets ist dadurch eine Einschränkung der maximal möglichen Stapelhöhe.
+
+---
+
+# 12.4 Optimierer
+
+Der Optimierer muss unabhängig vom GUI funktionieren.
+
+Beispielstruktur:
+
+```python
+class PalletOptimizer:
+    def optimize(
+        self,
+        package: PackageSpec,
+        pallet: PalletSpec,
+        pattern: PalletPatternSpec,
+        constraints: PalletConstraints,
+    ) -> PalletResult:
+        ...
+```
+
+`PalletResult` enthält ausschließlich Daten:
+
+```text
+Anzahl Pakete
+Anzahl Ebenen
+Pakete je Ebene
+benutzte Palettenfläche
+Ausnutzungsgrad
+Gesamthöhe
+Gesamtgewicht
+maximale Paketbelastung
+Positionen aller Pakete
+verwendetes Muster
+```
+
+Keine Qt-Objekte.
+
+---
+
+# 12.5 2D- und 3D-Darstellung
+
+Innerhalb des Paletten-Tabs muss zwischen:
+
+```text
+2D Draufsicht
+3D Ansicht
+```
+
+umgeschaltet werden können.
+
+Die Darstellung darf die Berechnung NICHT selbst durchführen.
+
+Die Engine erzeugt beispielsweise:
+
+```python
+PalletPlacement
+```
+
+mit:
+
+```text
+x
+y
+z
+length
+width
+height
+rotation
+package_index
+layer
+```
+
+Die 2D- und 3D-Renderer visualisieren genau diese Daten.
+
+Architektur:
+
+```text
+PalletResult
+      │
+      ├──> Pallet2DRenderer
+      │
+      └──> Pallet3DRenderer
+```
+
+Nicht:
+
+```text
+PalletTab
+   └── selbst Positionen berechnen
+```
+
+---
+
+# 12.6 Visualisierung
+
+Die Visualisierung soll professionell und technisch wirken.
+
+2D:
+
+* Palette als Rechteck
+* Pakete als Rechtecke
+* unterschiedliche Ebenen auswählbar
+* Rotation sichtbar
+* Bemaßung bzw. Abmessungsinformationen
+* freie Fläche sichtbar
+
+3D:
+
+* Palette
+* Pakete
+* Ebenen
+* Rotation
+* freie Flächen
+* Kamera drehen
+* Zoom
+* Pan
+* perspektivische Darstellung
+
+Nutze nach Möglichkeit eine etablierte Qt-kompatible 3D-Komponente.
+
+Die 3D-Abhängigkeit muss hinter einem Adapter gekapselt sein, damit sie später problemlos ersetzt werden kann.
+
+---
+
+# 13. Tab 3 – Vakuumplatte
+
+Der dritte Tab simuliert eine Vakuum-Saugerplatte zum Anheben des in Tab 1 definierten Pakets.
+
+Die Saugnäpfe basieren zunächst auf:
+
+**Schmalz Bellows Suction Cups SPB2 (2.5 Folds)**
+
+Datenblatt:
+
+https://media.schmalz.com/MAM_Library/Dokumente/Datenblatt_Produktfamilie/0_/048/04880/5f161da1f703_Datasheet_Bellows%20Suction%20Cups%20SPB2%20(2.5%20Folds)_en-EN.pdf
+
+Das aktuell gelieferte Datenblatt enthält SPB2-Größen 20, 25, 30, 40 und 50 mm.
+
+Wichtige Daten daraus müssen NICHT in Python hartcodiert werden, sondern in die Config überführt werden.
+
+Beispielsweise:
+
+```json
+{
+  "suction_cups": [
+    {
+      "id": "spb2_20",
+      "manufacturer": "Schmalz",
+      "family": "SPB2",
+      "diameter_mm": 20,
+      "material": "ED-65",
+      "folds": 2.5,
+      "theoretical_force_n_at_600mbar": 6.8,
+      "recommended_hose_inner_diameter_mm": 4
+    }
+  ]
+}
+```
+
+Die Werte 6,8 / 9,9 / 14,4 / 24,8 / 34,6 N für 20/25/30/40/50 mm stammen aus dem Datenblatt.
+
+Wichtig:
+Die angegebenen theoretischen Kräfte gelten bei -0,6 bar und glatter, trockener Oberfläche und enthalten keinen Sicherheitsfaktor.
+
+Deshalb muss der Sicherheitsfaktor im Programm separat konfigurierbar sein.
+
+---
+
+# 14. Vakuumplatten-Geometrie
+
+Der Benutzer kann einstellen:
+
+```text
+Plattenlänge
+Plattenbreite
+```
+
+Optional später:
+
+```text
+Plattendicke
+Randabstand
+Mindestabstand zwischen Saugern
+```
+
+Die Platte wird in der Draufsicht dargestellt.
+
+Darauf befinden sich:
+
+```text
+Saugnäpfe
+Pakete
+```
+
+Die Saugnäpfe werden automatisch verteilt.
+
+---
+
+# 15. Automatische Saugerverteilung
+
+Default-Verhalten:
+
+Bei Auswahl einer Platte und eines Saugers soll automatisch die maximal mögliche Anzahl Sauger auf der Platte verteilt werden.
+
+Dabei berücksichtigen:
+
+```text
+Plattengröße
+Sauger-Außendurchmesser
+Randabstand
+Mindestabstand
+```
+
+Die Verteilung soll deterministisch und nachvollziehbar sein.
+
+Beispiel:
+
+```text
+horizontal_count
+vertical_count
+
+total = horizontal_count * vertical_count
+```
+
+Später muss aber auch freie oder kundenspezifische Positionierung erweiterbar sein.
+
+Daher nicht direkt in das UI programmieren.
+
+Erzeuge eine eigene:
+
+```python
+SuctionLayoutEngine
+```
+
+---
+
+# 16. Einstellbare Anzahl Sauger
+
+Der Benutzer muss die Anzahl der aktiven Sauger verändern können.
+
+Beispielsweise:
+
+```text
+[ Anzahl Sauger: 24 ]
+```
+
+oder über:
+
+* SpinBox
+* Slider
+* automatische Maximierung
+
+Wenn weniger Sauger als maximal möglich gewählt werden, sollen die Sauger sinnvoll und gleichmäßig verteilt werden.
+
+---
+
+# 17. Pakete auf der Vakuumplatte
+
+Der Benutzer kann die Anzahl der zu hebenden Pakete einstellen.
+
+Beispiel:
+
+```text
+Pakete: [ 1 ]
+```
+
+Die Pakete stammen geometrisch aus `PackageSpec` von Tab 1.
+
+Die Darstellung muss dieselben Abmessungen verwenden.
+
+---
+
+# 18. Palettiermuster aus Tab 2 wiederverwenden
+
+Ist in Tab 2 ein Palettiermuster gewählt, soll Tab 3 dieses Muster wiederverwenden können.
+
+Beispiel:
+
+```text
+Tab 2:
+Muster = brick
+
+↓
+Tab 3:
+
+Pakete auf Vakuumplatte entsprechend brick-Muster angeordnet
+```
+
+Dafür darf Tab 3 NICHT die Palettierlogik duplizieren.
+
+Stattdessen muss die Positionierungslogik gemeinsame DTOs/Strategien verwenden.
+
+Architektur:
+
+```text
+Pattern Definition
+       │
+       ├── Palletizer
+       │
+       └── Vacuum Plate Package Layout
+```
+
+Die beiden Ansichten können unterschiedliche Randbedingungen haben, dürfen aber die gemeinsame Musterdefinition verwenden.
+
+---
+
+# 19. Ermittlung der tatsächlich aufliegenden Sauger
+
+Sehr wichtig:
+
+Die reine Anzahl vorhandener Sauger ist nicht gleich der Anzahl wirksamer Sauger.
+
+Es muss geometrisch ermittelt werden:
+
+```text
+welche Sauger vollständig/ausreichend auf einer Kartonfläche liegen
+```
+
+und welche Sauger:
+
+```text
+auf der Platte liegen
+aber keinen Karton berühren.
+```
+
+Die zweite Gruppe erzeugt Fremdluft bzw. Leckage.
+
+Unterscheide mindestens:
+
+```text
+sealed suction cups
+open suction cups
+partial-contact suction cups
+```
+
+Bei rechteckigem Karton und runden Saugern soll die tatsächlich überdeckte Fläche berechnet bzw. sinnvoll approximiert werden.
+
+Keine reine Zählung nach Mittelpunkt.
+
+---
+
+# 20. Physikalisches Berechnungsmodell Vakuum
+
+Das Modell muss mindestens diese Größen berücksichtigen:
+
+```text
+Anzahl wirksamer Sauger
+tatsächliche wirksame Saugfläche
+Vakuum / Unterdruck
+theoretische Saugerkraft
+Sicherheitsfaktor
+Paketgewicht
+Kartonpermeabilität
+Volumenstrom
+offene Sauger
+Leckage
+```
+
+Grundsätzlich gilt:
+
+```text
+Haltekraft = Druckdifferenz × wirksame Fläche
+```
+
+Die theoretischen Herstellerkräfte dürfen als Referenzwert verwendet werden, müssen aber nicht blind mit der geometrischen Fläche multipliziert werden.
+
+Implementiere eine klar abgegrenzte `ForceModel`-Komponente.
+
+---
+
+# 21. Offene Sauger / Fremdluft
+
+Das Programm muss ausdrücklich berücksichtigen:
+
+```text
+Sauger vorhanden
+↓
+kein Karton darüber
+↓
+kein wirksamer Kontakt
+↓
+Sauger zieht Fremdluft
+↓
+zusätzlicher Volumenstrom
+↓
+weniger verfügbare Vakuumleistung
+```
+
+Die Berechnung muss deshalb mindestens unterscheiden:
+
+```text
+Q_total
+Q_leak
+Q_workpiece
+```
+
+und nachvollziehbar darstellen:
+
+```text
+Gesamt benötigter Volumenstrom
+Volumenstrom durch offene Sauger
+Volumenstrom für permeablen Karton
+verbleibender Volumenstrom
+```
+
+---
+
+# 22. Kartonpermeabilität
+
+Die Permeabilität darf NICHT als eine willkürlich erfundene Naturkonstante behandelt werden.
+
+Sie muss als konfigurierbarer Eingabewert modelliert werden.
+
+Beispielsweise:
+
+```text
+Kartonpermeabilität
+Einheit / Modellparameter
+```
+
+Die Software muss verschiedene Modelltypen erlauben.
+
+Beispielsweise:
+
+```text
+None
+constant leakage
+flow-per-area
+pressure-dependent leakage
+empirical
+```
+
+Die konkrete Formel soll in einer austauschbaren Klasse liegen.
+
+Beispiel:
+
+```python
+class LeakageModel(Protocol):
+    def calculate_flow(
+        self,
+        pressure_pa: float,
+        area_mm2: float,
+        permeability: float,
+    ) -> float:
+        ...
+```
+
+Keine Leakage-Formel direkt im Tab.
+
+---
+
+# 23. Ergebnisanzeige Tab 3
+
+Die Ergebnisse sollen deutlich und technisch verständlich angezeigt werden.
+
+Mindestens:
+
+```text
+Anzahl Sauger gesamt
+wirksame Sauger
+offene Sauger
+teilweise wirksame Sauger
+
+effektive Saugfläche
+
+Vakuum
+Volumenstrom verfügbar
+Volumenstrom benötigt
+Leckage
+```
+
+und besonders:
+
+```text
+maximal zulässiges Paketgewicht
+```
+
+sowie:
+
+```text
+Sicherheitsfaktor
+```
+
+Darüber hinaus:
+
+```text
+Status:
+Sicher
+Grenzwertig
+Nicht ausreichend
+```
+
+Diese Klassifikation muss aus numerischen Grenzwerten abgeleitet werden und nicht aus GUI-Heuristiken.
+
+---
+
+# 24. Rückwärtsberechnung
+
+Eine zentrale Funktion des Tabs soll die Rückwärtsfrage sein:
+
+> Wie schwer darf das Paket bei der aktuell wirksamen Saugeranzahl, der vorhandenen Saugfläche, der Kartonpermeabilität und dem verfügbaren Volumenstrom maximal sein?
+
+Der Benutzer soll also beispielsweise einstellen:
+
+```text
+Sauger: SPB2 30
+Platte: 800 x 600 mm
+Anzahl Sauger: 48
+Kartonpermeabilität: X
+Volumenstrom: Y
+```
+
+und die Software berechnet:
+
+```text
+maximales zulässiges Gewicht
+```
+
+mit Sicherheitsfaktor.
+
+Zusätzlich soll die Umkehrrechnung möglich sein:
+
+```text
+gegebenes Paketgewicht
+→ erforderliche Saugeranzahl
+```
+
+soweit das Modell dies zulässt.
+
+---
+
+# 25. Wichtige physikalische Designregel
+
+Erfinde keine Herstellerkennwerte.
+
+Wenn ein erforderlicher Wert nicht aus dem Datenblatt hervorgeht, muss er:
+
+1. als Konfigurationswert modelliert werden oder
+2. als unbekannter Parameter gekennzeichnet werden oder
+3. über ein explizit benanntes vereinfachtes Modell approximiert werden.
+
+Jede Approximation muss im Code und in der GUI erkennbar sein.
+
+Keine scheinbar exakten physikalischen Ergebnisse aus frei erfundenen Parametern.
+
+Die Herstellerangaben sind Referenzdaten; sie sind ausdrücklich theoretische Werte und ohne Sicherheitsfaktor.

@@ -1,0 +1,932 @@
+# 26. Konfiguration
+
+Alle variablen technischen Daten gehören in Konfigurationsdateien.
+
+Mindestens:
+
+```text
+config/
+├── pallets.json
+├── pallet_patterns.json
+├── suction_cups.json
+└── vacuum_defaults.json
+```
+
+Keine technischen Produktdaten in GUI-Code.
+
+Keine Palettendimensionen als magische Zahlen.
+
+Keine Saugerdurchmesser als magische Zahlen.
+
+Keine Herstellerkräfte als magische Zahlen.
+
+---
+
+# 27. Config-Service
+
+Die GUI darf nicht direkt:
+
+```python
+json.load(open(...))
+```
+
+verwenden.
+
+Stattdessen:
+
+```text
+SettingsService
+      │
+      ├── get_pallets()
+      ├── get_patterns()
+      ├── get_suction_cups()
+      └── get_vacuum_defaults()
+```
+
+Die Referenzarchitektur verwendet ebenfalls eine zentrale typisierte Settings-Schicht mit Defaults und Validierung.
+
+Validiere Config-Dateien beim Start.
+
+Fehlerhafte Einträge:
+
+* sauber melden
+* nicht die gesamte Anwendung unkontrolliert abstürzen lassen
+* wenn möglich mit Default/Recovery-Verhalten arbeiten
+
+---
+
+# 28. DTO-Design
+
+DTOs sind die Schichtgrenze zwischen Engine, Services und GUI.
+
+Beispiele:
+
+```python
+PackageSpec
+PalletSpec
+PalletPatternSpec
+Placement
+PalletResult
+
+SuctionCupSpec
+VacuumPlateSpec
+SuctionPlacement
+VacuumInput
+VacuumResult
+```
+
+Alle DTOs:
+
+```python
+@dataclass(frozen=True, slots=True)
+```
+
+soweit sinnvoll.
+
+DTOs enthalten Daten, nicht Verhalten.
+
+---
+
+# 29. Service-API
+
+Beispiel:
+
+```python
+class PackageService:
+    def get_current_package(self) -> PackageSpec:
+        ...
+
+    def update_package(self, package: PackageSpec) -> None:
+        ...
+```
+
+```python
+class PalletService:
+    def calculate_async(
+        self,
+        package: PackageSpec,
+        pallet: PalletSpec,
+        pattern: PalletPatternSpec,
+        constraints: PalletConstraints,
+    ) -> JobHandle:
+        ...
+```
+
+```python
+class VacuumService:
+    def calculate_async(
+        self,
+        request: VacuumInput,
+    ) -> JobHandle:
+        ...
+```
+
+Die GUI kennt weder:
+
+```text
+PalletOptimizer
+VacuumCalculator
+LeakageModel
+ForceModel
+```
+
+noch deren interne Implementierung.
+
+---
+
+# 30. Gemeinsamer App-State
+
+Erzeuge einen zentralen, kleinen Application State.
+
+Beispielsweise:
+
+```text
+current_package
+selected_pallet
+selected_pattern
+selected_suction_cup
+current_vacuum_plate
+```
+
+Nicht jeden Zustand über Signals von Tab zu Tab durchreichen.
+
+Aber:
+
+Der State darf keine GUI-Widgets enthalten.
+
+Beispiel:
+
+```python
+@dataclass
+class AppState:
+    package: PackageSpec | None
+    pallet_id: str | None
+    pattern_id: str | None
+    suction_cup_id: str | None
+```
+
+Änderungen erzeugen fachliche Events bzw. Service-Notifications.
+
+---
+
+# 31. Rechenablauf
+
+Beispiel Palettierung:
+
+```text
+User ändert Paket
+      │
+      ▼
+PackageTab
+      │
+      ▼
+PackageService
+      │
+      ▼
+ApplicationState
+      │
+      ├───────────────► PalletTab invalidiert Ergebnis
+      │
+      └───────────────► VacuumTab invalidiert Ergebnis
+
+User klickt "Berechnen"
+      │
+      ▼
+PalletTab
+      │
+      ▼
+PalletService.calculate_async()
+      │
+      ▼
+JobManager
+      │
+      ▼
+Worker
+      │
+      ▼
+PalletOptimizer
+      │
+      ▼
+PalletResult DTO
+      │
+      ▼
+Service
+      │
+      ▼
+request_id prüfen
+      │
+      ▼
+PalletTab aktualisieren
+```
+
+Analog für den VacuumService.
+
+---
+
+# 32. Keine Blockierung bei Parameteränderungen
+
+Bei kleinen Änderungen wie:
+
+```text
+Paketbreite
+Paketgewicht
+Saugeranzahl
+Plattengröße
+```
+
+kann automatisch neu gerechnet werden.
+
+Aber:
+
+* Debounce verwenden
+* z.B. 100–300 ms
+* nicht für jeden einzelnen Tastendruck einen CPU-Job starten
+* laufende veraltete Jobs abbrechen/invalidieren
+
+Beispiel:
+
+```text
+Benutzer tippt:
+
+100
+1000
+10000
+
+nicht:
+3 separate teure Berechnungen
+
+sondern:
+Debounce
+→ eine Berechnung
+```
+
+---
+
+# 33. GUI-Design
+
+Die Anwendung soll wie ein professionelles technisches Engineering-Tool wirken.
+
+Hauptfenster:
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│  Berechnungen                                                │
+├──────────────────────────────────────────────────────────────┤
+│ [ Paketdaten ] [ Palettierung ] [ Vakuumplatte ]             │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│                        Tab-Inhalt                            │
+│                                                              │
+├──────────────────────────────────────────────────────────────┤
+│ Status / Berechnung / Warnungen                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Deutschsprachige GUI.
+
+Code und technische Identifier auf Englisch.
+
+---
+
+# 34. Paketdaten-Tab
+
+Links / oben:
+
+```text
+Länge
+Breite
+Höhe
+Gewicht
+```
+
+Rechts:
+
+```text
+Volumen
+```
+
+optional später:
+
+```text
+Dichte
+```
+
+Eingaben klar beschriften:
+
+```text
+Länge [mm]
+Breite [mm]
+Höhe [mm]
+Gewicht [kg]
+```
+
+Fehler direkt am Eingabefeld anzeigen.
+
+---
+
+# 35. Palettierung-Tab
+
+Bedienelemente:
+
+```text
+Palettentyp       [Dropdown]
+Palettiermuster   [Dropdown]
+
+max. Höhe         [mm]
+max. Palettenlast [kg]
+
+[ Berechnen ]
+```
+
+Ergebnisbereich:
+
+```text
+Pakete gesamt
+Pakete / Lage
+Anzahl Lagen
+Gesamtgewicht
+Gesamthöhe
+Flächenausnutzung
+```
+
+Ansicht:
+
+```text
+[ 2D ] [ 3D ]
+```
+
+Optional Ebenenauswahl:
+
+```text
+Ebene: [ 1 ▼ ]
+```
+
+---
+
+# 36. Vakuumplatten-Tab
+
+Bedienelemente beispielsweise links:
+
+```text
+Sauger-Typ
+[ SPB2 30 ▼ ]
+
+Plattenlänge
+[ 800 ]
+
+Plattenbreite
+[ 600 ]
+
+Saugeranzahl
+[ automatisch / 48 ]
+
+Anzahl Pakete
+[ 1 ]
+
+Kartonpermeabilität
+[ ... ]
+
+Volumenstrom
+[ ... ]
+
+Vakuum
+[ ... ]
+
+Sicherheitsfaktor
+[ ... ]
+```
+
+Rechts bzw. zentral:
+
+```text
+┌─────────────────────────────┐
+│                             │
+│        VAKUUMPLATTE         │
+│    ○ ○ ○ ○ ○ ○ ○ ○          │
+│    ○  ┌────────────┐ ○      │
+│    ○  │   Paket    │ ○      │
+│    ○  └────────────┘ ○      │
+│                             │
+└─────────────────────────────┘
+```
+
+Unter bzw. neben der Darstellung:
+
+```text
+Sauger gesamt
+Wirksame Sauger
+Offene Sauger
+Effektive Saugfläche
+Volumenstrom benötigt
+Volumenstrom verfügbar
+Max. Paketgewicht
+Sicherheitsfaktor
+```
+
+---
+
+# 37. Visualisierungsmodell
+
+Die Renderer erhalten ausschließlich vorberechnete DTOs.
+
+Beispiel:
+
+```python
+VacuumVisualizationState(
+    plate=...,
+    suction_cups=[...],
+    packages=[...],
+    active_cups=[...],
+    open_cups=[...],
+)
+```
+
+Der Renderer darf anhand dieser Daten zeichnen.
+
+Er darf jedoch nicht entscheiden:
+
+```text
+ob ein Sauger wirksam ist
+```
+
+Diese Entscheidung gehört in die Engine.
+
+---
+
+# 38. Teststrategie
+
+Schreibe umfangreiche Unit-Tests.
+
+## Package
+
+Tests:
+
+* gültige Maße
+* Nullwerte
+* negative Werte
+* Grenzwerte
+* Volumenberechnung
+
+## Palletizing
+
+Tests:
+
+* korrektes Platzieren
+* Rotation
+* Palettenbegrenzung
+* Höhenbegrenzung
+* Gewichtsgrenze
+* Paketbelastbarkeit
+* verschiedene Muster
+* reproduzierbare Ergebnisse
+
+## Vacuum
+
+Tests:
+
+* automatische maximale Saugeranzahl
+* Plattengröße
+* Saugergröße
+* komplett bedeckter Sauger
+* offener Sauger
+* partiell bedeckter Sauger
+* mehrere Pakete
+* Kraftberechnung
+* Sicherheitsfaktor
+* Volumenstrom
+* Leakage
+* Permeabilität
+* Rückwärtsberechnung maximales Paketgewicht
+
+## Jobs
+
+Tests:
+
+* Job läuft
+* Job beendet
+* Job abgebrochen
+* Worker Exception
+* Fehler wird gemeldet
+* alte `request_id` wird verworfen
+* neue Anfrage gewinnt
+
+## Architecture
+
+Automatisch prüfen:
+
+```text
+GUI → Services erlaubt
+Services → Engines erlaubt
+Engines → GUI verboten
+Core → Qt verboten
+DTO → GUI verboten
+```
+
+---
+
+# 39. Reproduzierbarkeit
+
+Alle Optimierer müssen deterministische Ergebnisse liefern.
+
+Bei identischen Eingaben:
+
+```text
+Input A
+=
+Input B
+
+→ exakt gleiche Result-Daten
+```
+
+Keine zufällige Anordnung ohne expliziten Seed.
+
+---
+
+# 40. Debugfreundlichkeit
+
+Jede Berechnung soll einen nachvollziehbaren Debug-Kontext besitzen.
+
+Beispielsweise:
+
+```text
+calculation_id
+request_id
+module_id
+timestamp
+input summary
+algorithm version
+```
+
+Bei Fehlern soll das Log erkennen lassen:
+
+```text
+PalletService
+request_id=124
+pattern=brick
+pallet=euro_1200x800
+package=400x300x200
+```
+
+Nicht komplette Objekt-Dumps mit unnötig großen Datenmengen loggen.
+
+---
+
+# 41. Ergebnis-Trace
+
+Für komplexe Berechnungen soll optional ein Diagnosemodell erzeugt werden.
+
+Beispiel Palettierung:
+
+```text
+Input
+↓
+allowed orientations
+↓
+pattern candidates
+↓
+candidate layers
+↓
+height filtering
+↓
+weight filtering
+↓
+best candidate
+```
+
+Beispiel Vakuum:
+
+```text
+plate geometry
+↓
+suction positions
+↓
+package intersections
+↓
+effective cups
+↓
+open cups
+↓
+effective area
+↓
+workpiece leakage
+↓
+open-cup leakage
+↓
+required flow
+↓
+available force
+↓
+maximum lift mass
+```
+
+Damit soll man später einen Debug-/Analysemodus hinzufügen können, ohne die Berechnungsengine umzubauen.
+
+---
+
+# 42. Implementierungsreihenfolge
+
+Arbeite strikt in diesen Meilensteinen.
+
+## M0 – Repository
+
+Erzeuge:
+
+* Projektstruktur
+* pyproject.toml
+* main.py
+* README
+* tests
+
+Anwendung muss starten.
+
+---
+
+## M1 – Core
+
+Implementiere:
+
+* DTOs
+* AppError
+* ErrorReporter
+* CancellationToken
+* Result/Status-Objekte
+
+Alles zunächst Qt-frei.
+
+Tests schreiben.
+
+---
+
+## M2 – Config
+
+Implementiere:
+
+* Config Loader
+* Schema
+* Validierung
+* Sample Configs
+* SettingsService
+
+Anwendung muss mit den Beispiel-Configs starten.
+
+---
+
+## M3 – Job-System
+
+Implementiere:
+
+* Worker
+* JobManager
+* Cancellation
+* request_id
+* Fehlerweitergabe
+* Progress
+
+Noch ohne komplexe Berechnung.
+
+---
+
+## M4 – GUI Skeleton
+
+Implementiere:
+
+* MainWindow
+* TabManager
+* 3 Tabs
+* Statusbar
+* Problem Panel
+* gemeinsame AppContext/Services
+
+Alle drei Tabs müssen sichtbar und benutzbar sein.
+
+---
+
+## M5 – Paketdaten
+
+Implementiere vollständige PackageSpec-Eingabe.
+
+Änderung der Paketdaten muss im zentralen State landen.
+
+---
+
+## M6 – Palettier-Engine
+
+Implementiere:
+
+* PalletSpec
+* PatternSpec
+* Placement
+* Layer generation
+* Constraints
+* Optimizer
+
+Erst danach GUI-Integration.
+
+---
+
+## M7 – Palettier-GUI
+
+Implementiere:
+
+* Dropdowns
+* Ergebnisanzeige
+* 2D View
+* 3D View
+* Umschaltung
+
+---
+
+## M8 – Vakuum-Engine
+
+Implementiere:
+
+* Sauger-Config
+* Saugerverteilung
+* geometrische Überdeckung
+* effektive Sauger
+* offene Sauger
+* Kraftmodell
+* Leakage-Modell
+* Volumenstrommodell
+* maximales Gewicht
+
+---
+
+## M9 – Vakuum-GUI
+
+Implementiere:
+
+* Controls
+* automatische Saugerbestückung
+* Paketdarstellung
+* Musterübernahme von Tab 2
+* Ergebnisanzeige
+* Zustandsbewertung
+
+---
+
+## M10 – Integration
+
+Änderungen an Tab 1 müssen sauber an Tab 2 und Tab 3 weitergegeben werden.
+
+Beispiel:
+
+```text
+Paket 400×300×200
+↓
+Palettierung berechnet
+
+Paketbreite ändern
+↓
+alte Ergebnisse ungültig
+↓
+neue Berechnung
+```
+
+---
+
+## M11 – Robustheit
+
+Testen:
+
+* schnelle Eingabeänderungen
+* parallele Jobs
+* Abbruch
+* Fehler
+* ungültige Config
+* fehlende Config
+* extreme Maße
+* große Saugeranzahl
+* viele Pakete
+* große Palette
+
+---
+
+# 43. Acceptance Criteria
+
+Das Projekt ist erst dann als fertig anzusehen, wenn alle folgenden Punkte erfüllt sind:
+
+### Architektur
+
+* Layer strikt getrennt
+* keine verbotenen Abhängigkeiten
+* GUI kennt keine Berechnungsengine
+* Berechnungsengine benötigt kein Qt
+* neue Tabs können modular ergänzt werden
+
+### GUI
+
+* Anwendung startet
+* alle drei Tabs funktionieren
+* keine GUI-Freezes während Berechnung
+* 2D/3D-Umschaltung funktioniert
+* Config-Daten erscheinen in Dropdowns
+
+### Paketdaten
+
+* Eingabe funktioniert
+* Validierung funktioniert
+* zentraler State funktioniert
+
+### Palettierung
+
+* mehrere Palettentypen
+* mehrere Muster
+* Optimierung
+* Gewichtsgrenzen
+* Höhenbegrenzung
+* Paketbelastung
+* 2D
+* 3D
+
+### Vakuum
+
+* mehrere Saugergrößen
+* automatische Bestückung
+* manuell einstellbare Saugeranzahl
+* einstellbare Plattengröße
+* mehrere Pakete
+* Musterübernahme
+* effektive Sauger
+* offene Sauger
+* Saugfläche
+* Volumenstrom
+* Leakage
+* Permeabilität
+* Sicherheitsfaktor
+* maximales Paketgewicht
+
+### Qualität
+
+* Unit-Tests
+* Integrationstests
+* Architekturtests
+* reproduzierbare Berechnungen
+* sauberes Logging
+* Fehlerbehandlung
+* keine still verschluckten Exceptions
+
+---
+
+# 44. Wichtige Implementierungsregel
+
+Nicht versuchen, sofort die komplette Anwendung in einer Datei oder wenigen großen Klassen umzusetzen.
+
+Insbesondere NICHT:
+
+```text
+main_window.py
+    ├── Package calculations
+    ├── Pallet calculations
+    ├── Vacuum calculations
+    ├── JSON parsing
+    ├── optimization
+    ├── drawing
+    └── error handling
+```
+
+Stattdessen:
+
+```text
+GUI
+ ↓
+Services
+ ↓
+Jobs
+ ↓
+Engines
+ ↓
+DTOs
+```
+
+mit klaren Verantwortlichkeiten.
+
+---
+
+# 45. Vorgehensweise für Claude Code
+
+Arbeite tatsächlich schrittweise.
+
+Nach jedem Meilenstein:
+
+1. Dateien erstellen/ändern
+2. Anwendung starten bzw. Tests ausführen
+3. Fehler beheben
+4. Architekturregeln prüfen
+5. erst dann zum nächsten Meilenstein gehen
+
+Nicht zehn Komponenten gleichzeitig halb implementieren.
+
+Jeder Meilenstein soll einen technisch funktionsfähigen Zustand hinterlassen.
+
+Erzeuge zunächst das Running Skeleton vollständig.
+
+Danach implementiere die Fachlogik schrittweise.
+
+Bei Architekturentscheidungen gilt:
+
+**Wartbarkeit, Testbarkeit, Austauschbarkeit und Debugbarkeit haben Vorrang vor maximal kurzer Implementierung.**
+
+Keine unnötige Überarchitektur wie Microservices, Netzwerk-APIs oder Datenbankserver. Das Programm ist eine lokale Desktop-Anwendung.
+
+Die Architektur soll groß genug sein, um langfristig viele Berechnungs-Module aufzunehmen, aber nicht mit für dieses Projekt unnötigen Komponenten aus dem Referenzprojekt belastet werden.

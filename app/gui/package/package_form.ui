@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PackageForm</class>
+ <widget class="QWidget" name="PackageForm">
+  <property name="windowTitle">
+   <string>Paketdaten</string>
+  </property>
+  <layout class="QHBoxLayout" name="root">
+   <property name="leftMargin"><number>0</number></property>
+   <property name="topMargin"><number>0</number></property>
+   <property name="rightMargin"><number>0</number></property>
+   <property name="bottomMargin"><number>0</number></property>
+   <property name="spacing"><number>12</number></property>
+   <item>
+    <widget class="QGroupBox" name="input_box">
+     <property name="title">
+      <string>Paketdaten</string>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <layout class="QGridLayout" name="input_grid">
+      <property name="leftMargin"><number>12</number></property>
+      <property name="topMargin"><number>16</number></property>
+      <property name="rightMargin"><number>12</number></property>
+      <property name="bottomMargin"><number>8</number></property>
+      <property name="horizontalSpacing"><number>8</number></property>
+      <property name="verticalSpacing"><number>2</number></property>
+      <item row="0" column="0" alignment="Qt::AlignRight|Qt::AlignTop">
+       <widget class="QLabel" name="length_label">
+        <property name="minimumSize">
+         <size><width>0</width><height>26</height></size>
+        </property>
+        <property name="text"><string>Laenge</string></property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="NumberField" name="length"/>
+      </item>
+      <item row="0" column="2" alignment="Qt::AlignRight|Qt::AlignTop">
+       <widget class="QLabel" name="width_label">
+        <property name="minimumSize">
+         <size><width>0</width><height>26</height></size>
+        </property>
+        <property name="text"><string>Breite</string></property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="NumberField" name="width"/>
+      </item>
+      <item row="0" column="4" alignment="Qt::AlignRight|Qt::AlignTop">
+       <widget class="QLabel" name="height_label">
+        <property name="minimumSize">
+         <size><width>0</width><height>26</height></size>
+        </property>
+        <property name="text"><string>Hoehe</string></property>
+       </widget>
+      </item>
+      <item row="0" column="5">
+       <widget class="NumberField" name="height"/>
+      </item>
+      <item row="0" column="6" alignment="Qt::AlignRight|Qt::AlignTop">
+       <widget class="QLabel" name="weight_label">
+        <property name="minimumSize">
+         <size><width>0</width><height>26</height></size>
+        </property>
+        <property name="text"><string>Gewicht</string></property>
+       </widget>
+      </item>
+      <item row="0" column="7">
+       <widget class="NumberField" name="weight"/>
+      </item>
+      <item row="1" column="0" alignment="Qt::AlignRight|Qt::AlignTop">
+       <widget class="QLabel" name="stack_load_label">
+        <property name="minimumSize">
+         <size><width>0</width><height>26</height></size>
+        </property>
+        <property name="text"><string>Max. Stapellast</string></property>
+       </widget>
+      </item>
+      <item row="1" column="1" colspan="3">
+       <widget class="NumberField" name="stack_load"/>
+      </item>
+      <item row="1" column="4" alignment="Qt::AlignRight|Qt::AlignTop">
+       <widget class="QLabel" name="label_caption">
+        <property name="minimumSize">
+         <size><width>0</width><height>26</height></size>
+        </property>
+        <property name="text"><string>Bezeichnung</string></property>
+       </widget>
+      </item>
+      <item row="1" column="5" colspan="2" alignment="Qt::AlignTop">
+       <widget class="QLineEdit" name="label_field">
+        <property name="minimumSize">
+         <size><width>0</width><height>26</height></size>
+        </property>
+        <property name="placeholderText">
+         <string>Optional: Artikelnummer</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="7" alignment="Qt::AlignLeft|Qt::AlignTop">
+       <widget class="QCheckBox" name="tipping">
+        <property name="minimumSize">
+         <size><width>0</width><height>26</height></size>
+        </property>
+        <property name="text">
+         <string>Kippen erlaubt</string>
+        </property>
+        <property name="toolTip">
+         <string>Aus: das Paket wird nur in der Ebene um 90 Grad gedreht ('oben bleibt oben').
+Ein: der Optimierer darf auch Laenge oder Breite hochkant stellen.</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="ResultGrid" name="derived">
+     <property name="title">
+      <string>Abgeleitete Werte</string>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="root_spacer">
+     <property name="orientation"><enum>Qt::Horizontal</enum></property>
+     <property name="sizeHint" stdset="0">
+      <size><width>20</width><height>20</height></size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>NumberField</class>
+   <extends>QWidget</extends>
+   <header>app.gui.common.widgets</header>
+  </customwidget>
+  <customwidget>
+   <class>ResultGrid</class>
+   <extends>QGroupBox</extends>
+   <header>app.gui.common.widgets</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PalletTab</class>
+ <widget class="QWidget" name="PalletTab">
+  <property name="windowTitle">
+   <string>Palettierung</string>
+  </property>
+  <layout class="QVBoxLayout" name="root">
+   <property name="leftMargin"><number>12</number></property>
+   <property name="topMargin"><number>10</number></property>
+   <property name="rightMargin"><number>12</number></property>
+   <property name="bottomMargin"><number>10</number></property>
+   <property name="spacing"><number>8</number></property>
+   <item>
+    <widget class="QWidget" name="package_host">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+       <horstretch>0</horstretch><verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <layout class="QVBoxLayout" name="package_layout">
+      <property name="leftMargin"><number>0</number></property>
+      <property name="topMargin"><number>0</number></property>
+      <property name="rightMargin"><number>0</number></property>
+      <property name="bottomMargin"><number>0</number></property>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="StaleBanner" name="banner"/>
+   </item>
+   <item>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation"><enum>Qt::Horizontal</enum></property>
+     <widget class="QScrollArea" name="controls_scroll">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="widgetResizable"><bool>true</bool></property>
+      <property name="frameShape"><enum>QFrame::NoFrame</enum></property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="sizeAdjustPolicy">
+       <enum>QAbstractScrollArea::AdjustToContents</enum>
+      </property>
+     <widget class="QWidget" name="controls">
+      <layout class="QVBoxLayout" name="controls_layout">
+       <property name="leftMargin"><number>0</number></property>
+       <property name="topMargin"><number>0</number></property>
+       <property name="rightMargin"><number>6</number></property>
+       <property name="bottomMargin"><number>0</number></property>
+       <property name="spacing"><number>8</number></property>
+       <item>
+        <widget class="QGroupBox" name="selection_box">
+         <property name="title"><string>Palettenauswahl</string></property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+           <horstretch>0</horstretch><verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <layout class="QFormLayout" name="selection_form">
+          <property name="leftMargin"><number>10</number></property>
+          <property name="topMargin"><number>16</number></property>
+          <property name="rightMargin"><number>10</number></property>
+          <property name="bottomMargin"><number>10</number></property>
+          <item row="0" column="0">
+           <widget class="QLabel" name="pallet_caption">
+            <property name="text"><string>Palettentyp</string></property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="pallet_box">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch><verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumContentsLength"><number>12</number></property>
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="pattern_caption">
+            <property name="text"><string>Palettiermuster</string></property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="pattern_box">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch><verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumContentsLength"><number>12</number></property>
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="pattern_hint">
+            <property name="text"><string/></property>
+            <property name="wordWrap"><bool>true</bool></property>
+            <property name="minimumSize">
+             <size><width>240</width><height>0</height></size>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="role" stdset="0"><string>note</string></property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="limits_box">
+         <property name="title"><string>Grenzwerte</string></property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+           <horstretch>0</horstretch><verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <layout class="QFormLayout" name="limits_form">
+          <property name="leftMargin"><number>10</number></property>
+          <property name="topMargin"><number>16</number></property>
+          <property name="rightMargin"><number>10</number></property>
+          <property name="bottomMargin"><number>10</number></property>
+          <item row="0" column="0">
+           <widget class="QLabel" name="max_height_caption">
+            <property name="text"><string>max. Hoehe [mm]</string></property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="NumberField" name="max_height"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="max_load_caption">
+            <property name="text"><string>max. Palettenlast [kg]</string></property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="NumberField" name="max_load"/>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="gap_caption">
+            <property name="text"><string>Spalt zwischen Paketen</string></property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="NumberField" name="gap"/>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="desired_caption">
+            <property name="text"><string>Gewuenschte Stueckzahl</string></property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="IntField" name="desired"/>
+          </item>
+          <item row="4" column="1">
+           <widget class="QCheckBox" name="use_solver">
+            <property name="text">
+             <string>Zusaetzlichen Loeser verwenden (langsamer, oft dichter)</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="button_row">
+         <item>
+          <widget class="QPushButton" name="calculate_button">
+           <property name="text"><string>Berechnen</string></property>
+           <property name="default"><bool>true</bool></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="cancel_button">
+           <property name="text"><string>Abbrechen</string></property>
+           <property name="enabled"><bool>false</bool></property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="ResultGrid" name="results">
+         <property name="title"><string>Ergebnis</string></property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+           <horstretch>0</horstretch><verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="controls_spacer">
+         <property name="orientation"><enum>Qt::Vertical</enum></property>
+         <property name="sizeHint" stdset="0">
+          <size><width>20</width><height>40</height></size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     </widget>
+     <widget class="QWidget" name="view_panel">
+      <layout class="QVBoxLayout" name="view_layout">
+       <property name="leftMargin"><number>0</number></property>
+       <property name="topMargin"><number>0</number></property>
+       <property name="rightMargin"><number>0</number></property>
+       <property name="bottomMargin"><number>0</number></property>
+       <property name="spacing"><number>6</number></property>
+       <item>
+        <layout class="QHBoxLayout" name="view_bar">
+         <item>
+          <widget class="QRadioButton" name="button_2d">
+           <property name="text"><string>2D Draufsicht</string></property>
+           <property name="checked"><bool>true</bool></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="button_3d">
+           <property name="text"><string>3D Ansicht</string></property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="bar_gap">
+           <property name="orientation"><enum>Qt::Horizontal</enum></property>
+           <property name="sizeType"><enum>QSizePolicy::Fixed</enum></property>
+           <property name="sizeHint" stdset="0">
+            <size><width>18</width><height>20</height></size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="layer_caption">
+           <property name="text"><string>Ebene</string></property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="layer_box">
+           <property name="minimumSize">
+            <size><width>110</width><height>0</height></size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="reset_camera">
+           <property name="text"><string>Ansicht zuruecksetzen</string></property>
+           <property name="visible"><bool>false</bool></property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="bar_spacer">
+           <property name="orientation"><enum>Qt::Horizontal</enum></property>
+           <property name="sizeHint" stdset="0">
+            <size><width>40</width><height>20</height></size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QStackedWidget" name="views">
+         <property name="currentIndex"><number>0</number></property>
+         <widget class="Pallet2DView" name="view_2d"/>
+         <widget class="QWidget" name="scene_host">
+          <layout class="QVBoxLayout" name="scene_layout">
+           <property name="leftMargin"><number>0</number></property>
+           <property name="topMargin"><number>0</number></property>
+           <property name="rightMargin"><number>0</number></property>
+           <property name="bottomMargin"><number>0</number></property>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>NumberField</class>
+   <extends>QWidget</extends>
+   <header>app.gui.common.widgets</header>
+  </customwidget>
+  <customwidget>
+   <class>IntField</class>
+   <extends>QWidget</extends>
+   <header>app.gui.common.widgets</header>
+  </customwidget>
+  <customwidget>
+   <class>ResultGrid</class>
+   <extends>QGroupBox</extends>
+   <header>app.gui.common.widgets</header>
+  </customwidget>
+  <customwidget>
+   <class>StaleBanner</class>
+   <extends>QFrame</extends>
+   <header>app.gui.common.widgets</header>
+  </customwidget>
+  <customwidget>
+   <class>Pallet2DView</class>
+   <extends>QWidget</extends>
+   <header>app.visualization.pallet_2d</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trxing"
+version = "0.1.0"
+description = "Berechnungs-Suite: Paketdaten, Palettierung, Vakuumplatte"
+requires-python = ">=3.11"
+dependencies = [
+    "PyQt6>=6.6",
+]
+
+[project.optional-dependencies]
+# CP-SAT als zusaetzliche, abschaltbare Layer-Strategie. Ohne ortools laeuft
+# die Anwendung vollstaendig - der Optimierer meldet die Strategie dann als
+# nicht verfuegbar, statt zu scheitern.
+solver = ["ortools>=9.9"]
+# 3D-Ansicht. Fehlt VTK, zeigt der Palettentab einen Hinweis statt der Szene.
+view3d = ["pyvista>=0.43", "pyvistaqt>=0.11"]
+dev = ["pytest>=8.0", "pytest-qt>=4.4"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+# Das Stylesheet der dunklen Fassung und seine Bildchen sind kein Python und
+# wuerden sonst beim Installieren liegenbleiben. Die gepackte Fassung nimmt sie
+# ueber --add-data mit, siehe DATA_FILES in AUTOBUILD.py.
+[tool.setuptools.package-data]
+"app.gui" = ["darkstyle/*.qss", "darkstyle/*.png"]
+"app.gui.icons" = ["*.ico"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
