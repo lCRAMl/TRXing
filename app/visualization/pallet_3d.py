@@ -14,10 +14,25 @@ hier nur eingestellt, nicht nachgebaut.
 
 from __future__ import annotations
 
-import numpy as np
-import pyvista as pv
-from pyvistaqt import QtInteractor
-from PyQt6.QtWidgets import QWidget
+import os
+
+# pyvistaqt spricht nicht direkt mit Qt, sondern ueber qtpy. qtpy sucht sich
+# die Bindung beim ersten Import selbst aus und probiert dabei PyQt5, PySide2
+# und PySide6, bevor es zu PyQt6 kommt. Liegt eine davon daneben, zieht qtpy
+# fremde Qt6-DLLs in denselben Prozess wie unser PyQt6, und der Absturz kommt
+# aus QtCore statt von hier. QT_API entscheidet die Frage vorher - dieselbe
+# Festlegung, die `qt_api = pyqt6` in pytest.ini fuer die Tests trifft und die
+# AUTOBUILD.py durch den Ausschluss der anderen Bindungen absichert.
+#
+# Die Zeile steht vor den Importen, weil qtpy die Umgebungsvariable nur beim
+# ersten Import liest. setdefault und nicht Zuweisung: wer die Anwendung
+# bewusst mit einer anderen Bindung startet, soll das duerfen.
+os.environ.setdefault("QT_API", "pyqt6")
+
+import numpy as np  # noqa: E402
+import pyvista as pv  # noqa: E402
+from pyvistaqt import QtInteractor  # noqa: E402
+from PyQt6.QtWidgets import QWidget  # noqa: E402
 
 from app.dto.pallet import Layer, LoadStatus, PalletResult
 from app.visualization.theme import PALETTE

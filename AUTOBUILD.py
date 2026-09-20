@@ -55,11 +55,21 @@ CONFIG_DIR = ROOT / "config"
 
 #: Was NICHT eingesammelt werden darf. PySide6 und shiboken6 kollidieren mit
 #: PyQt6; die uebrigen sind Testwerkzeuge, die im Paket nichts verloren haben.
-EXCLUDED = ("PySide6", "shiboken6", "PyQt5", "qtpy", "pytest", "_pytest", "pytestqt")
+#:
+#: qtpy steht hier ausdruecklich NICHT: pyvistaqt spricht ausschliesslich ueber
+#: qtpy mit Qt. Wird es ausgeschlossen, findet PyInstaller pyvista und
+#: pyvistaqt zwar im Paket, der Import von QtInteractor stirbt aber mit
+#: "No module named qtpy" - und der Palettentab zeigt statt der Szene den
+#: Hinweis aus MissingBackendScene. Welche Anbindung qtpy waehlt, legt
+#: app/visualization/pallet_3d.py ueber QT_API fest.
+EXCLUDED = ("PySide6", "shiboken6", "PyQt5", "pytest", "_pytest", "pytestqt")
 
 #: Pakete, deren Daten PyInstaller nicht von allein findet. VTK und PyVista
 #: bringen Datendateien mit, ohne die die 3D-Ansicht im Paket nicht startet.
-COLLECT_ALL = ("pyvista", "vtkmodules", "pyvistaqt")
+#: qtpy gehoert dazu, weil es seine Anbindung erst zur Laufzeit zusammensucht -
+#: statisch sieht PyInstaller dort nichts zum Mitnehmen. Die Liste dient
+#: zugleich als Gegenstueck fuer --no-3d: ohne 3D faellt alles hier weg.
+COLLECT_ALL = ("pyvista", "vtkmodules", "pyvistaqt", "qtpy")
 
 #: Mitzunehmende Dateien, die kein Python sind: Quelle -> Ziel im Paket, beides
 #: relativ zur Projektwurzel. PyInstaller sammelt nur Module ein; eine .qss und
