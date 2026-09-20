@@ -1,3 +1,4 @@
 output/
 __pycache__/
 *.pyc
+build_version.py
