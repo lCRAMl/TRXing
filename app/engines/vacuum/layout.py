@@ -455,6 +455,9 @@ def _from_layer(
     Ausgewaehlt wird nach derselben Regel wie beim erzeugten Muster: was unter
     der Platte liegt zuerst, dann von innen nach aussen. Wer die Stueckzahl
     hochdreht, bekommt die vorigen Pakete wieder und weitere dazu.
+
+    EIN Paket ist die Ausnahme - es liegt immer mittig. Begruendung unten an
+    der Stelle selbst.
     """
     placed = _recenter(layer, plate)
 
@@ -468,9 +471,21 @@ def _from_layer(
         selected = _innermost(placed, plate.length_mm, plate.width_mm, plate, count, gap_mm)
         notes.append(
             "Von den " + str(len(placed)) + " Paketen der Lage sind " + str(count)
-            + " gewaehlt - die innersten, weil nur unter der Platte gegriffen werden kann. "
-            "Die uebrigen fehlen; die gewaehlten liegen unveraendert wie auf der Palette."
+            + " gewaehlt - die innersten, weil nur unter der Platte gegriffen werden kann."
+            + ("" if count == 1 else
+               " Die uebrigen fehlen; die gewaehlten liegen unveraendert wie auf der Palette.")
         )
+
+    if len(selected) == 1:
+        # Ein einzelnes Paket steht nicht fuer eine Lage, sondern fuer die Frage,
+        # ob es ueberhaupt anzuheben ist. Die Antwort darauf braucht es
+        # vollstaendig unter der Platte - an seinem Platz in der Lage ragte es
+        # je nach Plattengroesse 60 bis 160 mm hinaus, und die Rechnung
+        # beantwortete eine Frage, die so niemand gestellt hat.
+        #
+        # Die Ausnahme gilt nur hier. Der Musterweg zentriert ohnehin auf den
+        # Schwerpunkt der Auswahl, und der ist bei einem Paket seine Mitte.
+        selected = _recenter(selected, plate)
 
     return _place_on_plate(selected, plate, notes)
 

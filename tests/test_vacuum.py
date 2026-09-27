@@ -956,8 +956,10 @@ def test_fewer_packages_take_a_subset_of_the_same_layer():
     )
     places = {(round(f.x_mm, 3), round(f.y_mm, 3)) for f in complete}
 
+    # Ab zwei Paketen: ein einzelnes liegt nach eigener Regel mittig, siehe
+    # test_a_single_package_always_sits_in_the_middle.
     previous: set[tuple[float, float]] = set()
-    for count in range(1, len(layer_rects) + 1):
+    for count in range(2, len(layer_rects) + 1):
         selected, _ = layout.package_layout(
             package, plate, count, strategy="uniform_grid", layer=layer_rects
         )
@@ -978,6 +980,40 @@ def test_fewer_packages_take_a_subset_of_the_same_layer():
             "gewaehltes Paket - die Auswahl waechst nicht von innen nach aussen"
         )
         previous = chosen
+
+
+def test_a_single_package_always_sits_in_the_middle():
+    """Ein Paket beantwortet eine andere Frage als eine Lage.
+
+    Bei einem einzelnen Paket will der Benutzer wissen, ob es ueberhaupt
+    anzuheben ist. Dafuer muss es unter der Platte liegen. An seinem Platz in
+    der uebernommenen Lage ragte es je nach Plattengroesse 60 bis 160 mm
+    hinaus, und die Haltekraft galt dann fuer eine Anordnung, nach der niemand
+    gefragt hat.
+    """
+    package = PackageSpec(360.0, 230.0, 200.0, 5.0)
+    layer_rects = _pallet_layer()
+
+    for length, width in ((1200.0, 800.0), (800.0, 600.0), (500.0, 400.0)):
+        plate = VacuumPlateSpec(length, width, edge_margin_mm=25.0, min_spacing_mm=10.0)
+        for adopted in (layer_rects, ()):
+            selected, _ = layout.package_layout(
+                package, plate, 1, strategy="uniform_grid", layer=adopted
+            )
+            assert len(selected) == 1
+            footprint = selected[0]
+            centre_x = footprint.x_mm + footprint.length_mm / 2.0
+            centre_y = footprint.y_mm + footprint.width_mm / 2.0
+
+            source = "mit Lage" if adopted else "ohne Lage"
+            assert centre_x == pytest.approx(length / 2.0, abs=1e-6), (
+                source + ", Platte " + format(length, ".0f") + " mm: das einzelne Paket "
+                "liegt nicht mittig"
+            )
+            assert centre_y == pytest.approx(width / 2.0, abs=1e-6), (
+                source + ", Platte " + format(width, ".0f") + " mm: das einzelne Paket "
+                "liegt nicht mittig"
+            )
 
 
 def test_more_packages_than_the_layer_fall_back_to_the_pattern():
