@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from app.core.trace import FrozenTrace
-from app.dto.common import CalculationMeta
+from app.dto.common import CalculationMeta, Footprint
 from app.dto.package import Orientation, PackageSpec
 
 
@@ -176,6 +176,64 @@ class Layer:
     @property
     def weight_kg(self) -> float:
         return sum(p.weight_kg for p in self.placements)
+
+
+@dataclass(frozen=True, slots=True)
+class SharedLayer:
+    """Die Lage, die der Vakuumtab von der Palettierung uebernimmt.
+
+    Spezifikation 18 verlangt, dass das in der Palettierung gewaehlte Muster
+    auch unter der Saugerplatte gilt. Bis hierher wanderte dafuer nur der NAME
+    der Strategie ueber die Tabgrenze, und die Vakuumseite baute die Anordnung
+    daraus neu auf - auf einer anderen Flaeche, mit einer anderen Auswahlregel.
+    Das Ergebnis war eine andere Lage als die berechnete, und genau die will
+    der Benutzer greifen.
+
+    Dieses Objekt traegt deshalb die fertigen Standflaechen selbst. Es ist
+    bewusst KEIN PalletResult: der Vakuumtab bekommt die Geometrie, die er als
+    Eingabe braucht, und nicht das Ergebnis eines fremden Moduls mit Gewichten,
+    Lastanalyse und Trace. Die Regel aus app/services/app_state.py - ein
+    Ergebnis gehoert dem Tab, der es angefordert hat - bleibt damit bestehen.
+
+    Die Koordinaten stehen im Palettensystem. Wo die Gruppe unter der Platte
+    landet, entscheidet erst app/engines/vacuum/layout.py.
+    """
+
+    footprints: tuple[Footprint, ...] = ()
+
+    #: Welche Ebene der Palette das ist - nur fuer die Anzeige.
+    layer_index: int = 0
+
+    #: Name des Palettiermusters, fuer den Hinweistext im Vakuumtab.
+    pattern_name: str = ""
+
+    #: Revision, unter der die Lage entstand. Der Vakuumtab erkennt daran, ob
+    #: sie zu seinem uebrigen Eingabestand passt.
+    state_revision: int = -1
+
+    @property
+    def count(self) -> int:
+        return len(self.footprints)
+
+    @classmethod
+    def from_layer(
+        cls, layer: Layer, pattern_name: str = "", state_revision: int = -1
+    ) -> "SharedLayer":
+        """Baut die Uebergabe aus einer berechneten Lage.
+
+        Die Platzierung kennt Gewicht, Hoehe und Orientierung; davon braucht die
+        Saugerplatte nichts. Uebrig bleibt die Standflaeche - dieselbe Sicht,
+        mit der auch die Kontaktpruefung arbeitet.
+        """
+        return cls(
+            footprints=tuple(
+                Footprint(p.x_mm, p.y_mm, p.length_mm, p.width_mm, p.rotated)
+                for p in layer.placements
+            ),
+            layer_index=layer.index,
+            pattern_name=pattern_name,
+            state_revision=state_revision,
+        )
 
 
 class LoadStatus(Enum):

@@ -19,7 +19,7 @@ from enum import Enum
 from app.core.result import Status
 from app.core.trace import FrozenTrace
 from app.core.units import GRAVITY_MS2, STANDARD_AMBIENT_PA
-from app.dto.common import CalculationMeta
+from app.dto.common import CalculationMeta, Footprint
 from app.dto.package import PackageSpec
 from app.dto.suction import ContactClass, CupContact, RestrictorSpec, SuctionCupSpec, SuctionPlacement
 
@@ -144,7 +144,17 @@ class VacuumInput:
     package_count: int = 1
 
     #: Muster der Paketanordnung unter der Platte (aus der Palettierung).
+    #: Nur noch der Rueckfall: gebraucht wird es, wenn keine Lage uebergeben
+    #: wurde oder mehr Pakete gewuenscht sind, als die Lage hergibt.
     pattern_id: str = ""
+
+    #: Die Lage aus der Palettierung, Standflaeche fuer Standflaeche.
+    #:
+    #: Reicht sie fuer package_count, wird sie unveraendert uebernommen - die
+    #: Platte zeigt dann genau die Anordnung, die der Palettentab berechnet
+    #: hat. Der Name der Strategie allein genuegt dafuer nicht: aus ihm
+    #: entstuende auf der kleineren Plattenflaeche eine andere Anordnung.
+    layer_footprints: tuple[Footprint, ...] = ()
 
     #: Muster, nach dem die Sauger auf der Platte sitzen. Siehe
     #: app/engines/vacuum/arrangements.py.

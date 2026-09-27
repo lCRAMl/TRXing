@@ -113,6 +113,7 @@ class VacuumCalculator:
         packages, package_notes = layout.package_layout(
             request.package, request.plate, request.package_count,
             strategy=request.pattern_id or "uniform_grid",
+            layer=request.layer_footprints,
         )
         warnings.extend(package_notes)
         if not packages:
@@ -123,9 +124,12 @@ class VacuumCalculator:
         package_rects = tuple(
             (f.x_mm, f.y_mm, f.length_mm, f.width_mm) for f in packages
         )
+        adopted = bool(request.layer_footprints) and request.package_count <= len(request.layer_footprints)
         trace.step(
             "paketanordnung",
-            str(len(packages)) + " Paket(e), Muster " + (request.pattern_id or "uniform_grid"),
+            str(len(packages)) + " Paket(e), "
+            + ("Lage aus der Palettierung uebernommen"
+               if adopted else "Muster " + (request.pattern_id or "uniform_grid")),
         )
         token.raise_if_cancelled()
 

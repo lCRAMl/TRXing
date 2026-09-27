@@ -40,7 +40,7 @@ from __future__ import annotations
 from PyQt6.QtWidgets import QButtonGroup, QWidget
 
 from app.dto.common import ViewMode
-from app.dto.pallet import PalletResult
+from app.dto.pallet import PalletResult, SharedLayer
 from app.gui.common import window_state
 from app.gui.common.widgets import Debouncer, compact_combo
 from app.gui.package.package_form import PackageForm
@@ -356,6 +356,7 @@ class PalletTab(TabHost):
                 "Ebene " + str(layer.index + 1) + "  (" + str(layer.count) + ")", layer.index
             )
         self.ui.layer_box.blockSignals(False)
+        self._publish_layer()
 
         self.ui.view_2d.set_result(result)
         if self._scene is not None:
@@ -369,6 +370,34 @@ class PalletTab(TabHost):
             return
         layer_index = self.ui.layer_box.itemData(index)
         self.ui.view_2d.set_layer(int(layer_index or 0))
+        self._publish_layer()
+
+    def _publish_layer(self) -> None:
+        """Stellt die gerade angezeigte Lage fuer die Vakuumplatte bereit.
+
+        Bewusst die ANGEZEIGTE und nicht immer die erste: bei Kreuz-, Laeufer-
+        und Windradverband unterscheiden sich die Ebenen, und greifen will der
+        Benutzer die, die er gerade vor sich sieht.
+
+        Ohne Ergebnis wird None gemeldet. Der Vakuumtab faellt dann auf sein
+        eigenes Raster zurueck, statt eine veraltete Lage weiterzuverwenden.
+        """
+        result = self._result
+        if result is None or not result.layers:
+            self._context.pallets.publish_layer(None)
+            return
+
+        index = self.ui.layer_box.currentData()
+        index = int(index) if index is not None else 0
+        layer = next((lay for lay in result.layers if lay.index == index), result.layers[0])
+        pattern = self._current_pattern()
+        self._context.pallets.publish_layer(
+            SharedLayer.from_layer(
+                layer,
+                pattern_name=pattern.name if pattern is not None else "",
+                state_revision=result.meta.state_revision,
+            )
+        )
 
     def _on_view_changed(self, button_id: int, checked: bool) -> None:
         if not checked:
@@ -418,6 +447,18 @@ class PalletTab(TabHost):
         if MODULE_ID not in self._context.state.invalidated_channels(change):
             return
         self._update_enabled()
+
+        # Die bereitgestellte Lage gehoert zum alten Eingabestand und stimmt ab
+        # hier nicht mehr. Sie wird zurueckgezogen statt weitergereicht: die
+        # Vakuumplatte zeigt dann ihr eigenes Raster, was sichtbar etwas
+        # anderes ist - waehrend eine stehengebliebene Lage aussaehe wie ein
+        # gueltiges Ergebnis und zu einem falschen Paket gehoerte.
+        #
+        # Nur die Aenderungen, die den Palettenkanal entwerten - Paket, Palette,
+        # Muster. Die Plattenmasse des Vakuumtabs stehen nicht darunter und
+        # lassen die Lage deshalb in Ruhe.
+        self._context.pallets.publish_layer(None)
+
         if snapshot.package is None:
             return
 

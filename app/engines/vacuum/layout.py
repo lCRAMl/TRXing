@@ -333,11 +333,26 @@ def package_layout(
     count: int,
     strategy: str = "uniform_grid",
     gap_mm: float = 0.0,
+    layer: tuple[Footprint, ...] = (),
 ) -> tuple[tuple[Footprint, ...], tuple[str, ...]]:
     """Ordnet die zu hebenden Pakete an - notfalls groesser als die Platte.
 
-    Dieselbe Musterschicht wie die Palettierung (Spezifikation 18): das dort
-    gewaehlte Muster bestimmt auch hier die Anordnung.
+    Zwei Wege, und der erste ist der Regelfall (Spezifikation 18):
+
+    MIT LAGE. Wurde eine Lage aus der Palettierung uebergeben und reicht sie
+    fuer die gewuenschte Stueckzahl, wird sie Paket fuer Paket uebernommen. Die
+    Platte zeigt dann genau die Anordnung des Palettentabs - und das ist der
+    Sinn der Uebung: gegriffen werden soll die berechnete Lage, nicht eine
+    zweite, die zufaellig demselben Muster folgt.
+
+    OHNE LAGE. Nur dann wird aus dem Musternamen eine eigene Anordnung erzeugt.
+    Das ist der Rueckfall fuer den freien Betrieb - ohne Palettierergebnis oder
+    mit mehr Paketen, als die Lage hergibt.
+
+    Der Unterschied ist nicht theoretisch: dieselbe Strategie auf der kleineren
+    Plattenflaeche liefert eine andere Auswahl und eine andere Verteilung. Aus
+    einer 5 x 2 gerechneten Lage wurde hier fruher eine 3 x 3 mit einem Paket
+    daneben.
 
     Die Platte begrenzt die Anordnung NICHT. Eine Saugerplatte ist regelmaessig
     kleiner als das, was sie hebt: sie greift in die Mitte der Lage, und die
@@ -360,6 +375,16 @@ def package_layout(
     if count <= 0:
         return (), ()
 
+    notes: list[str] = []
+    if layer:
+        if count <= len(layer):
+            return _from_layer(layer, plate, count, gap_mm)
+        notes.append(
+            "Die Lage aus der Palettierung hat " + str(len(layer)) + " Pakete; angefordert "
+            "sind " + str(count) + ". Angeordnet wird deshalb nach dem Muster allein - die "
+            "Anordnung weicht dann von der Palette ab."
+        )
+
     span_l, span_w = _layout_span(package, plate, gap_mm)
 
     layout = None
@@ -377,7 +402,7 @@ def package_layout(
         span_l *= PACKAGE_AREA_GROWTH
         span_w *= PACKAGE_AREA_GROWTH
 
-    notes = list(layout.notes) if layout else []
+    notes.extend(layout.notes if layout else ())
     if layout is None or not layout.footprints:
         return (), (
             "Das Paket " + format(package.length_mm, ".0f") + " x "
@@ -391,7 +416,80 @@ def package_layout(
             "angefordert waren " + str(count) + "."
         )
 
-    selected = _recenter(selected, plate)
+    return _place_on_plate(_recenter(selected, plate), plate, notes)
+
+
+def _from_layer(
+    layer: tuple[Footprint, ...],
+    plate: VacuumPlateSpec,
+    count: int,
+    gap_mm: float,
+) -> tuple[tuple[Footprint, ...], tuple[str, ...]]:
+    """Uebernimmt die Lage der Palettierung, ohne sie neu zu erzeugen.
+
+    Die Lage steht im Palettenkoordinatensystem und liegt dort irgendwo - die
+    Platte hat ihren eigenen Ursprung. Verschoben wird die Gruppe deshalb als
+    GANZES. Die Abstaende der Pakete untereinander bleiben unberuehrt, und
+    genau darauf kommt es an: die Anordnung soll dieselbe sein, nicht eine
+    aehnliche.
+
+    Gerueckt wird die VOLLSTAENDIGE Lage, auch wenn nur ein Teil davon gehoben
+    wird - und erst danach wird ausgewaehlt. Die Reihenfolge ist der ganze
+    Unterschied:
+
+    Nach der Auswahl zu ruecken liegt naeher und ist beim selbst erzeugten
+    Muster auch richtig: der Greifer setzt ueber dem Schwerpunkt dessen an, was
+    er hebt (siehe _recenter). Bei einer uebernommenen Lage ruecken dadurch
+    aber die Pakete, sobald die Auswahl unsymmetrisch wird. Gemessen an einer
+    5 x 2 gerechneten Lage: acht davon gewaehlt, die Gruppe wandert 45 mm, drei
+    Pakete stehen ueber die Plattenkante - waehrend sieben und zehn Pakete
+    sauber liegen. Das Bild springt also genau dort, wo der Benutzer dieselbe
+    Lage wiedererkennen will.
+
+    Mit fester Lage bleibt jedes Paket dort, wo es im Vollbild liegt. Eine
+    kleinere Stueckzahl laesst Pakete weg, statt die uebrigen zu verschieben.
+    Der Preis steht im Kommentar zu _recenter: bei wenigen Paketen haengt die
+    Last seitlich am Greifer. Das ist hier bewusst in Kauf genommen - die Lage
+    wiederzuerkennen ist der Zweck dieser Uebernahme.
+
+    Ausgewaehlt wird nach derselben Regel wie beim erzeugten Muster: was unter
+    der Platte liegt zuerst, dann von innen nach aussen. Wer die Stueckzahl
+    hochdreht, bekommt die vorigen Pakete wieder und weitere dazu.
+    """
+    placed = _recenter(layer, plate)
+
+    notes: list[str] = []
+    if count >= len(placed):
+        selected = placed
+    else:
+        # Die Pakete stehen bereits im Plattenkoordinatensystem, die Spanne ist
+        # deshalb die Platte selbst - damit trifft die Frage "liegt es unter der
+        # Platte?" in _innermost die wirkliche Plattenflaeche.
+        selected = _innermost(placed, plate.length_mm, plate.width_mm, plate, count, gap_mm)
+        notes.append(
+            "Von den " + str(len(placed)) + " Paketen der Lage sind " + str(count)
+            + " gewaehlt - die innersten, weil nur unter der Platte gegriffen werden kann. "
+            "Die uebrigen fehlen; die gewaehlten liegen unveraendert wie auf der Palette."
+        )
+
+    return _place_on_plate(selected, plate, notes)
+
+
+def _place_on_plate(
+    selected: tuple[Footprint, ...],
+    plate: VacuumPlateSpec,
+    notes: list[str],
+) -> tuple[tuple[Footprint, ...], tuple[str, ...]]:
+    """Ordnet die fertige Auswahl und meldet Ueberhang.
+
+    Der gemeinsame Abschluss beider Wege. WO die Gruppe liegt, ist vorher
+    entschieden: das erzeugte Muster rueckt seine Auswahl auf deren
+    Schwerpunkt, die uebernommene Lage liegt schon als Ganzes mittig. Genau
+    darin unterscheiden sie sich, deshalb steht das Ruecken nicht hier.
+
+    Gleich behandelt wird dagegen der Ueberhang - er ist in beiden Faellen
+    erlaubt und gehoert in beiden Faellen gemeldet.
+    """
     ordered = tuple(sorted(selected, key=lambda f: (round(f.y_mm, 6), round(f.x_mm, 6))))
 
     overhanging = sum(

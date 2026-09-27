@@ -6,13 +6,13 @@ calculate_async mit DTOs und bekommt spaeter ein PalletResult ueber ein Signal.
 
 from __future__ import annotations
 
-from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QObject, pyqtSignal
 
 from app.config.settings_service import SettingsService
 from app.core.errors import ErrorReporter
 from app.core.requests import RequestGate
 from app.dto.package import PackageSpec
-from app.dto.pallet import PalletConstraints, PalletSpec, PatternSpec
+from app.dto.pallet import PalletConstraints, PalletSpec, PatternSpec, SharedLayer
 from app.engines.palletizing.optimizer import PalletOptimizer, PalletizingError, build_constraints
 from app.jobs.job_manager import JobManager
 from app.jobs.job_types import CHANNEL_PALLET, JobHandle
@@ -26,6 +26,10 @@ class PalletService(CalculationService):
     job_title = "Palettierung"
     pool = "cpu"
 
+    #: Die angezeigte Lage hat gewechselt. Der Vakuumtab rechnet daraufhin neu,
+    #: wenn er das Muster der Palettierung uebernimmt.
+    layer_published = pyqtSignal(object)
+
     def __init__(
         self,
         jobs: JobManager,
@@ -37,6 +41,31 @@ class PalletService(CalculationService):
         super().__init__(jobs, gate, reporter, parent)
         self._settings = settings
         self._optimizer = PalletOptimizer()
+        self._layer: SharedLayer | None = None
+
+    # Uebergabe an die Vakuumplatte ---------------------------------------------
+
+    def publish_layer(self, layer: SharedLayer | None) -> None:
+        """Legt die gerade angezeigte Lage fuer andere Module bereit.
+
+        Der Weg ueber den Service und nicht ueber AppState ist Absicht. AppState
+        haelt den gemeinsamen Eingabestand - Paket, Palette, Muster - und wird
+        bei jeder Aenderung hochgezaehlt; eine Lage ist aber ein Rechenergebnis
+        und hat dort nichts verloren. Der Service, der sie erzeugt hat, ist der
+        richtige Besitzer; wer sie braucht, holt sie dort ab.
+
+        Gemeldet wird nur, was sich wirklich geaendert hat. Sonst loeste jeder
+        Palettierlauf eine Vakuumrechnung aus, auch wenn dieselbe Lage dabei
+        herauskommt.
+        """
+        if layer == self._layer:
+            return
+        self._layer = layer
+        self.layer_published.emit(layer)
+
+    def published_layer(self) -> SharedLayer | None:
+        """Die zuletzt bereitgestellte Lage, oder None."""
+        return self._layer
 
     # Auswahllisten ------------------------------------------------------------
 

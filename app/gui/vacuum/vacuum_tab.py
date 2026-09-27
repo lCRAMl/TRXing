@@ -228,6 +228,12 @@ class VacuumTab(TabHost):
         self._service.result_ready.connect(self._on_result)
         self._service.failed.connect(self._on_failed)
 
+        # Eine neue oder andere Lage im Palettentab aendert, was unter der
+        # Platte liegt - und damit das Ergebnis hier. Der Weg ueber den
+        # Palettenservice haelt die beiden Tabs voneinander fern: sie kennen
+        # denselben Service, aber nicht einander.
+        self._context.pallets.layer_published.connect(self._on_layer_published)
+
     # Vorgaben -----------------------------------------------------------------
 
     def _fill_catalogs(self) -> None:
@@ -436,14 +442,37 @@ class VacuumTab(TabHost):
             return
 
         pattern_id = ""
-        if self.ui.use_pallet_pattern.isChecked() and snapshot.pattern_id:
+        layer_footprints: tuple = ()
+        adopt = self.ui.use_pallet_pattern.isChecked()
+
+        if adopt and snapshot.pattern_id:
             pattern = self._context.settings.get_pattern(snapshot.pattern_id)
             if pattern is not None:
                 pattern_id = pattern.strategy
+
+        # Die berechnete Lage selbst, nicht nur der Name ihrer Strategie. Nur
+        # damit sieht die Platte genauso aus wie die Palette.
+        layer = self._context.pallets.published_layer() if adopt else None
+        count = self.ui.package_count.value()
+        if layer is not None and layer.footprints:
+            layer_footprints = layer.footprints
+            if count <= layer.count:
                 self.ui.package_info.setText(
-                    "Anordnung nach Muster '" + pattern.name + "' aus der Palettierung."
+                    "Ebene " + str(layer.layer_index + 1) + " aus der Palettierung"
+                    + (" ('" + layer.pattern_name + "')" if layer.pattern_name else "")
+                    + ": " + str(count) + " von " + str(layer.count) + " Paketen."
                 )
-        if not pattern_id:
+            else:
+                self.ui.package_info.setText(
+                    "Die Ebene hat " + str(layer.count) + " Pakete - fuer " + str(count)
+                    + " wird nach Muster angeordnet, nicht mehr wie auf der Palette."
+                )
+        elif adopt:
+            self.ui.package_info.setText(
+                "Noch keine Lage aus der Palettierung - dort zuerst berechnen. "
+                "Angeordnet wird solange als gleichmaessiges Raster."
+            )
+        else:
             self.ui.package_info.setText("Anordnung als gleichmaessiges Raster.")
 
         request = VacuumInput(
@@ -451,8 +480,9 @@ class VacuumTab(TabHost):
             plate=self._current_plate(),
             cup=cup,
             requested_cup_count=self.ui.cup_count.value(),
-            package_count=self.ui.package_count.value(),
+            package_count=count,
             pattern_id=pattern_id,
+            layer_footprints=layer_footprints,
             arrangement_id=self._current_arrangement(),
             target_vacuum_pa=mbar_to_pa(self.ui.vacuum.value()),
             ambient_pa=self._defaults.ambient_pa,
@@ -549,6 +579,22 @@ class VacuumTab(TabHost):
 
     def _is_stale(self) -> bool:
         return self._result is not None and self._result_revision != self._context.state.revision
+
+    def _on_layer_published(self, layer: object) -> None:
+        """Im Palettentab wurde neu gerechnet oder die Ebene gewechselt.
+
+        Nur wenn das Muster der Palettierung uebernommen wird, aendert das hier
+        etwas - sonst laeuft die Anordnung ohnehin ueber das eigene Raster.
+
+        Gerechnet wird wie bei jeder anderen Eingabeaenderung: sichtbar sofort
+        (entprellt), im Hintergrund erst beim naechsten Aufschlagen. Ein Tab,
+        den niemand ansieht, soll keine Rechenzeit ziehen.
+        """
+        if not self.ui.use_pallet_pattern.isChecked():
+            return
+        self._needs_recalculation = True
+        if self.isVisible():
+            self._debouncer.trigger()
 
     # TabHost ------------------------------------------------------------------
 

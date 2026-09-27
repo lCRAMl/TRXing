@@ -657,3 +657,86 @@ def test_the_help_styles_follow_the_palette():
     assert PALETTE.border in STYLE
     assert PALETTE.text in STYLE
     assert "#fdf6dd" not in STYLE or PALETTE.warning_background == "#fdf6dd"
+
+
+def test_the_calculated_layer_reaches_the_vacuum_plate(window, package_form, application, qt_app):
+    """Spezifikation 18: dieselbe Lage, dieselbe Anordnung - ueber beide Tabs.
+
+    Der gemeldete Fehler: die im Palettentab gerechnete Lage sah auf der
+    Saugerplatte anders aus. Uebergeben wurde nur der Name der Strategie; die
+    Vakuumseite baute daraus eine eigene Anordnung.
+
+    Geprueft wird der ganze Weg - rechnen, veroeffentlichen, uebernehmen - und
+    nicht nur die Engine. Die Verdrahtung war der eigentliche Fehler.
+    """
+    pallet = window._tab_manager.widget_for("pallet")
+    vacuum = window._tab_manager.widget_for("vacuum")
+
+    package_form.ui.length.spin.setValue(360.0)
+    package_form.ui.width.spin.setValue(230.0)
+    package_form.ui.height.spin.setValue(200.0)
+    package_form._debouncer.flush()
+    qt_app.processEvents()
+
+    pallet.calculate()
+    _settle(qt_app, application)
+    assert pallet._result is not None, "die Palettierung hat nichts geliefert"
+
+    layer = application.context.pallets.published_layer()
+    assert layer is not None, "die gerechnete Lage wurde nicht bereitgestellt"
+    assert layer.count == pallet._result.per_layer_count
+
+    # Die Platte auf Palettenmass, damit die Lage vollstaendig daruntergeht.
+    vacuum.ui.plate_length.spin.setValue(1200.0)
+    vacuum.ui.plate_width.spin.setValue(800.0)
+    vacuum.ui.use_pallet_pattern.setChecked(True)
+    vacuum.ui.package_count.spin.setValue(layer.count)
+    vacuum.calculate()
+    _settle(qt_app, application)
+    assert vacuum._result is not None, "die Vakuumrechnung hat nichts geliefert"
+
+    def relative(rects):
+        min_x = min(r[0] for r in rects)
+        min_y = min(r[1] for r in rects)
+        return sorted(
+            (round(x - min_x, 3), round(y - min_y, 3), round(length, 3), round(width, 3))
+            for x, y, length, width in rects
+        )
+
+    on_pallet = relative([
+        (p.x_mm, p.y_mm, p.length_mm, p.width_mm)
+        for p in pallet._result.layers[0].placements
+    ])
+    # package_rects sind einfache Tupel (x, y, Laenge, Breite).
+    on_plate = relative(vacuum._result.package_rects)
+
+    assert on_plate == on_pallet, (
+        "die Platte zeigt eine andere Anordnung als die Palette:\n"
+        "  Palette: " + str(on_pallet) + "\n"
+        "  Platte : " + str(on_plate)
+    )
+
+
+def test_changing_the_package_withdraws_the_published_layer(window, package_form, application, qt_app):
+    """Eine Lage zum alten Paket darf nicht stehenbleiben.
+
+    Sonst uebernaehme die Vakuumplatte eine Anordnung, die zu ihren uebrigen
+    Eingaben nicht mehr passt - und saehe dabei aus wie ein gueltiges Ergebnis.
+    """
+    pallet = window._tab_manager.widget_for("pallet")
+
+    package_form.ui.length.spin.setValue(360.0)
+    package_form.ui.width.spin.setValue(230.0)
+    package_form._debouncer.flush()
+    qt_app.processEvents()
+    pallet.calculate()
+    _settle(qt_app, application)
+    assert application.context.pallets.published_layer() is not None
+
+    package_form.ui.length.spin.setValue(300.0)
+    package_form._debouncer.flush()
+    qt_app.processEvents()
+
+    assert application.context.pallets.published_layer() is None, (
+        "die Lage zum alten Paket wird weiter angeboten"
+    )

@@ -817,3 +817,180 @@ def test_without_a_minimum_spacing_the_cups_touch(calculator, base_request, plat
         for bx, by in centers[index + 1:]
     )
     assert closest >= dense.cup.outer_diameter_mm - 1e-6
+
+
+# Rundungsstaub in der Kreis-Rechteck-Ueberdeckung -------------------------------
+
+def test_a_circle_beside_the_rectangle_covers_exactly_nothing():
+    """Kein Kontakt heisst null - nicht fast null.
+
+    Die Eckformel setzt die Ueberdeckung aus vier Viertelkreisbeitraegen
+    zusammen. Liegt der Kreis ganz neben dem Rechteck, heben sie sich
+    rechnerisch auf; in Gleitkommaarithmetik blieb von 193,6 minus 193,6 ein
+    Rest von rund 1e-15 mm2 stehen. Die Kontaktpruefung fragt auf "> 0" ab und
+    hat daraus eine Beruehrung gemacht.
+    """
+    # Genau die Lage aus dem Fehlerbild: Sauger in derselben Spalte wie das
+    # Paket, aber weit darunter.
+    #
+    # Die Koordinaten werden gerechnet und nicht hingeschrieben: der Rest
+    # entsteht nur bei bestimmten Bitmustern. 201,47058... loest ihn aus,
+    # gerundete 201,5 nicht - ein Test mit runden Zahlen liefe ins Leere.
+    package = (200.0, 160.0, 400.0, 280.0)
+    radius = 15.7
+    column_x = 25.0 + 4 * (750.0 / 17.0)      # fuenfte Rasterspalte der Platte
+    for row in range(3):                       # die drei untersten Reihen
+        row_y = 25.0 + row * (550.0 / 12.0)
+        assert circle_rect_overlap_area_mm2(column_x, row_y, radius, *package) == 0.0
+
+    # Dieselbe Frage waagerecht, damit nicht nur eine Achse geprueft ist.
+    row_y = 25.0 + 4 * (550.0 / 12.0)
+    assert circle_rect_overlap_area_mm2(25.0, row_y, radius, *package) == 0.0
+
+    # Die Tangente schliesst ebenfalls keine Flaeche ein.
+    assert circle_rect_overlap_area_mm2(200.0 - radius, 300.0, radius, *package) == 0.0
+
+    # Einen Zehntelmillimeter weiter innen muss aber etwas herauskommen.
+    assert circle_rect_overlap_area_mm2(200.0 - radius + 0.1, 300.0, radius, *package) > 0.0
+
+
+def test_no_cup_lies_partially_on_a_package_it_does_not_reach(cup_spb2_30):
+    """Teilweise aufliegend darf nur sein, wer den Karton wirklich beruehrt.
+
+    Der gemeldete Fehler: eine durchgehende Reihe gelber Sauger bis zur
+    Plattenkante, mehr als hundert Millimeter vom naechsten Paket entfernt.
+    """
+    plate = VacuumPlateSpec(length_mm=800.0, width_mm=600.0, edge_margin_mm=25.0, min_spacing_mm=10.0)
+    package = Footprint(200.0, 160.0, 400.0, 280.0, False)
+    placements = layout.SuctionLayoutEngine().distribute(cup_spb2_30, plate, 0).placements
+
+    summary = contact.classify(placements, (package,), cup_spb2_30)
+    by_index = {c.placement_index: c for c in summary.contacts}
+    radius = cup_spb2_30.sealing_lip_diameter_mm / 2.0
+
+    for placement in placements:
+        if by_index[placement.index].contact is not ContactClass.PARTIAL:
+            continue
+        dx = max(package.x_mm - placement.center_x_mm, 0.0,
+                 placement.center_x_mm - (package.x_mm + package.length_mm))
+        dy = max(package.y_mm - placement.center_y_mm, 0.0,
+                 placement.center_y_mm - (package.y_mm + package.width_mm))
+        assert math.hypot(dx, dy) < radius, (
+            "Sauger bei " + format(placement.center_x_mm, ".1f") + " / "
+            + format(placement.center_y_mm, ".1f") + " gilt als teilweise aufliegend, "
+            "liegt aber ausserhalb der Reichweite des Dichtlippenrings"
+        )
+
+
+# Uebernahme der Lage aus der Palettierung ---------------------------------------
+
+def _pallet_layer() -> tuple[Footprint, ...]:
+    """Eine Lage, wie der Palettentab sie liefert: 5 x 2 quer auf EPAL 1.
+
+    Koordinaten im Palettensystem - sie liegen nicht um den Nullpunkt und haben
+    mit der Plattenmitte nichts zu tun. Genau das muss die Uebernahme
+    verkraften.
+    """
+    return tuple(
+        Footprint(25.0 + column * 230.0, 40.0 + row * 360.0, 230.0, 360.0, True)
+        for row in range(2)
+        for column in range(5)
+    )
+
+
+def _relative(rects) -> list[tuple[float, float, float, float]]:
+    """Die Anordnung ohne ihre Lage: alles auf die linke untere Ecke bezogen."""
+    min_x = min(f.x_mm for f in rects)
+    min_y = min(f.y_mm for f in rects)
+    return sorted(
+        (round(f.x_mm - min_x, 6), round(f.y_mm - min_y, 6),
+         round(f.length_mm, 6), round(f.width_mm, 6))
+        for f in rects
+    )
+
+
+def test_the_pallet_layer_reaches_the_plate_unchanged():
+    """Spezifikation 18: dieselbe Anzahl ergibt dieselbe Anordnung.
+
+    Der gemeldete Fehler: die auf der Palette gerechnete 5 x 2 sah unter der
+    Saugerplatte aus wie 3 x 3 mit einem Paket daneben. Ueber die Tabgrenze
+    ging bis dahin nur der NAME der Strategie, und aus ihm entstand auf der
+    kleineren Plattenflaeche eine andere Anordnung.
+    """
+    plate = VacuumPlateSpec(1200.0, 800.0, edge_margin_mm=25.0, min_spacing_mm=10.0)
+    package = PackageSpec(360.0, 230.0, 200.0, 5.0)
+    layer_rects = _pallet_layer()
+
+    adopted, _notes = layout.package_layout(
+        package, plate, len(layer_rects), strategy="uniform_grid", layer=layer_rects
+    )
+
+    assert len(adopted) == len(layer_rects)
+    assert _relative(adopted) == _relative(layer_rects)
+
+    # Und die Gegenprobe: ohne die Lage kommt etwas anderes heraus. Faellt
+    # diese Zusicherung, prueft der Test oben nichts mehr.
+    generated, _ = layout.package_layout(package, plate, len(layer_rects), strategy="uniform_grid")
+    assert _relative(generated) != _relative(layer_rects)
+
+
+def test_fewer_packages_take_a_subset_of_the_same_layer():
+    """Weniger Pakete heisst weglassen - nicht verschieben.
+
+    Die vollstaendige Lage liegt mittig unter der Platte, und eine kleinere
+    Stueckzahl nimmt Plaetze daraus heraus. Jedes gewaehlte Paket bleibt damit
+    genau dort, wo es im Vollbild liegt.
+
+    Die Auswahl nachtraeglich auf ihren Schwerpunkt zu ruecken - richtig beim
+    selbst erzeugten Muster - laesst die Pakete bei unsymmetrischer Auswahl
+    wandern: acht von zehn ergaben 45 mm Versatz und drei ueberstehende Pakete,
+    waehrend sieben und zehn sauber lagen. Die Lage soll aber bei jeder
+    Stueckzahl wiedererkennbar bleiben.
+    """
+    plate = VacuumPlateSpec(1200.0, 800.0, edge_margin_mm=25.0, min_spacing_mm=10.0)
+    package = PackageSpec(360.0, 230.0, 200.0, 5.0)
+    layer_rects = _pallet_layer()
+
+    complete, _ = layout.package_layout(
+        package, plate, len(layer_rects), strategy="uniform_grid", layer=layer_rects
+    )
+    places = {(round(f.x_mm, 3), round(f.y_mm, 3)) for f in complete}
+
+    previous: set[tuple[float, float]] = set()
+    for count in range(1, len(layer_rects) + 1):
+        selected, _ = layout.package_layout(
+            package, plate, count, strategy="uniform_grid", layer=layer_rects
+        )
+        assert len(selected) == count
+
+        for footprint in selected:
+            assert (footprint.length_mm, footprint.width_mm) == (230.0, 360.0), (
+                "die Uebernahme hat das Paket gedreht oder umgerechnet"
+            )
+
+        chosen = {(round(f.x_mm, 3), round(f.y_mm, 3)) for f in selected}
+        assert chosen <= places, (
+            str(count) + " Pakete sitzen nicht auf den Plaetzen der vollen Lage - "
+            "die Gruppe wurde verschoben"
+        )
+        assert previous <= chosen, (
+            "beim Wechsel auf " + str(count) + " Pakete verschwindet ein vorher "
+            "gewaehltes Paket - die Auswahl waechst nicht von innen nach aussen"
+        )
+        previous = chosen
+
+
+def test_more_packages_than_the_layer_fall_back_to_the_pattern():
+    """Ueber die Lage hinaus gibt es nichts zu uebernehmen - und das wird gesagt."""
+    plate = VacuumPlateSpec(1200.0, 800.0, edge_margin_mm=25.0, min_spacing_mm=10.0)
+    package = PackageSpec(360.0, 230.0, 200.0, 5.0)
+    layer_rects = _pallet_layer()
+
+    selected, notes = layout.package_layout(
+        package, plate, len(layer_rects) + 3, strategy="uniform_grid", layer=layer_rects
+    )
+
+    assert len(selected) == len(layer_rects) + 3
+    assert any("Lage aus der Palettierung hat" in note for note in notes), (
+        "der Benutzer muss erfahren, dass die Anordnung hier von der Palette abweicht"
+    )
