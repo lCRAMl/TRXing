@@ -78,12 +78,31 @@ class MissingBackendScene:
         return None
 
 
-def backend_available() -> bool:
-    """Ob die 3D-Bibliothek installiert ist. Prueft nur die Importierbarkeit,
-    ohne VTK tatsaechlich zu laden."""
+#: Was die 3D-Ansicht zum Laufen braucht.
+#:
+#: qtpy steht hier, obwohl keine Datei dieses Projekts es importiert: pyvistaqt
+#: spricht ausschliesslich ueber qtpy mit Qt. Fehlt nur qtpy, meldete die
+#: Pruefung frueher "alles da", und der Import in pallet_3d.py scheiterte eine
+#: Zeile spaeter - der Tab riet dann zur Installation bereits installierter
+#: Pakete. Genau so sah es im gepackten Programm aus, solange AUTOBUILD.py
+#: qtpy ausgeschlossen hat.
+_REQUIRED_MODULES = ("pyvista", "pyvistaqt", "qtpy")
+
+
+def missing_modules() -> tuple[str, ...]:
+    """Welche der noetigen Pakete fehlen, in der Reihenfolge von oben.
+
+    Prueft nur die Importierbarkeit, ohne VTK tatsaechlich zu laden - der
+    Import kostet spuerbar Zeit und gehoert nicht in den Startvorgang.
+    """
     import importlib.util
 
-    return all(importlib.util.find_spec(name) is not None for name in ("pyvista", "pyvistaqt"))
+    return tuple(name for name in _REQUIRED_MODULES if importlib.util.find_spec(name) is None)
+
+
+def backend_available() -> bool:
+    """Ob die 3D-Bibliothek vollstaendig installiert ist."""
+    return not missing_modules()
 
 
 def create_scene(parent: QWidget | None = None) -> Scene3D:
@@ -92,8 +111,16 @@ def create_scene(parent: QWidget | None = None) -> Scene3D:
     Ein Fehler beim Aufbau darf den Tab nicht mitnehmen: die 3D-Ansicht ist ein
     Zusatz, die Berechnung und die Draufsicht sind der Kern.
     """
-    if not backend_available():
-        return MissingBackendScene("Die Pakete pyvista und pyvistaqt sind nicht installiert.")
+    missing = missing_modules()
+    if missing:
+        # Die fehlenden Pakete beim Namen nennen. Eine pauschale Meldung hat
+        # die Fehlersuche frueher in die falsche Richtung geschickt.
+        reason = (
+            "Das Paket " + missing[0] + " ist nicht installiert."
+            if len(missing) == 1
+            else "Die Pakete " + ", ".join(missing) + " sind nicht installiert."
+        )
+        return MissingBackendScene(reason)
     try:
         from app.visualization.pallet_3d import PyVistaScene
 
