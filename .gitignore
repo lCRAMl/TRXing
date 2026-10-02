@@ -1,4 +1,18 @@
 output/
+
+# Automatisch generierte Versionsdatei
+build_version.py
+ 
+# PyInstaller
+pyinstaller_build/
+dist/
+build/
+*.spec
+ 
+# Python
 __pycache__/
 *.pyc
-build_version.py
+ 
+# IDE
+.vscode/
+.idea/
