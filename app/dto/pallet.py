@@ -20,7 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from app.core.trace import FrozenTrace
+from app.ergebnis import FrozenTrace
 from app.dto.common import CalculationMeta, Footprint
 from app.dto.package import Orientation, PackageSpec
 

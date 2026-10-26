@@ -40,7 +40,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.core.os_theme import prefers_dark
+from app.darstellung import prefers_dark
 
 
 @dataclass(frozen=True)

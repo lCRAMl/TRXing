@@ -132,7 +132,7 @@ Fehlerquelle; umgerechnet wird erst in der Anzeige.</p>
     "dp  =  p_Umgebung - p_innen",
     "",
     "-0,6 bar  =  600 mbar  =  60000 Pa",
-) + _source("app/core/units.py", "alle Umrechnungen, Naturkonstanten, Suffixliste") + """
+) + _source("app/einheiten.py", "alle Umrechnungen, Naturkonstanten, Suffixliste") + """
 
 <h2>Umrechnungen</h2>
 """ + _formula(
@@ -717,7 +717,7 @@ Sicherheitsfaktor 1,0:</p>
 ) + """
 <p>Die Einstufung leitet sich aus diesen Zahlen ab, nicht aus einer Heuristik
 der Oberflaeche.</p>
-""" + _source("app/core/result.py", "classify()")
+""" + _source("app/ergebnis.py", "classify()")
 
 
 # 6 Vakuum: Stroemung -----------------------------------------------------------

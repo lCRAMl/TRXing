@@ -19,7 +19,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFontMetrics
 from PyQt6.QtWidgets import QLabel, QProgressBar, QPushButton, QStatusBar, QWidget
 
-from app.core.errors import AppError, Severity
+from app.fehler import AppError, Severity
 from app.gui.theme import PALETTE
 
 #: Feste Breite der Tatigkeitsanzeige.

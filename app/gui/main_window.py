@@ -23,7 +23,7 @@ from PyQt6.QtGui import QAction, QCloseEvent, QDesktopServices, QKeySequence
 from PyQt6.QtWidgets import QMainWindow, QMessageBox, QTabWidget
 
 from app import APP_NAME, version_label
-from app.core.errors import AppError, Severity
+from app.fehler import AppError, Severity
 from app.gui.common import window_state
 from app.gui.module_registry import ModuleRegistry
 from app.gui.status.error_bridge import ErrorBridge

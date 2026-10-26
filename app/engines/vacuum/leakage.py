@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from app.core.units import lpm_to_m3s
+from app.einheiten import lpm_to_m3s
 from app.dto.vacuum import LeakageModel, LeakageSpec
 
 

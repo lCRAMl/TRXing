@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from app.core.errors import AppError, ErrorReporter
+from app.fehler import AppError, ErrorReporter
 
 
 class ErrorBridge(QObject):

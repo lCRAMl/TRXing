@@ -28,10 +28,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from app import APP_NAME, __version__
-from app.config.settings_service import ConfigStatus, SettingsService
-from app.core.errors import ErrorReporter
-from app.core.logging_setup import LoggingSink, install_excepthooks, setup_logging
-from app.core.paths import config_dir, log_dir
+from app.katalog import ConfigStatus, SettingsService
+from app.fehler import ErrorReporter
+from app.fehler import LoggingSink, install_excepthooks, setup_logging
+from app.pfade import config_dir, log_dir
 from app.core.requests import RequestGate
 from app.jobs.job_manager import JobManager, PoolConfig
 from app.services.app_state import AppState

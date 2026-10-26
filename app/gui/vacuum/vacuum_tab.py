@@ -35,8 +35,8 @@ from dataclasses import replace
 
 from PyQt6.QtWidgets import QWidget
 
-from app.core.result import Status
-from app.core.units import m3s_to_m3h, mbar_to_pa, pa_to_mbar
+from app.ergebnis import Status
+from app.einheiten import m3s_to_m3h, mbar_to_pa, pa_to_mbar
 from app.dto.suction import RestrictorMode, RestrictorSpec
 from app.dto.vacuum import GripDirection, LeakageSpec, VacuumInput, VacuumPlateSpec, VacuumResult
 from app.gui.common import window_state

@@ -26,7 +26,7 @@ import time
 from dataclasses import dataclass
 
 from app.core.cancellation import CancellationToken, never
-from app.core.trace import CalculationTrace, new_trace
+from app.ergebnis import CalculationTrace, new_trace
 from app.dto.common import CalculationMeta, Footprint
 from app.dto.package import Orientation, PackageSpec
 from app.dto.pallet import (

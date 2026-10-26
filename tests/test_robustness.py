@@ -17,9 +17,9 @@ from dataclasses import replace
 
 import pytest
 
-from app.config.settings_service import SettingsService
+from app.katalog import SettingsService
 from app.core.cancellation import CancellationToken
-from app.core.errors import ErrorReporter, Severity
+from app.fehler import ErrorReporter, Severity
 from app.dto.package import PackageSpec, validate_package
 from app.dto.vacuum import VacuumInput, VacuumPlateSpec
 from app.engines.palletizing.optimizer import PalletOptimizer, PalletizingError, build_constraints

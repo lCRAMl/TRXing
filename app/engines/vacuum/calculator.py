@@ -42,9 +42,9 @@ from __future__ import annotations
 import time
 
 from app.core.cancellation import CancellationToken, never
-from app.core.result import Status, classify
-from app.core.trace import CalculationTrace, new_trace
-from app.core.units import m3s_to_m3h, pa_to_mbar
+from app.ergebnis import Status, classify
+from app.ergebnis import CalculationTrace, new_trace
+from app.einheiten import m3s_to_m3h, pa_to_mbar
 from app.dto.common import CalculationMeta
 from app.dto.suction import RestrictorMode
 from app.dto.vacuum import (

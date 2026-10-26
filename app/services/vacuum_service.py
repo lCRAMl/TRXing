@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from PyQt6.QtCore import QObject
 
-from app.config.schema import VacuumDefaults
-from app.config.settings_service import SettingsService
-from app.core.errors import ErrorReporter
+from app.katalog import VacuumDefaults
+from app.katalog import SettingsService
+from app.fehler import ErrorReporter
 from app.core.requests import RequestGate
 from app.dto.suction import SuctionCupSpec
 from app.dto.vacuum import GripDirection, VacuumInput

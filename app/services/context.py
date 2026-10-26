@@ -19,8 +19,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.config.settings_service import SettingsService
-from app.core.errors import ErrorReporter
+from app.katalog import SettingsService
+from app.fehler import ErrorReporter
 from app.core.requests import RequestGate
 from app.jobs.job_manager import JobManager
 from app.services.app_state import AppState

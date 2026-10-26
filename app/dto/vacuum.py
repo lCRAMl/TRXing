@@ -16,9 +16,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from app.core.result import Status
-from app.core.trace import FrozenTrace
-from app.core.units import GRAVITY_MS2, STANDARD_AMBIENT_PA
+from app.ergebnis import Status
+from app.ergebnis import FrozenTrace
+from app.einheiten import GRAVITY_MS2, STANDARD_AMBIENT_PA
 from app.dto.common import CalculationMeta, Footprint
 from app.dto.package import PackageSpec
 from app.dto.suction import ContactClass, CupContact, RestrictorSpec, SuctionCupSpec, SuctionPlacement

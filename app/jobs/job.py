@@ -24,7 +24,7 @@ from typing import Any, Callable
 from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
 
 from app.core.cancellation import CancellationToken, CancelledError
-from app.core.errors import AppError, ErrorReporter, Severity
+from app.fehler import AppError, ErrorReporter, Severity
 from app.core.requests import RequestTicket
 
 

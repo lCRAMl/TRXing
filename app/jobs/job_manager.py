@@ -24,7 +24,7 @@ from dataclasses import dataclass
 
 from PyQt6.QtCore import QObject, QThreadPool, pyqtSignal
 
-from app.core.errors import ErrorReporter
+from app.fehler import ErrorReporter
 from app.jobs.job import Job, JobState
 
 

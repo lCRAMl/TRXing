@@ -66,7 +66,7 @@ FORBIDDEN: dict[str, tuple[str, ...]] = {
 
     # Die Oberflaeche spricht ueber Services. Sie kennt keine Engine und liest
     # keine Konfigurationsdatei.
-    "gui": ("app.engines", "app.config.loader", "app.config.schema", "json"),
+    "gui": ("app.engines", "app.katalog", "app.katalog", "json"),
 }
 
 
@@ -116,7 +116,7 @@ def test_gui_talks_only_to_services_dtos_and_renderers() -> None:
     Oberflaeche mit fertigen Objekten versorgt.
     """
     allowed = ("app.services", "app.dto", "app.core", "app.jobs",
-               "app.visualization", "app.gui", "app.application", "app.config.settings_service", "app")
+               "app.visualization", "app.gui", "app.application", "app.katalog", "app")
     violations: list[str] = []
 
     for path in _python_files("gui"):
@@ -213,7 +213,7 @@ def test_gui_contains_no_calculation_formulas() -> None:
     """Spezifikation 10: keine Berechnungsformeln in der Oberflaeche.
 
     Als Anhaltspunkt dient der Import von Rechenbibliotheken. Die Oberflaeche
-    darf Werte umrechnen (app.core.units) und formatieren, aber nicht rechnen.
+    darf Werte umrechnen (app.einheiten) und formatieren, aber nicht rechnen.
     Wer hier math oder numpy braucht, baut gerade eine Formel nach, die in eine
     Engine gehoert.
     """
@@ -332,7 +332,7 @@ def test_numeric_dto_fields_carry_a_unit_suffix() -> None:
     danebenliegen und trotzdem plausibel aussehen. Der Suffix macht den Fehler
     schon beim Lesen sichtbar.
     """
-    from app.core.units import FIELD_SUFFIXES
+    from app.einheiten import FIELD_SUFFIXES
 
     violations: list[str] = []
     for path in _python_files("dto"):

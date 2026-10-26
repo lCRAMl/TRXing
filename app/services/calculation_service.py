@@ -21,7 +21,7 @@ from typing import Any, Callable
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from app.core.cancellation import CancellationToken
-from app.core.errors import ErrorReporter
+from app.fehler import ErrorReporter
 from app.core.requests import RequestGate, RequestTicket
 from app.jobs.job import FunctionJob
 from app.jobs.job_manager import JobManager

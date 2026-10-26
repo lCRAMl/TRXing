@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import math
 
-from app.core.units import (
+from app.einheiten import (
     AIR_DENSITY_KGM3,
     AIR_GAS_CONSTANT,
     AIR_KAPPA,

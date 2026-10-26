@@ -13,8 +13,8 @@ from dataclasses import replace
 
 import pytest
 
-from app.core.result import Status
-from app.core.units import lpm_to_m3s, m3s_to_m3h, mbar_to_pa
+from app.ergebnis import Status
+from app.einheiten import lpm_to_m3s, m3s_to_m3h, mbar_to_pa
 from app.dto.common import Footprint
 from app.dto.package import PackageSpec
 from app.dto.suction import ContactClass, RestrictorMode, RestrictorSpec, SuctionPlacement

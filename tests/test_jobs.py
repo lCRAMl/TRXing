@@ -12,7 +12,7 @@ import time
 import pytest
 
 from app.core.cancellation import CancellationToken
-from app.core.errors import Severity
+from app.fehler import Severity
 from app.core.requests import RequestGate
 from app.jobs.job import FunctionJob, Job, JobState
 from app.jobs.job_manager import JobManager, PoolConfig

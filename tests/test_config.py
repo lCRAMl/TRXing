@@ -10,10 +10,10 @@ import json
 
 import pytest
 
-from app.config.loader import ConfigLoader, strip_comments
-from app.config.schema import parse_pallets, parse_suction_cups, parse_vacuum_defaults
-from app.config.settings_service import SettingsService
-from app.core.errors import Severity
+from app.katalog import ConfigLoader, strip_comments
+from app.katalog import parse_pallets, parse_suction_cups, parse_vacuum_defaults
+from app.katalog import SettingsService
+from app.fehler import Severity
 from app.dto.suction import RestrictorMode
 from app.dto.vacuum import GripDirection, LeakageModel
 
@@ -225,7 +225,7 @@ def test_cup_with_impossible_geometry_is_rejected(reporter):
 
 
 def test_unknown_enum_value_drops_only_that_entry(reporter):
-    from app.config.schema import parse_patterns
+    from app.katalog import parse_patterns
 
     data = {
         "patterns": [

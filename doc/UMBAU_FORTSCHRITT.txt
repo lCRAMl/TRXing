@@ -5,7 +5,7 @@ VS Code geschlossen, steht hier, was fertig ist und wo es weitergeht.
 NACH JEDEM SCHRITT AKTUALISIEREN.
 
 Letzte Aktualisierung: 2026-10-26
-Stand:                 Schritt 0 abgeschlossen, Schritt 1 beginnt
+Stand:                 Schritt 1 abgeschlossen, Schritt 2 beginnt
 
 
 ===============================================================================
@@ -105,7 +105,7 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        - Ausgangswert Tests: 565 gruen
        - diese Datei angelegt
 
-[ ] 1  Querschnitt zusammenlegen
+[x] 1  Querschnitt zusammenlegen
        core/units.py        -> app/einheiten.py
        core/paths.py        -> app/pfade.py
        core/errors.py       -> app/fehler.py  (mit logging_setup.py)
@@ -113,6 +113,11 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        core/os_theme.py     -> app/darstellung.py
        config/*             -> app/katalog.py
        Danach: core/ und config/ sind leer.
+       ERLEDIGT. config/ entfernt. In core/ stehen nur noch cancellation.py
+       und requests.py - die gehen in Schritt 2. 565 Tests gruen.
+       Hinweis: app/darstellung.py enthaelt vorerst nur die Hell/Dunkel-
+       Erkennung des Betriebssystems; Schritt 8 legt Farben und Stylesheet
+       dazu und schreibt dann auch den Dateikopf neu.
 
 [ ] 2  Nebenlaeufigkeit
        jobs/* + core/cancellation.py + core/requests.py -> app/nebenlaeufig.py
@@ -189,3 +194,16 @@ LAUFENDE NOTIZEN
 
 2026-10-26  Ausgangsstand: 565 Tests gruen in rund 14 Sekunden.
             85 Dateien, 14.089 Zeilen Anwendungscode, 5.020 Zeilen Tests.
+
+2026-10-26  Schritt 1. Zwei Fallen beim maschinellen Zusammenlegen, beide
+            inzwischen im Werkzeug abgefangen:
+            - ein Import ueber mehrere Zeilen mit Klammern darf nur als
+              GANZES verworfen werden, sonst bleibt die Klammer ohne Kopf
+            - bei einer dekorierten Klasse zeigt ast auf die class-Zeile;
+              das @dataclass darueber faellt sonst weg und die Klasse nimmt
+              plotzlich keine Argumente mehr
+            Ausserdem nachgezogen: tests/test_core.py benutzte die Form
+            "from app.core import os_theme", die kein Modulpfad-Muster
+            trifft, und app/gui/help/content.py verweist auf Quelldateien -
+            dieser Test meldet zuverlaessig, welche Verweise ein Umbau
+            bricht.

@@ -14,7 +14,7 @@ from __future__ import annotations
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QLabel, QTabWidget, QVBoxLayout, QWidget
 
-from app.core.errors import AppError, ErrorReporter, Severity
+from app.fehler import AppError, ErrorReporter, Severity
 from app.gui.module_registry import CalculationModule, ModuleRegistry
 from app.gui.theme import PALETTE
 from app.services.app_state import AppStateSnapshot, StateChange

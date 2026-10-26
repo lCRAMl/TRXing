@@ -12,8 +12,8 @@ was im Zustand steht, ist gueltig.
 
 from __future__ import annotations
 
-from app.core.errors import ErrorReporter
-from app.core.result import ValidationReport
+from app.fehler import ErrorReporter
+from app.ergebnis import ValidationReport
 from app.dto.package import PackageSpec, validate_package
 from app.services.app_state import AppState
 

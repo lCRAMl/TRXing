@@ -38,7 +38,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.core.units import GRAVITY_MS2
+from app.einheiten import GRAVITY_MS2
 from app.dto.suction import SuctionCupSpec
 from app.dto.vacuum import GripDirection
 

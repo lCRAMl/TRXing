@@ -30,7 +30,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from app.core.errors import AppError, ErrorReporter, Severity
+from app.fehler import AppError, ErrorReporter, Severity
 from app.gui.common.widgets import mono_font
 from app.gui.theme import PALETTE
 
