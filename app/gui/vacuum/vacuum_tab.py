@@ -39,13 +39,13 @@ from app.ergebnis import Status
 from app.einheiten import m3s_to_m3h, mbar_to_pa, pa_to_mbar
 from app.dto.suction import RestrictorMode, RestrictorSpec
 from app.dto.vacuum import GripDirection, LeakageSpec, VacuumInput, VacuumPlateSpec, VacuumResult
-from app.gui.common import window_state
-from app.gui.common.widgets import Debouncer, compact_combo
-from app.gui.tab_manager import TabHost
-from app.gui.theme import PALETTE
+from app.bedienelemente import restore_splitter, save_splitter, store
+from app.bedienelemente import Debouncer, compact_combo
+from app.tabs import TabHost
+from app.darstellung import PALETTE
 from app.gui.vacuum.ui_vacuum_tab import Ui_VacuumTab
 from app.vorgang import AppStateSnapshot, StateChange
-from app.services.context import AppContext
+from app.kontext import AppContext
 
 MODULE_ID = "vacuum"
 
@@ -110,7 +110,7 @@ class VacuumTab(TabHost):
         self.ui.splitter.setStretchFactor(1, 1)
         # Zieht der Benutzer den Griff, gilt seine Aufteilung - auch beim
         # naechsten Start. SPLITTER_SIZES ist nur der erste Vorschlag.
-        window_state.restore_splitter(self.ui.splitter, SETTINGS_SECTION, SPLITTER_SIZES)
+        restore_splitter(self.ui.splitter, SETTINGS_SECTION, SPLITTER_SIZES)
 
         # Lange Eintraege duerfen die Bedienspalte nicht auseinanderziehen; die
         # Groessenrichtlinie dafuer steht in der .ui-Datei. compact_combo
@@ -622,7 +622,7 @@ class VacuumTab(TabHost):
         self._debouncer.flush()
 
     def shutdown(self) -> None:
-        window_state.save_splitter(self.ui.splitter, SETTINGS_SECTION)
+        save_splitter(self.ui.splitter, SETTINGS_SECTION)
         self._debouncer.cancel()
         self._service.cancel()
 

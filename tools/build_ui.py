@@ -1,6 +1,6 @@
 """Erzeugt aus den Layoutdateien des Qt Designer die Python-Gegenstuecke.
 
-    app/gui/vacuum/vacuum_tab.ui   ->   app/gui/vacuum/ui_vacuum_tab.py
+    app/palette/tab.ui   ->   app/palette/ui_tab.py
 
 Aufruf:
 
@@ -27,7 +27,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-GUI = ROOT / "app" / "gui"
+PAKET = ROOT / "app"
 
 #: Kopfzeile, die die erzeugten Dateien als solche kennzeichnet.
 HEADER = (
@@ -42,7 +42,7 @@ HEADER = (
 
 
 def ui_files() -> list[Path]:
-    return sorted(GUI.rglob("*.ui"))
+    return sorted(PAKET.rglob("*.ui"))
 
 
 def target_for(source: Path) -> Path:

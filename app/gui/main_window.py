@@ -24,14 +24,14 @@ from PyQt6.QtWidgets import QMainWindow, QMessageBox, QTabWidget
 
 from app import APP_NAME, version_label
 from app.fehler import AppError, Severity
-from app.gui.common import window_state
+from app.bedienelemente import restore_splitter, save_splitter, store
 from app.gui.module_registry import ModuleRegistry
-from app.gui.status.error_bridge import ErrorBridge
-from app.gui.status.problem_panel import ProblemPanel
-from app.gui.status.status_bar import StatusBar
-from app.gui.tab_manager import TabManager
-from app.gui.theme import stylesheet
-from app.services.context import AppContext
+from app.meldungen import ErrorBridge
+from app.meldungen import ProblemPanel
+from app.meldungen import StatusBar
+from app.tabs import TabManager
+from app.darstellung import stylesheet
+from app.kontext import AppContext
 
 #: Fenstergroesse beim allerersten Start, Breite x Hoehe in Bildpunkten.
 #: ---> HIER STELLT MAN DIE STARTGROESSE DES FENSTERS EIN.
@@ -40,7 +40,7 @@ from app.services.context import AppContext
 #: beim Schliessen merkt sich das Fenster Groesse und Lage und stellt sie beim
 #: naechsten Mal wieder her (siehe _restore_geometry und closeEvent). Wer die
 #: Vorgabe hier aendert und sie sehen will, muss den gemerkten Wert loeschen -
-#: wo der liegt, steht in app/gui/common/window_state.py.
+#: wo der liegt, steht in app/bedienelemente.py.
 DEFAULT_SIZE = (1600, 1000)
 
 #: Abschnitt, unter dem sich das Fenster seine Geometrie merkt.
@@ -224,22 +224,22 @@ class MainWindow(QMainWindow):
     # Fenstergeometrie ---------------------------------------------------------
 
     def _restore_geometry(self) -> None:
-        store = window_state.store(SETTINGS_SECTION)
-        geometry = store.value("geometry")
+        einstellungen = store(SETTINGS_SECTION)
+        geometry = einstellungen.value("geometry")
         if isinstance(geometry, QByteArray) and not geometry.isEmpty():
             self.restoreGeometry(geometry)
         else:
             self.resize(*DEFAULT_SIZE)
-        index = store.value("tab_index")
+        index = einstellungen.value("tab_index")
         try:
             self._tabs.setCurrentIndex(int(index))
         except (TypeError, ValueError):
             pass
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt-Namensschema
-        store = window_state.store(SETTINGS_SECTION)
-        store.setValue("geometry", self.saveGeometry())
-        store.setValue("tab_index", self._tabs.currentIndex())
+        einstellungen = store(SETTINGS_SECTION)
+        einstellungen.setValue("geometry", self.saveGeometry())
+        einstellungen.setValue("tab_index", self._tabs.currentIndex())
 
         self._tab_manager.shutdown()
         self._bridge.detach()

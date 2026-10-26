@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.gui.theme import PALETTE
+from app.darstellung import PALETTE
 
 
 @dataclass(frozen=True, slots=True)

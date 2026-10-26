@@ -25,8 +25,8 @@ from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from app.dto.suction import ContactClass
 from app.dto.vacuum import VacuumResult
-from app.visualization.colors import toned
-from app.visualization.theme import MONO_FAMILY, PALETTE
+from app.darstellung import toned
+from app.darstellung import MONO_FAMILY, PALETTE
 
 #: Rand um die Plattenzeichnung. Oben steht statt dessen die Legende.
 MARGIN_PX = 52

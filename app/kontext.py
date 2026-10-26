@@ -24,8 +24,8 @@ from app.fehler import ErrorReporter
 from app.nebenlaeufig import RequestGate
 from app.nebenlaeufig import JobManager
 from app.vorgang import AppState
-from app.services.package_service import PackageService
-from app.services.pallet_service import PalletService
+from app.vorgang import PackageService
+from app.palette.dienst import PalletService
 from app.services.vacuum_service import VacuumService
 
 

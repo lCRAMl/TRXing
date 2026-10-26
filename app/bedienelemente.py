@@ -1,19 +1,15 @@
-"""Wiederverwendete Bedienelemente.
+"""Wiederverwendbare Bedienelemente.
 
-Hier liegen die Bausteine, die alle drei Tabs gleich aussehen lassen: ein
-Zahlenfeld mit Einheit und Fehleranzeige, ein Ergebnisraster und das Band fuer
-veraltete Ergebnisse.
+Was mehr als ein Tab braucht: Zahlenfelder mit Einheit, die Ergebnistabelle,
+der Hinweisstreifen fuer veraltete Anzeigen, die Entprellung und das Merken
+der Fenstergroesse.
 
-Keiner dieser Bausteine rechnet. Das Zahlenfeld prueft nicht, ob eine Laenge
-plausibel ist - es zeigt an, was die Validierung der Fachschicht gemeldet hat.
-Der Unterschied entscheidet darueber, ob die Regel an einer Stelle steht oder in
-jedem Formular noch einmal.
+Zusammengelegt aus gui/common/widgets.py und gui/common/window_state.py.
 """
 
 from __future__ import annotations
 
 from typing import Callable
-
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
@@ -29,21 +25,27 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from app.darstellung import MONO_FAMILY, PALETTE
+from typing import Sequence
+from PyQt6.QtCore import QByteArray, QSettings
+from app import APP_SLUG
 
-from app.gui.theme import MONO_FAMILY, PALETTE
 
-#: Breite, mit der Hinweistexte umbrechen.
-#:
-#: Die Zahl bestimmt nicht das Aussehen, sondern die Hoehenschaetzung des
-#: Formulars. Ein umbrechendes QLabel berechnet seine bevorzugte Hoehe fuer
-#: genau die gesetzte Mindestbreite - bei 1 bricht Qt rechnerisch nach jedem
-#: Wort um und meldet mehrere hundert Bildpunkte Hoehe. Das Formular reserviert
-#: sie brav, und zwischen den Eingabefeldern klafft eine handbreite Luecke,
-#: waehrend der Text darin in drei Zeilen steht.
-#:
-#: 240 ist schmal genug, um die Bedienspalte nicht aufzuziehen, und breit genug
-#: fuer eine ehrliche Hoehenschaetzung. tests/test_ui_files.py prueft, dass
-#: jeder Hinweis in einer Layoutdatei sie mitbringt.
+# ---------------------------------------------------------------------------
+# widgets.py
+# ---------------------------------------------------------------------------
+"""Wiederverwendete Bedienelemente.
+
+Hier liegen die Bausteine, die alle drei Tabs gleich aussehen lassen: ein
+Zahlenfeld mit Einheit und Fehleranzeige, ein Ergebnisraster und das Band fuer
+veraltete Ergebnisse.
+
+Keiner dieser Bausteine rechnet. Das Zahlenfeld prueft nicht, ob eine Laenge
+plausibel ist - es zeigt an, was die Validierung der Fachschicht gemeldet hat.
+Der Unterschied entscheidet darueber, ob die Regel an einer Stelle steht oder in
+jedem Formular noch einmal.
+"""
+
 NOTE_WRAP_WIDTH = 240
 
 
@@ -427,3 +429,56 @@ def compact_combo(combo, min_chars: int = 12, tooltip: str = ""):
     combo.currentIndexChanged.connect(_show_full_text)
     _show_full_text()
     return combo
+
+
+# ---------------------------------------------------------------------------
+# window_state.py
+# ---------------------------------------------------------------------------
+r"""Was sich die Oberflaeche zwischen zwei Starts merkt.
+
+Fenstergroesse, zuletzt benutzter Tab, Aufteilung der Splitter. Alles davon ist
+eine Entscheidung des Benutzers - er zieht den Griff dorthin, wo er ihn haben
+will, und erwartet ihn beim naechsten Start dort wieder. Eine Vorgabe im
+Quelltext ist nur der erste Vorschlag fuer den allerersten Start.
+
+Gespeichert wird ueber QSettings, unter Windows also in der Registry unter
+
+    HKEY_CURRENT_USER\Software\TRXing\<Abschnitt>
+
+Bewusst NICHT in config/: dort stehen die technischen Daten der Anlage, die
+gepflegt und weitergegeben werden. Wie breit jemand seine Bedienspalte zieht,
+gehoert zu seinem Rechner und hat in einer ausgelieferten Konfigurationsdatei
+nichts verloren.
+
+Wer die gemerkten Werte loswerden will, loescht den Schluessel - danach gelten
+wieder die Vorgaben aus dem Quelltext.
+"""
+
+def store(section: str) -> QSettings:
+    """Der Ablageort eines Fensters oder Tabs."""
+    return QSettings(APP_SLUG, section)
+
+
+def save_splitter(splitter, section: str, key: str = "splitter") -> None:
+    """Merkt sich die Aufteilung eines Splitters."""
+    store(section).setValue(key, splitter.saveState())
+
+
+def restore_splitter(
+    splitter, section: str, fallback: Sequence[int], key: str = "splitter"
+) -> None:
+    """Stellt die gemerkte Aufteilung wieder her, sonst die Vorgabe.
+
+    saveState/restoreState statt der blossen Zahlen: der Zustand enthaelt auch,
+    welche Seite zusammengeklappt ist, und Qt rechnet ihn auf die aktuelle
+    Fensterbreite um. Zwei gespeicherte Bildpunktwerte waeren auf einem anderen
+    Bildschirm falsch.
+
+    Die Mindestbreiten der beiden Seiten gelten weiterhin - eine gemerkte
+    Aufteilung kann also nichts abschneiden, was nicht auch von Hand
+    abgeschnitten werden koennte.
+    """
+    state = store(section).value(key)
+    if isinstance(state, QByteArray) and not state.isEmpty() and splitter.restoreState(state):
+        return
+    splitter.setSizes(list(fallback))

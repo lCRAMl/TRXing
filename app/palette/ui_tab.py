@@ -1,4 +1,4 @@
-"""AUTOMATISCH ERZEUGT aus app/gui/pallet/pallet_tab.ui - nicht von Hand aendern.
+"""AUTOMATISCH ERZEUGT aus app/palette/tab.ui - nicht von Hand aendern.
 
 Geaendert wird die .ui-Datei im Qt Designer, danach:
 
@@ -227,5 +227,5 @@ class Ui_PalletTab(object):
         self.button_3d.setText(_translate("PalletTab", "3D Ansicht"))
         self.layer_caption.setText(_translate("PalletTab", "Ebene"))
         self.reset_camera.setText(_translate("PalletTab", "Ansicht zuruecksetzen"))
-from app.gui.common.widgets import IntField, NumberField, ResultGrid, StaleBanner
-from app.visualization.pallet_2d import Pallet2DView
+from app.bedienelemente import IntField, NumberField, ResultGrid, StaleBanner
+from app.palette.zeichnung import Pallet2DView

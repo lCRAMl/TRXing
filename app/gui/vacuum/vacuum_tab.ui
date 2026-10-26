@@ -420,22 +420,22 @@ Aus: rechnet mit dem eingestellten Sollvakuum und warnt nur bei Ueberlast.</stri
   <customwidget>
    <class>NumberField</class>
    <extends>QWidget</extends>
-   <header>app.gui.common.widgets</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
    <class>IntField</class>
    <extends>QWidget</extends>
-   <header>app.gui.common.widgets</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
    <class>ResultGrid</class>
    <extends>QGroupBox</extends>
-   <header>app.gui.common.widgets</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
    <class>StaleBanner</class>
    <extends>QFrame</extends>
-   <header>app.gui.common.widgets</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
    <class>Vacuum2DView</class>

@@ -28,7 +28,7 @@ from app.engines.vacuum.force import (
 from app.engines.vacuum.layout import SuctionLayoutEngine
 from app.nebenlaeufig import JobManager
 from app.nebenlaeufig import CHANNEL_VACUUM, JobHandle
-from app.services.calculation_service import CalculationService
+from app.rechenlauf import CalculationService
 
 
 class VacuumService(CalculationService):

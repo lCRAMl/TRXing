@@ -33,10 +33,10 @@ from __future__ import annotations
 from PyQt6.QtWidgets import QWidget
 
 from app.paket import PackageSpec
-from app.gui.common.widgets import Debouncer
-from app.gui.package.ui_package_form import Ui_PackageForm
+from app.bedienelemente import Debouncer
+from app.palette.ui_formular import Ui_PackageForm
 from app.vorgang import AppStateSnapshot, StateChange
-from app.services.context import AppContext
+from app.kontext import AppContext
 
 
 class PackageForm(QWidget):

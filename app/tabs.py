@@ -16,9 +16,9 @@ from PyQt6.QtWidgets import QLabel, QTabWidget, QVBoxLayout, QWidget
 
 from app.fehler import AppError, ErrorReporter, Severity
 from app.gui.module_registry import CalculationModule, ModuleRegistry
-from app.gui.theme import PALETTE
+from app.darstellung import PALETTE
 from app.vorgang import AppStateSnapshot, StateChange
-from app.services.context import AppContext
+from app.kontext import AppContext
 
 
 class TabHost(QWidget):

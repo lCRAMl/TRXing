@@ -1,3 +1,39 @@
+"""Der gemeinsame Zustand - und wie er beschrieben wird.
+
+Absichtlich klein: das aktuelle Paket und die Auswahl der Tabs. Nichts darin
+ist ein Widget, nichts darin ist ein Rechenergebnis.
+
+Der Revisionszaehler ist das Herzstueck. Jede fachliche Aenderung erhoeht ihn.
+Ein Ergebnis merkt sich in seinen Metadaten die Revision, unter der es
+entstand; weichen beide ab, ist die Anzeige veraltet. Das genuegt, damit jeder
+Tab eine Paketaenderung bemerkt, ohne dass Signale von Tab zu Tab gereicht
+werden.
+
+Dazu die Pruefung und Uebernahme der Paketdaten - sie war bisher ein eigener
+Dienst, ist aber nichts anderes als der geregelte Weg, dieses eine Feld zu
+beschreiben.
+
+Qt-frei, damit auch Rechenteile zuhoeren koennen, ohne eine QApplication zu
+brauchen. Die Bruecke zu Qt-Signalen liegt in der Oberflaechenschicht.
+
+Zusammengelegt aus services/app_state.py und services/package_service.py.
+"""
+
+from __future__ import annotations
+
+import threading
+from dataclasses import dataclass, replace
+from enum import Enum
+from typing import Callable
+from app.paket import PackageSpec
+from app.fehler import ErrorReporter
+from app.ergebnis import ValidationReport
+from app.paket import PackageSpec, validate_package
+
+
+# ---------------------------------------------------------------------------
+# vorgang.py
+# ---------------------------------------------------------------------------
 """Der gemeinsame Anwendungszustand (Spezifikation 30).
 
 Absichtlich klein: das aktuelle Paket und die Auswahl der drei Tabs. Nichts
@@ -14,16 +50,6 @@ Benachrichtigt wird ueber gewoehnliche Rueckrufe statt ueber Qt-Signale, damit
 auch Jobs und Engines zuhoeren koennen, ohne eine QApplication zu brauchen. Die
 Bruecke zu Qt-Signalen liegt in der Oberflaechenschicht.
 """
-
-from __future__ import annotations
-
-import threading
-from dataclasses import dataclass, replace
-from enum import Enum
-from typing import Callable
-
-from app.paket import PackageSpec
-
 
 class StateChange(Enum):
     """Was sich geaendert hat. Empfaenger koennen danach filtern."""
@@ -161,3 +187,64 @@ class AppState:
     @staticmethod
     def invalidated_channels(change: StateChange) -> tuple[str, ...]:
         return INVALIDATES.get(change, ())
+
+
+# ---------------------------------------------------------------------------
+# package_service.py
+# ---------------------------------------------------------------------------
+"""Serviceschicht fuer die Paketdaten.
+
+Der Tab liest Zahlen aus Eingabefeldern und baut daraus ein PackageSpec. Ob das
+Paket gueltig ist, entscheidet er nicht - das tut die Validierung im DTO-Modul,
+aufgerufen von hier. So steht die Regel "Laenge groesser null" an genau einer
+Stelle und nicht in jedem Widget noch einmal.
+
+Ungueltige Eingaben kommen nicht in den Zustand. Waeren sie drin, muesste jede
+Berechnung fuer sich pruefen, ob das Paket brauchbar ist; stattdessen gilt:
+was im Zustand steht, ist gueltig.
+"""
+
+class PackageService:
+    """Oeffentliche Schnittstelle der Paketdaten."""
+
+    def __init__(self, state: AppState, reporter: ErrorReporter) -> None:
+        self._state = state
+        self._reporter = reporter
+
+    def get_current_package(self) -> PackageSpec | None:
+        return self._state.snapshot().package
+
+    def validate(self, package: PackageSpec) -> ValidationReport:
+        """Prueft ein Paket, ohne den Zustand zu beruehren.
+
+        Der Tab ruft das bei jeder Eingabe auf, um Fehler direkt am Feld
+        anzuzeigen - auch dann, wenn der Wert nicht uebernommen werden kann.
+        """
+        return validate_package(package)
+
+    def update_package(self, package: PackageSpec) -> ValidationReport:
+        """Uebernimmt ein Paket in den Zustand, sofern es gueltig ist.
+
+        Gibt den Pruefbericht zurueck. Bei Fehlern bleibt der bisherige Zustand
+        unveraendert und die abhaengigen Tabs behalten ihr Ergebnis - es gehoert
+        ja noch zum letzten gueltigen Paket.
+        """
+        report = validate_package(package)
+        if not report.ok:
+            return report
+
+        changed = self._state.set_package(package)
+        if changed:
+            self._reporter.info(
+                "package",
+                "Paket uebernommen: "
+                + format(package.length_mm, ".0f") + "x"
+                + format(package.width_mm, ".0f") + "x"
+                + format(package.height_mm, ".0f") + " mm, "
+                + format(package.weight_kg, ".3f") + " kg",
+            )
+        return report
+
+    def clear(self) -> None:
+        """Entfernt das Paket. Abhaengige Anzeigen werden dadurch veraltet."""
+        self._state.set_package(None)

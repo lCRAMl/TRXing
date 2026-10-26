@@ -22,9 +22,9 @@ import pytest
 from PyQt6.QtGui import QColor, QFont, QPalette
 from PyQt6.QtWidgets import QStyleFactory
 
-from app.gui import theme
-from app.visualization import colors
-from app.visualization.theme import DARK, LIGHT, Palette
+from app import darstellung as theme
+from app import darstellung as colors
+from app.darstellung import DARK, LIGHT, Palette
 
 pytestmark = pytest.mark.usefixtures("qt_app")
 

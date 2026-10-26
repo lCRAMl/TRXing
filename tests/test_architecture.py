@@ -74,6 +74,11 @@ FORBIDDEN: dict[str, tuple[str, ...]] = {
     # test_the_calculating_modules_stay_qt_free - das ist die Zusage, auf der
     # die schnelle Testsuite beruht.
     "palette": ("app.vakuum",),
+
+    # Reine Dateiordner ohne Logik: das Programmsymbol und das dunkle
+    # Stylesheet. Sie importieren nichts ausser Qt.
+    "icons": ("app.palette", "app.vakuum", "app.gui"),
+    "darkstyle": (),
 }
 
 

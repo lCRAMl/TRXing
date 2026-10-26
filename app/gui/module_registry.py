@@ -29,7 +29,7 @@ from typing import Protocol, runtime_checkable
 
 from PyQt6.QtWidgets import QWidget
 
-from app.services.context import AppContext
+from app.kontext import AppContext
 
 
 @runtime_checkable
@@ -85,7 +85,7 @@ def default_modules() -> list[CalculationModule]:
     Modulvertrag ohne die Tabs, und Tests koennen ihn pruefen, ohne die ganze
     Oberflaeche zu bauen.
     """
-    from app.gui.pallet.pallet_tab import PalletModule
+    from app.palette.tab import PalletModule
     from app.gui.vacuum.vacuum_tab import VacuumModule
 
     return [PalletModule(), VacuumModule()]

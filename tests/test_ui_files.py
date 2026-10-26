@@ -26,13 +26,14 @@ from __future__ import annotations
 
 import ast
 import pathlib
+import re
 import sys
 import xml.etree.ElementTree as ET
 
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-GUI = ROOT / "app" / "gui"
+PAKET = ROOT / "app"
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -42,7 +43,7 @@ import build_ui  # noqa: E402  - liegt in tools/, deshalb erst nach der Pfaderga
 
 
 def _ui_files() -> list[pathlib.Path]:
-    return sorted(GUI.rglob("*.ui"))
+    return sorted(PAKET.rglob("*.ui"))
 
 
 def _ids() -> list[str]:
@@ -69,9 +70,15 @@ def _property(node, name: str):
 
 def test_every_tab_has_a_layout_file() -> None:
     """Jeder Tab bringt seine Anordnung in einer eigenen .ui-Datei mit."""
-    tabs = sorted(p.stem for p in GUI.rglob("*_tab.py") if not p.name.startswith("ui_"))
-    layouts = sorted(p.stem for p in _ui_files())
-    missing = [stem for stem in tabs if stem not in layouts]
+    # Verglichen wird der PFAD, nicht der blosse Name: seit dem Umbau heisst
+    # der Tab jeder Scheibe tab.py, und zwei gleiche Namen in verschiedenen
+    # Ordnern duerfen sich nicht gegenseitig decken.
+    tabs = [
+        p for p in PAKET.rglob("*tab.py")
+        if not p.name.startswith("ui_")
+    ]
+    layouts = {p.with_suffix("") for p in _ui_files()}
+    missing = [_relative(p) for p in sorted(tabs) if p.with_suffix("") not in layouts]
     assert not missing, "Tab ohne Layoutdatei: " + ", ".join(missing)
 
 
@@ -146,7 +153,7 @@ def test_wrapping_notes_keep_their_minimum_width() -> None:
     mehrere hundert Bildpunkte Hoehe, und zwischen den Eingabefeldern klafft
     eine handbreite Luecke. Siehe NOTE_WRAP_WIDTH in app/gui/common/widgets.py.
     """
-    from app.gui.common.widgets import NOTE_WRAP_WIDTH
+    from app.bedienelemente import NOTE_WRAP_WIDTH
 
     violations: list[str] = []
     for source in _ui_files():
@@ -296,7 +303,17 @@ def test_tab_modules_use_their_generated_class(path: pathlib.Path) -> None:
     ist sofort erkennbar, was aus dem Designer stammt.
     """
     source = path.read_text(encoding="utf-8")
-    expected = "Ui_" + "".join(part.capitalize() for part in path.stem.split("_"))
+
+    # Der erwartete Name wird aus der ERZEUGTEN Datei gelesen, nicht aus dem
+    # Dateinamen abgeleitet. pyuic6 benennt die Klasse nach dem obersten
+    # Objekt der .ui-Datei (Ui_PalletTab), und das muss nicht so heissen wie
+    # die Datei - seit dem Umbau heisst der Tab jeder Scheibe schlicht tab.py.
+    generated = path.with_name("ui_" + path.stem + ".py")
+    assert generated.is_file(), "Zu " + _relative(path) + " fehlt " + generated.name
+    match = re.search(r"^class (Ui_\w+)", generated.read_text(encoding="utf-8"), re.M)
+    assert match, generated.name + " enthaelt keine Ui_-Klasse"
+    expected = match.group(1)
+
     assert expected in source, path.stem + ".py verwendet " + expected + " nicht"
     assert "self.ui = " + expected in source, (
         path.stem + ".py soll " + expected + " als self.ui halten, nicht davon erben"

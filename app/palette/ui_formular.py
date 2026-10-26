@@ -1,4 +1,4 @@
-"""AUTOMATISCH ERZEUGT aus app/gui/package/package_form.ui - nicht von Hand aendern.
+"""AUTOMATISCH ERZEUGT aus app/palette/formular.ui - nicht von Hand aendern.
 
 Geaendert wird die .ui-Datei im Qt Designer, danach:
 
@@ -109,4 +109,4 @@ class Ui_PackageForm(object):
         self.tipping.setToolTip(_translate("PackageForm", "Aus: das Paket wird nur in der Ebene um 90 Grad gedreht (\'oben bleibt oben\').\n"
 "Ein: der Optimierer darf auch Laenge oder Breite hochkant stellen."))
         self.derived.setTitle(_translate("PackageForm", "Abgeleitete Werte"))
-from app.gui.common.widgets import NumberField, ResultGrid
+from app.bedienelemente import NumberField, ResultGrid

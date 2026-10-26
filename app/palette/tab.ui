@@ -292,27 +292,27 @@
   <customwidget>
    <class>NumberField</class>
    <extends>QWidget</extends>
-   <header>app.gui.common.widgets</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
    <class>IntField</class>
    <extends>QWidget</extends>
-   <header>app.gui.common.widgets</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
    <class>ResultGrid</class>
    <extends>QGroupBox</extends>
-   <header>app.gui.common.widgets</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
    <class>StaleBanner</class>
    <extends>QFrame</extends>
-   <header>app.gui.common.widgets</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
    <class>Pallet2DView</class>
    <extends>QWidget</extends>
-   <header>app.visualization.pallet_2d</header>
+   <header>app.palette.zeichnung</header>
   </customwidget>
  </customwidgets>
  <resources/>

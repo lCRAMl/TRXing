@@ -41,15 +41,15 @@ from PyQt6.QtWidgets import QButtonGroup, QWidget
 
 from app.darstellung import ViewMode
 from app.palette.daten import PalletResult, SharedLayer
-from app.gui.common import window_state
-from app.gui.common.widgets import Debouncer, compact_combo
-from app.gui.package.package_form import PackageForm
-from app.gui.pallet.ui_pallet_tab import Ui_PalletTab
-from app.gui.tab_manager import TabHost
-from app.gui.theme import PALETTE
+from app.bedienelemente import restore_splitter, save_splitter, store
+from app.bedienelemente import Debouncer, compact_combo
+from app.palette.formular import PackageForm
+from app.palette.ui_tab import Ui_PalletTab
+from app.tabs import TabHost
+from app.darstellung import PALETTE
 from app.vorgang import AppStateSnapshot, StateChange
-from app.services.context import AppContext
-from app.visualization.adapters import create_scene
+from app.kontext import AppContext
+from app.palette.szene3d import create_scene
 
 MODULE_ID = "pallet"
 
@@ -124,7 +124,7 @@ class PalletTab(TabHost):
         self.ui.splitter.setStretchFactor(1, 1)
         # Zieht der Benutzer den Griff, gilt seine Aufteilung - auch beim
         # naechsten Start. SPLITTER_SIZES ist nur der erste Vorschlag.
-        window_state.restore_splitter(self.ui.splitter, SETTINGS_SECTION, SPLITTER_SIZES)
+        restore_splitter(self.ui.splitter, SETTINGS_SECTION, SPLITTER_SIZES)
 
         # Die Bedienspalte rollt senkrecht - waagerecht nicht. Eine Rollflaeche
         # gibt die Mindestbreite ihres Inhalts nicht nach aussen weiter; ohne
@@ -483,7 +483,7 @@ class PalletTab(TabHost):
         self._debouncer.flush()
 
     def shutdown(self) -> None:
-        window_state.save_splitter(self.ui.splitter, SETTINGS_SECTION)
+        save_splitter(self.ui.splitter, SETTINGS_SECTION)
         self._package.shutdown()
         self._debouncer.cancel()
         self._service.cancel()

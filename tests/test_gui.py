@@ -98,7 +98,7 @@ def test_both_tabs_appear(window):
 
 def test_no_tab_failed_to_build(window, application):
     """Ein gescheiterter Tab bekommt einen Platzhalter - der darf hier nicht auftauchen."""
-    from app.gui.pallet.pallet_tab import PalletTab
+    from app.palette.tab import PalletTab
     from app.gui.vacuum.vacuum_tab import VacuumTab
 
     manager = window._tab_manager
@@ -109,7 +109,7 @@ def test_no_tab_failed_to_build(window, application):
 def test_the_package_form_sits_at_the_top_of_the_pallet_tab(window, package_form):
     """Die Paketdaten sind kein eigener Tab mehr, sondern das erste Formular
     der Palettierung - noch ueber der Palettenauswahl."""
-    from app.gui.package.package_form import PackageForm
+    from app.palette.formular import PackageForm
 
     tab = window._tab_manager.widget_for("pallet")
     assert isinstance(package_form, PackageForm)
@@ -595,9 +595,9 @@ def test_the_application_icon_is_there(qt_app):
     die passende. Bleibt nur eine uebrig, sieht sie in der anderen Groesse
     ausgefranst aus.
     """
-    from app.gui.icons import app_icon, app_icon_path
+    from app.icons import app_icon, app_icon_path
 
-    assert app_icon_path().is_file(), "pallet.ico fehlt neben app/gui/icons/__init__.py"
+    assert app_icon_path().is_file(), "pallet.ico fehlt neben app/icons/__init__.py"
 
     icon = app_icon()
     assert not icon.isNull()
@@ -614,7 +614,7 @@ def test_the_icon_travels_with_the_package():
     """
     import AUTOBUILD
 
-    from app.gui.icons import app_icon_path
+    from app.icons import app_icon_path
 
     assert AUTOBUILD.ICON_FILE == app_icon_path(), (
         "Bauskript und Anwendung meinen verschiedene Dateien"
@@ -622,7 +622,7 @@ def test_the_icon_travels_with_the_package():
     assert AUTOBUILD.ICON_FILE.is_file()
 
     bundled = {target for _source, target in AUTOBUILD.DATA_FILES}
-    assert "app/gui/icons" in bundled, "Der Symbolordner fehlt in DATA_FILES"
+    assert "app/icons" in bundled, "Der Symbolordner fehlt in DATA_FILES"
 
 
 def test_the_spacing_field_says_what_it_costs(window, qt_app):
@@ -651,7 +651,7 @@ def test_the_help_styles_follow_the_palette():
     Schrift auf weisser Tabelle.
     """
     from app.gui.help.content import STYLE
-    from app.gui.theme import PALETTE
+    from app.darstellung import PALETTE
 
     assert PALETTE.surface_alt in STYLE
     assert PALETTE.border in STYLE

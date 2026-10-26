@@ -79,13 +79,13 @@ COLLECT_ALL = ("pyvista", "vtkmodules", "pyvistaqt", "qtpy")
 #: app/gui/theme.py den Ordner in beiden Betriebsarten ueber __file__ - im
 #: Quelltextbaum wie im entpackten Paket.
 DATA_FILES = (
-    ("app/gui/darkstyle", "app/gui/darkstyle"),
-    ("app/gui/icons", "app/gui/icons"),
+    ("app/darkstyle", "app/darkstyle"),
+    ("app/icons", "app/icons"),
 )
 
 #: Symbol der fertigen Programmdatei. Dieselbe Datei, die die Anwendung zur
-#: Laufzeit als Fenstersymbol setzt - siehe app/gui/icons/__init__.py.
-ICON_FILE = ROOT / "app" / "gui" / "icons" / "pallet.ico"
+#: Laufzeit als Fenstersymbol setzt - siehe app/icons/__init__.py.
+ICON_FILE = ROOT / "app" / "icons" / "pallet.ico"
 
 
 # =========================

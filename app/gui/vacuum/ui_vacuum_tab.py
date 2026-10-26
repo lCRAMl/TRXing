@@ -340,5 +340,5 @@ class Ui_VacuumTab(object):
         self.calculate_button.setText(_translate("VacuumTab", "Berechnen"))
         self.results.setTitle(_translate("VacuumTab", "Ergebnis"))
         self.flow_results.setTitle(_translate("VacuumTab", "Vakuum, Kraft und Volumenstrom"))
-from app.gui.common.widgets import IntField, NumberField, ResultGrid, StaleBanner
+from app.bedienelemente import IntField, NumberField, ResultGrid, StaleBanner
 from app.visualization.vacuum_2d import Vacuum2DView

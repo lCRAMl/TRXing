@@ -28,7 +28,7 @@ from PyQt6.QtWidgets import (
 )
 
 from app.gui.help.content import full_document, sections
-from app.gui.theme import PALETTE
+from app.darstellung import PALETTE
 
 
 class FormulaHelpDialog(QDialog):

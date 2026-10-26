@@ -146,12 +146,12 @@ Ein: der Optimierer darf auch Laenge oder Breite hochkant stellen.</string>
   <customwidget>
    <class>NumberField</class>
    <extends>QWidget</extends>
-   <header>app.gui.common.widgets</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
    <class>ResultGrid</class>
    <extends>QGroupBox</extends>
-   <header>app.gui.common.widgets</header>
+   <header>app.bedienelemente</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -5,7 +5,8 @@ VS Code geschlossen, steht hier, was fertig ist und wo es weitergeht.
 NACH JEDEM SCHRITT AKTUALISIEREN.
 
 Letzte Aktualisierung: 2026-10-26
-Stand:                 Schritte 1-4 abgeschlossen, Schritt 5 beginnt
+Stand:                 Schritte 1-6 abgeschlossen, Schritt 7 beginnt
+Tests:                 569 gruen
 
 
 ===============================================================================
@@ -134,17 +135,28 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        engines/geometry/shapes.py -> app/geometrie.py
        ERLEDIGT.
 
-[ ] 5  Paket
+[x] 5  Paket
        dto/package.py + gui/package/* -> app/paket.py (+ ui_paket.py)
 
-[ ] 6  Scheibe Palette
+[x] 6  Scheibe Palette
        dto/pallet.py             -> app/palette/daten.py
        engines/patterns/*        -> app/palette/muster.py
        engines/palletizing/*     -> app/palette/rechnung.py
        visualization/pallet_2d   -> app/palette/zeichnung.py
        visualization/pallet_3d + adapters -> app/palette/szene3d.py
        gui/pallet/*              -> app/palette/tab.py, ui_tab.py
-       services/pallet_service   -> aufgeloest
+       services/pallet_service   -> palette/dienst.py
+       ERLEDIGT. Dazu vorgezogen, weil sonst Importzyklen stehenblieben:
+         gui/common/*        -> bedienelemente.py
+         gui/status/*        -> meldungen.py
+         gui/theme + visualization/{theme,colors} -> darstellung.py
+         gui/tab_manager.py  -> tabs.py
+         services/context.py -> kontext.py
+         services/package_service.py -> vorgang.py
+         services/calculation_service.py -> rechenlauf.py
+         app/gui/darkstyle/ -> app/darkstyle/, app/gui/icons/ -> app/icons/
+       Die beiden Ordner mussten mit, weil sie ueber __file__ gefunden werden;
+       AUTOBUILD.py und tools/build_ui.py wurden nachgezogen.
 
 [ ] 7  Scheibe Vakuum
        dto/{vacuum,suction}.py   -> app/vakuum/daten.py
@@ -216,3 +228,23 @@ LAUFENDE NOTIZEN
             ist damit die zuverlaessigste Erinnerung, die Dokumentation
             mitzufuehren. Die Verweise werden mit einem kleinen Werkzeug
             nachgezogen, das auch doc/ARCHITECTURE.md und README.md erfasst.
+
+2026-10-26  Schritte 5 und 6. Drei Dinge, die beim naechsten Mal Zeit sparen:
+
+            - "rm -rf" auf einen gui-Ordner nimmt die .ui-Dateien mit. Zwei
+              waren weg und mussten aus git zurueckgeholt werden. Erst die
+              .ui verschieben, dann den Ordner raeumen.
+            - Module, die ihre Dateien ueber __file__ finden (darkstyle/,
+              icons/), schleppen den Ordner beim Umzug mit - sonst bricht
+              die gepackte Fassung, ohne dass ein Test es merkt.
+            - Beim Zusammenlegen wird ein Dokumentationskopf mit Backslashes
+              (Registry-Pfade) zur SyntaxWarning, weil das r-Praefix verloren
+              geht. Zweimal passiert.
+
+            Wichtiger Fund: tests/test_ui_files.py suchte weiter nur unter
+            app/gui und prueft deshalb nach dem Umzug nur noch EINE statt
+            drei Layoutdateien - 18 Pruefungen auf 6 geschrumpft, ohne dass
+            etwas rot wurde. Gefunden durch Vergleich der gesammelten
+            Testzahl vor und nach dem Umbau. Diese Gegenprobe gehoert nach
+            jedem Schritt gemacht; gleiche Namenszahl (317) heisst nicht
+            gleiche Pruefungszahl.

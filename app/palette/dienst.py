@@ -16,7 +16,7 @@ from app.palette.daten import PalletConstraints, PalletSpec, PatternSpec, Shared
 from app.palette.rechnung import PalletOptimizer, PalletizingError, build_constraints
 from app.nebenlaeufig import JobManager
 from app.nebenlaeufig import CHANNEL_PALLET, JobHandle
-from app.services.calculation_service import CalculationService
+from app.rechenlauf import CalculationService
 
 
 class PalletService(CalculationService):
