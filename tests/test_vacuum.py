@@ -15,8 +15,8 @@ import pytest
 
 from app.ergebnis import Status
 from app.einheiten import lpm_to_m3s, m3s_to_m3h, mbar_to_pa
-from app.dto.common import Footprint
-from app.dto.package import PackageSpec
+from app.geometrie import Footprint
+from app.paket import PackageSpec
 from app.dto.suction import ContactClass, RestrictorMode, RestrictorSpec, SuctionPlacement
 from app.dto.vacuum import GripDirection, LeakageModel, LeakageSpec, PumpSpec, VacuumInput, VacuumPlateSpec
 from app.geometrie import circle_rect_overlap_area_mm2

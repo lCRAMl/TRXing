@@ -49,7 +49,7 @@ def settings(reporter, tmp_path):
 
 @pytest.fixture
 def package():
-    from app.dto.package import PackageSpec
+    from app.paket import PackageSpec
 
     return PackageSpec(length_mm=400.0, width_mm=300.0, height_mm=200.0, weight_kg=5.0, max_stack_load_kg=60.0)
 

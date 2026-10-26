@@ -177,7 +177,7 @@ uebrigen Ergebnisse haengen an diesen vier Zahlen.</p>
     "V   = 400 * 300 * 200      = 24 000 000 mm3 = 24,00 Liter",
     "A   = 400 * 300            = 120 000 mm2   = 1200 cm2",
     "rho = 5 / 0,024            = 208,3 kg/m3",
-) + _source("app/dto/package.py", "PackageSpec.volume_mm3, .density_kgm3, .footprint_area_mm2") + """
+) + _source("app/paket.py", "PackageSpec.volume_mm3, .density_kgm3, .footprint_area_mm2") + """
 
 <h2>Stapelhoehe aus der zulaessigen Stapellast</h2>
 <p>Das unterste Paket eines Saeulenstapels traegt alle darueber. Bei n Paketen
@@ -211,7 +211,7 @@ erscheint:</p>
 <p>Die Obergrenzen fangen die haeufigste Verwechslung ab: eine Laenge von
 400000 ist eine Eingabe in Mikrometern oder ein vergessenes Komma, keine
 Palette.</p>
-""" + _source("app/dto/package.py", "validate_package()")
+""" + _source("app/paket.py", "validate_package()")
 
 
 # 3 Palettierung ----------------------------------------------------------------

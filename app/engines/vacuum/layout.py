@@ -22,8 +22,8 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from statistics import median
 
-from app.dto.common import Footprint
-from app.dto.package import PackageSpec
+from app.geometrie import Footprint
+from app.paket import PackageSpec
 from app.dto.suction import SuctionCupSpec, SuctionPlacement
 from app.dto.vacuum import VacuumPlateSpec
 from app.geometrie import rect_contains_rect

@@ -22,7 +22,7 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Callable
 
-from app.dto.package import PackageSpec
+from app.paket import PackageSpec
 
 
 class StateChange(Enum):

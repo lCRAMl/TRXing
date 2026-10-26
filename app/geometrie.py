@@ -14,6 +14,83 @@ reproduzierbar - beides fordert Spezifikation 39.
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
+
+# ---------------------------------------------------------------------------
+# Die Formen, mit denen hier gerechnet wird
+# ---------------------------------------------------------------------------
+#
+# Fruehere Heimat: dto/common.py. Sie stehen jetzt dort, wo die Funktionen
+# stehen, die mit ihnen umgehen - ein Rechteck ohne seine Ueberdeckungsformel
+# war nie eine eigene Schicht wert.
+
+@dataclass(frozen=True, slots=True)
+class Rect2D:
+    """Achsparalleles Rechteck. Ursprung links unten."""
+
+    x_mm: float
+    y_mm: float
+    length_mm: float
+    width_mm: float
+
+    @property
+    def area_mm2(self) -> float:
+        return self.length_mm * self.width_mm
+
+    @property
+    def right_mm(self) -> float:
+        return self.x_mm + self.length_mm
+
+    @property
+    def top_mm(self) -> float:
+        return self.y_mm + self.width_mm
+
+    @property
+    def center_x_mm(self) -> float:
+        return self.x_mm + self.length_mm / 2.0
+
+    @property
+    def center_y_mm(self) -> float:
+        return self.y_mm + self.width_mm / 2.0
+
+    def contains_point(self, x_mm: float, y_mm: float) -> bool:
+        return self.x_mm <= x_mm <= self.right_mm and self.y_mm <= y_mm <= self.top_mm
+
+
+@dataclass(frozen=True, slots=True)
+class Circle2D:
+    """Kreis in der Draufsicht. Beschreibt Saugerflaechen und Dichtlippenringe."""
+
+    center_x_mm: float
+    center_y_mm: float
+    diameter_mm: float
+
+    @property
+    def radius_mm(self) -> float:
+        return self.diameter_mm / 2.0
+
+    @property
+    def area_mm2(self) -> float:
+        return math.pi * self.radius_mm * self.radius_mm
+
+
+@dataclass(frozen=True, slots=True)
+class Footprint:
+    """Standflaeche einer Platzierung in der Ebene.
+
+    rotated meint die Drehung um 90 Grad in der Ebene - nicht das Kippen. Ob
+    eine Kante hochkant stehen darf, entscheidet die Orientierung des Pakets.
+    """
+
+    x_mm: float
+    y_mm: float
+    length_mm: float
+    width_mm: float
+    rotated: bool = False
+
+    def as_rect(self) -> Rect2D:
+        return Rect2D(self.x_mm, self.y_mm, self.length_mm, self.width_mm)
+
 
 #: Toleranz fuer Vergleiche in Millimeter. Gross genug gegen Rundungsfehler aus
 #: Gleitkommaarithmetik, klein genug, um keine echte Ueberlappung zu verdecken.

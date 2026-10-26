@@ -36,7 +36,7 @@ from __future__ import annotations
 
 import math
 
-from app.dto.common import Footprint
+from app.geometrie import Footprint
 from app.engines.patterns.base import (
     PatternLayout,
     PatternRequest,

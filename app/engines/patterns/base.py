@@ -27,7 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Protocol
 
-from app.dto.common import Footprint
+from app.geometrie import Footprint
 
 
 @dataclass(frozen=True, slots=True)

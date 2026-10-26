@@ -11,8 +11,8 @@ Rand, und der Stapel bekaeme eine Schraeglage statt eines Verbunds.
 
 from __future__ import annotations
 
-from app.dto.common import Footprint
-from app.dto.package import Orientation
+from app.geometrie import Footprint
+from app.paket import Orientation
 from app.dto.pallet import Layer, Placement, ZMode
 
 

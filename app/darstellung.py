@@ -28,6 +28,8 @@ Benutzers anzufassen.
 
 from __future__ import annotations
 
+from enum import Enum
+
 import os
 
 #: Name der Umgebungsvariablen, die die Systemeinstellung uebersteuert.
@@ -73,3 +75,21 @@ def prefers_dark() -> bool:
     if setting in ("light", "hell"):
         return False
     return windows_prefers_dark()
+
+
+# ---------------------------------------------------------------------------
+# Welche Ansicht ein Tab zeigt
+# ---------------------------------------------------------------------------
+#
+# Fruehere Heimat: dto/common.py. Eine Ansichtsumschaltung ist eine Frage der
+# Darstellung und kein Datenobjekt.
+
+class ViewMode(Enum):
+    """Ansichtsumschaltung des Palettentabs."""
+
+    TOP_2D = "2d"
+    SCENE_3D = "3d"
+
+    @property
+    def label(self) -> str:
+        return {ViewMode.TOP_2D: "2D Draufsicht", ViewMode.SCENE_3D: "3D Ansicht"}[self]

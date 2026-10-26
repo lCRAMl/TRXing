@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from PyQt6.QtWidgets import QWidget
 
-from app.dto.package import PackageSpec
+from app.paket import PackageSpec
 from app.gui.common.widgets import Debouncer
 from app.gui.package.ui_package_form import Ui_PackageForm
 from app.vorgang import AppStateSnapshot, StateChange

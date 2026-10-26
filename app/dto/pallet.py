@@ -21,8 +21,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from app.ergebnis import FrozenTrace
-from app.dto.common import CalculationMeta, Footprint
-from app.dto.package import Orientation, PackageSpec
+from app.ergebnis import CalculationMeta
+from app.geometrie import Footprint
+from app.paket import Orientation, PackageSpec
 
 
 @dataclass(frozen=True, slots=True)

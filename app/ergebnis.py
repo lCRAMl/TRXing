@@ -271,3 +271,27 @@ def new_trace(module_id: str, algorithm_version: str, request_id: int = 0) -> Ca
         algorithm_version=algorithm_version,
         request_id=request_id,
     )
+
+
+# ---------------------------------------------------------------------------
+# Herkunft eines Ergebnisses
+# ---------------------------------------------------------------------------
+#
+# Fruehere Heimat: dto/common.py.
+
+@dataclass(frozen=True, slots=True)
+class CalculationMeta:
+    """Herkunftsangaben, die jedes Ergebnis mitfuehrt (Spezifikation 40).
+
+    state_revision ist der Zaehler des Anwendungszustands zum Zeitpunkt der
+    Anfrage. Steigt er danach, ist das Ergebnis veraltet - genau daran erkennen
+    die Tabs, dass eine Aenderung an den Paketdaten ihre Anzeige
+    entwertet hat, ohne dass Signale von Tab zu Tab gereicht werden muessen.
+    """
+
+    module_id: str
+    algorithm_version: str
+    request_id: int = 0
+    state_revision: int = 0
+    calculation_id: str = ""
+    duration_s: float = 0.0

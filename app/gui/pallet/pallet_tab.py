@@ -39,7 +39,7 @@ from __future__ import annotations
 
 from PyQt6.QtWidgets import QButtonGroup, QWidget
 
-from app.dto.common import ViewMode
+from app.darstellung import ViewMode
 from app.dto.pallet import PalletResult, SharedLayer
 from app.gui.common import window_state
 from app.gui.common.widgets import Debouncer, compact_combo

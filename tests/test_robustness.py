@@ -20,7 +20,7 @@ import pytest
 from app.katalog import SettingsService
 from app.nebenlaeufig import CancellationToken
 from app.fehler import ErrorReporter, Severity
-from app.dto.package import PackageSpec, validate_package
+from app.paket import PackageSpec, validate_package
 from app.dto.vacuum import VacuumInput, VacuumPlateSpec
 from app.engines.palletizing.optimizer import PalletOptimizer, PalletizingError, build_constraints
 from app.engines.patterns import PatternRequest, available_strategies, generate

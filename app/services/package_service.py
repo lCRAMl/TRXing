@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from app.fehler import ErrorReporter
 from app.ergebnis import ValidationReport
-from app.dto.package import PackageSpec, validate_package
+from app.paket import PackageSpec, validate_package
 from app.vorgang import AppState
 
 

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.dto.package import Orientation, PackageSpec
+from app.paket import Orientation, PackageSpec
 from app.dto.pallet import LimitingFactor, PatternSpec, ZMode
 from app.geometrie import any_overlap
 from app.engines.palletizing import loads

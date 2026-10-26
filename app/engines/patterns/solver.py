@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from app.dto.common import Footprint
+from app.geometrie import Footprint
 from app.engines.patterns.base import PatternLayout, PatternRequest, center_in_bounds, sort_footprints
 
 logger = logging.getLogger(__name__)

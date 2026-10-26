@@ -27,8 +27,9 @@ from dataclasses import dataclass
 
 from app.nebenlaeufig import CancellationToken, never
 from app.ergebnis import CalculationTrace, new_trace
-from app.dto.common import CalculationMeta, Footprint
-from app.dto.package import Orientation, PackageSpec
+from app.ergebnis import CalculationMeta
+from app.geometrie import Footprint
+from app.paket import Orientation, PackageSpec
 from app.dto.pallet import (
     LimitingFactor,
     Layer,
