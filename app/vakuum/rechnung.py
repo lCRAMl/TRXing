@@ -46,8 +46,8 @@ from app.ergebnis import Status, classify
 from app.ergebnis import CalculationTrace, new_trace
 from app.einheiten import m3s_to_m3h, pa_to_mbar
 from app.ergebnis import CalculationMeta
-from app.dto.suction import RestrictorMode
-from app.dto.vacuum import (
+from app.vakuum.daten import RestrictorMode
+from app.vakuum.daten import (
     FlowBreakdown,
     ForceBreakdown,
     GripDirection,
@@ -55,9 +55,9 @@ from app.dto.vacuum import (
     VacuumInput,
     VacuumResult,
 )
-from app.engines.vacuum import arrangements, contact, flow, force, layout
-from app.engines.vacuum.contact import ContactSummary
-from app.engines.vacuum.force import ForceResult
+from app.vakuum import anordnung, physik, saugermuster
+from app.vakuum.physik import ContactSummary
+from app.vakuum.physik import ForceResult
 
 ALGORITHM_VERSION = "1.0"
 MODULE_ID = "vacuum"
@@ -84,7 +84,7 @@ class VacuumCalculator:
     """Rechnet eine Saugerplatte durch."""
 
     def __init__(self) -> None:
-        self._layout_engine = layout.SuctionLayoutEngine()
+        self._layout_engine = anordnung.SuctionLayoutEngine()
 
     def calculate(
         self,
@@ -110,7 +110,7 @@ class VacuumCalculator:
         # beliebig: das Saugermuster "nur ueber den Paketen" braucht die
         # Kartonflaechen, um zu entscheiden, wo ueberhaupt ein Sauger sinnvoll
         # ist. Umgekehrt braucht die Paketanordnung nichts von den Saugern.
-        packages, package_notes = layout.package_layout(
+        packages, package_notes = anordnung.package_layout(
             request.package, request.plate, request.package_count,
             strategy=request.pattern_id or "uniform_grid",
             layer=request.layer_footprints,
@@ -145,14 +145,14 @@ class VacuumCalculator:
         warnings.extend(suction.notes)
         trace.step(
             "saugerpositionen",
-            arrangements.label_of(request.arrangement_id) + ": " + str(suction.count)
+            saugermuster.label_of(request.arrangement_id) + ": " + str(suction.count)
             + " von maximal " + str(suction.max_count),
             pitch_x=round(suction.pitch_x_mm, 1),
             pitch_y=round(suction.pitch_y_mm, 1),
         )
         token.raise_if_cancelled()
 
-        summary = contact.classify(
+        summary = physik.classify(
             suction.placements, packages, request.cup, request.count_partial_as_sealed
         )
         trace.step(
@@ -163,13 +163,13 @@ class VacuumCalculator:
         trace.step("wirksame_flaeche", format(summary.effective_area_mm2 / 100.0, ".1f") + " cm2")
         token.raise_if_cancelled()
 
-        bearing = contact.bearing_count(summary, request.count_partial_as_sealed)
+        bearing = physik.bearing_count(summary, request.count_partial_as_sealed)
         leaking = summary.open_count + (0 if request.count_partial_as_sealed else summary.partial_count)
 
         achieved_pa, breakdown = self._solve_operating_point(request, summary, bearing, leaking, trace)
         token.raise_if_cancelled()
 
-        forces = force.evaluate(
+        forces = physik.evaluate(
             cup=request.cup,
             sealed_count=bearing,
             vacuum_pa=achieved_pa,
@@ -196,7 +196,7 @@ class VacuumCalculator:
             else (Status.SAFE if forces.max_mass_kg > 0 else Status.INSUFFICIENT)
         )
 
-        required_cups = force.required_cup_count(
+        required_cups = physik.required_cup_count(
             actual_mass, request.cup, achieved_pa, request.safety_factor,
             request.acceleration_ms2, request.gravity_ms2, request.grip, request.friction_factor,
         )
@@ -253,12 +253,12 @@ class VacuumCalculator:
         Zurueck kommen (offene Sauger, Karton, Summe) - getrennt, weil
         Spezifikation 21 genau diese Aufteilung anzeigen will.
         """
-        per_open = flow.open_cup_flow_m3s(
+        per_open = physik.open_cup_flow_m3s(
             request.cup, request.restrictor, vacuum_pa, request.ambient_pa
         )
         open_flow = per_open * max(0, leaking)
 
-        from app.engines.vacuum.leakage import workpiece_flow_m3s
+        from app.vakuum.physik import workpiece_flow_m3s
 
         workpiece = workpiece_flow_m3s(request.leakage, vacuum_pa, summary.effective_area_mm2, bearing)
         return open_flow, workpiece, open_flow + workpiece
@@ -274,7 +274,7 @@ class VacuumCalculator:
         Aufschluesselung, und dem Benutzer sagt sie, an welcher Stelle er
         ansetzen muss.
         """
-        per_open = flow.open_cup_flow_m3s(request.cup, request.restrictor, vacuum_pa, request.ambient_pa)
+        per_open = physik.open_cup_flow_m3s(request.cup, request.restrictor, vacuum_pa, request.ambient_pa)
         leaking_partial = 0 if request.count_partial_as_sealed else summary.partial_count
         _, workpiece, total = self._demand_m3s(request, summary, bearing, leaking, vacuum_pa)
         return FlowBreakdown(
@@ -282,7 +282,7 @@ class VacuumCalculator:
             partial_cups_m3s=per_open * leaking_partial,
             workpiece_m3s=workpiece,
             total_required_m3s=total,
-            available_m3s=flow.pump_flow_m3s(request.pump, vacuum_pa),
+            available_m3s=physik.pump_flow_m3s(request.pump, vacuum_pa),
         )
 
     def _solve_operating_point(
@@ -315,7 +315,7 @@ class VacuumCalculator:
         for _ in range(SOLVER_ITERATIONS):
             middle = (low + high) / 2.0
             _, _, demand = self._demand_m3s(request, summary, bearing, leaking, middle)
-            if flow.pump_flow_m3s(request.pump, middle) >= demand:
+            if physik.pump_flow_m3s(request.pump, middle) >= demand:
                 low = middle
             else:
                 high = middle
@@ -342,7 +342,7 @@ class VacuumCalculator:
             "Wirksame Flaeche aus der Datenblattkraft bei -0,6 bar zurueckgerechnet. "
             "Bei diesem Unterdruck entspricht das Ergebnis exakt dem Herstellerwert.",
             source="datasheet",
-            value=round(force.datasheet_effective_area_mm2(cup), 1),
+            value=round(physik.datasheet_effective_area_mm2(cup), 1),
         )
         deviation = cup.force_area_deviation_pct
         if abs(deviation) > D2_AGREEMENT_PCT:
@@ -396,7 +396,7 @@ class VacuumCalculator:
                 source="model",
             )
         if request.leakage.model is not LeakageModel.NONE:
-            from app.engines.vacuum.leakage import describe
+            from app.vakuum.physik import describe
 
             trace.assumption(
                 "kartonpermeabilitaet",
@@ -454,7 +454,7 @@ class VacuumCalculator:
         if forces.limited_by_cup_strength:
             messages.append(
                 "Nicht das Vakuum begrenzt, sondern der Sauger: die Saugkraft haette "
-                + format(achieved_pa * force.datasheet_effective_area_mm2(request.cup) / 1e6, ".1f")
+                + format(achieved_pa * physik.datasheet_effective_area_mm2(request.cup) / 1e6, ".1f")
                 + " N erreicht, die zulaessige Grenze liegt bei "
                 + format(forces.cup_limit_n, ".1f") + " N."
             )

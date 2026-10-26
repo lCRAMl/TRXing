@@ -609,7 +609,7 @@ def max_count(request: PatternRequest) -> PatternLayout:
     """Dichteste Packung aus den generischen Strategien.
 
     Der optionale CP-SAT-Loeser wird nur einbezogen, wenn er verfuegbar und in
-    den Optionen freigegeben ist - siehe app/engines/patterns/solver.py. Ohne
+    den Optionen freigegeben ist - siehe app/legemuster.py. Ohne
     ihn ist das Ergebnis das beste aus Raster und Guillotine.
     """
     candidates = [uniform_grid(request), guillotine_mix(request), running_bond(request)]

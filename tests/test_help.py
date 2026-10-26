@@ -84,10 +84,10 @@ def test_the_important_engines_are_referenced():
     document = full_document()
     for path in (
         "app/palette/stapel.py",
-        "app/engines/vacuum/force.py",
-        "app/engines/vacuum/flow.py",
-        "app/engines/vacuum/leakage.py",
-        "app/engines/vacuum/calculator.py",
+        "app/vakuum/physik.py",
+        "app/vakuum/physik.py",
+        "app/vakuum/physik.py",
+        "app/vakuum/rechnung.py",
         "app/geometrie.py",
     ):
         assert path in document, path + " wird nicht erwaehnt"

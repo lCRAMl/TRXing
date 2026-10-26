@@ -17,15 +17,15 @@ from app.katalog import VacuumDefaults
 from app.katalog import SettingsService
 from app.fehler import ErrorReporter
 from app.nebenlaeufig import RequestGate
-from app.dto.suction import SuctionCupSpec
-from app.dto.vacuum import GripDirection, VacuumInput
-from app.engines.vacuum.calculator import VacuumCalculator, VacuumError
-from app.engines.vacuum.force import (
+from app.vakuum.daten import SuctionCupSpec
+from app.vakuum.daten import GripDirection, VacuumInput
+from app.vakuum.rechnung import VacuumCalculator, VacuumError
+from app.vakuum.physik import (
     holding_force_per_cup_n,
     max_mass_kg,
     required_cup_count,
 )
-from app.engines.vacuum.layout import SuctionLayoutEngine
+from app.vakuum.anordnung import SuctionLayoutEngine
 from app.nebenlaeufig import JobManager
 from app.nebenlaeufig import CHANNEL_VACUUM, JobHandle
 from app.rechenlauf import CalculationService
@@ -77,13 +77,13 @@ class VacuumService(CalculationService):
 
         Die Oberflaeche fuellt daraus ihr Auswahlfeld, ohne die Muster einzeln
         zu kennen - ein neues Muster erscheint allein durch seine Anmeldung in
-        app/engines/vacuum/arrangements.py.
+        app/vakuum/saugermuster.py.
         """
-        from app.engines.vacuum import arrangements
+        from app.vakuum import saugermuster
 
         return tuple(
-            (strategy_id, arrangements.label_of(strategy_id), arrangements.description_of(strategy_id))
-            for strategy_id in arrangements.available()
+            (strategy_id, saugermuster.label_of(strategy_id), saugermuster.description_of(strategy_id))
+            for strategy_id in saugermuster.available()
         )
 
     # Berechnung ---------------------------------------------------------------

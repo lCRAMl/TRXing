@@ -193,11 +193,11 @@ class SharedLayer:
     Dieses Objekt traegt deshalb die fertigen Standflaechen selbst. Es ist
     bewusst KEIN PalletResult: der Vakuumtab bekommt die Geometrie, die er als
     Eingabe braucht, und nicht das Ergebnis eines fremden Moduls mit Gewichten,
-    Lastanalyse und Trace. Die Regel aus app/services/app_state.py - ein
+    Lastanalyse und Trace. Die Regel aus app/vorgang.py - ein
     Ergebnis gehoert dem Tab, der es angefordert hat - bleibt damit bestehen.
 
     Die Koordinaten stehen im Palettensystem. Wo die Gruppe unter der Platte
-    landet, entscheidet erst app/engines/vacuum/layout.py.
+    landet, entscheidet erst app/vakuum/anordnung.py.
     """
 
     footprints: tuple[Footprint, ...] = ()

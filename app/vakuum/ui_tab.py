@@ -1,4 +1,4 @@
-"""AUTOMATISCH ERZEUGT aus app/gui/vacuum/vacuum_tab.ui - nicht von Hand aendern.
+"""AUTOMATISCH ERZEUGT aus app/vakuum/tab.ui - nicht von Hand aendern.
 
 Geaendert wird die .ui-Datei im Qt Designer, danach:
 
@@ -341,4 +341,4 @@ class Ui_VacuumTab(object):
         self.results.setTitle(_translate("VacuumTab", "Ergebnis"))
         self.flow_results.setTitle(_translate("VacuumTab", "Vakuum, Kraft und Volumenstrom"))
 from app.bedienelemente import IntField, NumberField, ResultGrid, StaleBanner
-from app.visualization.vacuum_2d import Vacuum2DView
+from app.vakuum.zeichnung import Vacuum2DView

@@ -3,7 +3,7 @@
 Zwei getrennte Aufgaben, die haeufig vermischt werden:
 
 SuctionLayoutEngine verteilt Sauger auf der Platte. WELCHES Muster dabei
-entsteht, steht in app/engines/vacuum/arrangements.py; hier steht nur, wie aus
+entsteht, steht in app/vakuum/saugermuster.py; hier steht nur, wie aus
 Plattengeometrie und Saugergroesse die nutzbare Spanne wird und wie eine
 gewuenschte Stueckzahl getroffen wird.
 
@@ -24,12 +24,12 @@ from statistics import median
 
 from app.geometrie import Footprint
 from app.paket import PackageSpec
-from app.dto.suction import SuctionCupSpec, SuctionPlacement
-from app.dto.vacuum import VacuumPlateSpec
+from app.vakuum.daten import SuctionCupSpec, SuctionPlacement
+from app.vakuum.daten import VacuumPlateSpec
 from app.geometrie import rect_contains_rect
 from app.legemuster import PatternRequest, generate as generate_pattern
-from app.engines.vacuum import arrangements
-from app.engines.vacuum.arrangements import Arrangement, ArrangementRequest
+from app.vakuum import saugermuster
+from app.vakuum.saugermuster import Arrangement, ArrangementRequest
 
 #: Obergrenze der Saugerpositionen auf einer Platte.
 #:
@@ -127,7 +127,7 @@ class SuctionLayoutEngine:
         request = self._base_request(cup, plate, package_rects)
         if request is None:
             return 0
-        return arrangements.generate(arrangement_id, request).count
+        return saugermuster.generate(arrangement_id, request).count
 
     def _thin_to(
         self, arrangement_id: str, request: ArrangementRequest, wanted: int
@@ -153,12 +153,12 @@ class SuctionLayoutEngine:
         # Obergrenze suchen, bei der die Stueckzahl unter die Vorgabe faellt.
         for _ in range(24):
             high *= 1.5
-            if arrangements.generate(arrangement_id, replace(request, pitch_mm=request.pitch_mm * high)).count < wanted:
+            if saugermuster.generate(arrangement_id, replace(request, pitch_mm=request.pitch_mm * high)).count < wanted:
                 break
 
         for _ in range(THINNING_ITERATIONS):
             middle = (low + high) / 2.0
-            candidate = arrangements.generate(
+            candidate = saugermuster.generate(
                 arrangement_id, replace(request, pitch_mm=request.pitch_mm * middle)
             )
             if candidate.count >= wanted:
@@ -166,7 +166,7 @@ class SuctionLayoutEngine:
             else:
                 high = middle
 
-        result = arrangements.generate(
+        result = saugermuster.generate(
             arrangement_id, replace(request, pitch_mm=request.pitch_mm * low)
         )
         if result.count <= wanted:
@@ -226,7 +226,7 @@ class SuctionLayoutEngine:
                        + " mm Kantenlaenge.",),
             )
 
-        full = arrangements.generate(arrangement_id, request)
+        full = saugermuster.generate(arrangement_id, request)
         notes = list(full.notes)
         capacity = full.count
         if capacity == 0:
@@ -253,7 +253,7 @@ class SuctionLayoutEngine:
             if 0 < target != capacity:
                 notes.append(
                     "Gewuenscht waren " + str(target) + " Sauger; mit dem Muster '"
-                    + arrangements.label_of(arrangement_id) + "' passen auf diese Platte "
+                    + saugermuster.label_of(arrangement_id) + "' passen auf diese Platte "
                     "hoechstens " + str(capacity) + "."
                 )
 

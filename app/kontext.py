@@ -26,7 +26,7 @@ from app.nebenlaeufig import JobManager
 from app.vorgang import AppState
 from app.vorgang import PackageService
 from app.palette.dienst import PalletService
-from app.services.vacuum_service import VacuumService
+from app.vakuum.dienst import VacuumService
 
 
 @dataclass(frozen=True, slots=True)

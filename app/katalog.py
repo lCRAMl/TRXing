@@ -26,11 +26,11 @@ from typing import Any, Callable
 from app.fehler import ErrorReporter
 from app.einheiten import lpm_to_m3s
 from app.palette.daten import PalletSpec, PatternSpec, ZMode
-from app.dto.suction import RestrictorMode, RestrictorSpec, SuctionCupSpec
-from app.dto.vacuum import GripDirection, LeakageModel, LeakageSpec, PumpSpec, VacuumPlateSpec
+from app.vakuum.daten import RestrictorMode, RestrictorSpec, SuctionCupSpec
+from app.vakuum.daten import GripDirection, LeakageModel, LeakageSpec, PumpSpec, VacuumPlateSpec
 import threading
-from app.dto.suction import SuctionCupSpec
-from app.dto.vacuum import PumpSpec, VacuumPlateSpec
+from app.vakuum.daten import SuctionCupSpec
+from app.vakuum.daten import PumpSpec, VacuumPlateSpec
 
 
 # ---------------------------------------------------------------------------
@@ -708,8 +708,8 @@ class SettingsService:
         with self._lock:
             if self._vacuum is None:
                 from app.katalog import VacuumDefaults as VD
-                from app.dto.suction import RestrictorSpec
-                from app.dto.vacuum import LeakageSpec
+                from app.vakuum.daten import RestrictorSpec
+                from app.vakuum.daten import LeakageSpec
 
                 return VD(
                     plate=VacuumPlateSpec(800.0, 600.0), pump=PumpSpec(),

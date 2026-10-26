@@ -68,7 +68,7 @@ app/gui/vacuum/vacuum_tab.ui        Anordnung, Gruppen, Beschriftungen
 app/gui/vacuum/ui_vacuum_tab.py     erzeugt — nicht von Hand ändern
    │
    ▼
-app/gui/vacuum/vacuum_tab.py        Ereignisse, Berechnung, Zustand,
+app/vakuum/tab.py        Ereignisse, Berechnung, Zustand,
                                     Service, Ergebnisanzeige
 ```
 
@@ -92,7 +92,7 @@ fällt damit sofort auf und nicht erst am alten Layout im laufenden Programm.
 | Wertebereiche, Einheiten, Schrittweiten | | ✔ |
 | Zeilen der Ergebnisanzeige | | ✔ |
 | Ereignisse, Berechnung, Zustand | | ✔ |
-| Farben (über `role`-Eigenschaft) | Rolle | Farbe (`app/gui/theme.py`) |
+| Farben (über `role`-Eigenschaft) | Rolle | Farbe (`app/darstellung.py`) |
 
 Dass eine Länge in Millimetern angegeben wird und höchstens 5000 betragen darf,
 ist Fachwissen und keine Gestaltung — in der XML-Datei läge es als namenlose
@@ -245,10 +245,10 @@ set TRXING_THEME=auto     :: wie Windows (Vorgabe)
 ```
 
 Die dunkle Fassung besteht aus drei Teilen: der Qt-Palette und den Farben der
-Zeichnungen (`app/visualization/theme.py`), dem Qt-Stil *Fusion* — der einzige,
+Zeichnungen (`app/darstellung.py`), dem Qt-Stil *Fusion* — der einzige,
 der eine eigene Palette vollständig durchreicht — und dem Stylesheet in
 `app/gui/darkstyle/` für Rollbalken, Ankreuzfelder und Aufklapppfeile samt
-ihrer Bildchen. Verdrahtet ist das in `app/gui/theme.py`.
+ihrer Bildchen. Verdrahtet ist das in `app/darstellung.py`.
 
 ### Programmsymbol
 
@@ -275,10 +275,10 @@ Stelle:
 
 | Einstellung | Datei | Konstante |
 |---|---|---|
-| **Schriftgröße aller Bedienelemente** | `app/gui/theme.py` | `FONT_SIZE_OFFSET_PT` |
+| **Schriftgröße aller Bedienelemente** | `app/darstellung.py` | `FONT_SIZE_OFFSET_PT` |
 | **Fenstergröße beim ersten Start** | `app/gui/main_window.py` | `DEFAULT_SIZE` |
-| Aufteilung Palettierung | `app/gui/pallet/pallet_tab.py` | `SPLITTER_SIZES` |
-| Aufteilung Vakuumplatte | `app/gui/vacuum/vacuum_tab.py` | `SPLITTER_SIZES` |
+| Aufteilung Palettierung | `app/palette/tab.py` | `SPLITTER_SIZES` |
+| Aufteilung Vakuumplatte | `app/vakuum/tab.py` | `SPLITTER_SIZES` |
 
 `FONT_SIZE_OFFSET_PT` ist die Schriftgröße in Punkten **gegenüber der
 Windows-Vorgabe**: `0` übernimmt sie, `-1` macht die ganze Oberfläche

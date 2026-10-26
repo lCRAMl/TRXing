@@ -99,7 +99,7 @@ def test_both_tabs_appear(window):
 def test_no_tab_failed_to_build(window, application):
     """Ein gescheiterter Tab bekommt einen Platzhalter - der darf hier nicht auftauchen."""
     from app.palette.tab import PalletTab
-    from app.gui.vacuum.vacuum_tab import VacuumTab
+    from app.vakuum.tab import VacuumTab
 
     manager = window._tab_manager
     assert isinstance(manager.widget_for("pallet"), PalletTab)

@@ -61,7 +61,7 @@ CONFIG_DIR = ROOT / "config"
 #: pyvistaqt zwar im Paket, der Import von QtInteractor stirbt aber mit
 #: "No module named qtpy" - und der Palettentab zeigt statt der Szene den
 #: Hinweis aus MissingBackendScene. Welche Anbindung qtpy waehlt, legt
-#: app/visualization/pallet_3d.py ueber QT_API fest.
+#: app/palette/szene3d.py ueber QT_API fest.
 EXCLUDED = ("PySide6", "shiboken6", "PyQt5", "pytest", "_pytest", "pytestqt")
 
 #: Pakete, deren Daten PyInstaller nicht von allein findet. VTK und PyVista
@@ -76,7 +76,7 @@ COLLECT_ALL = ("pyvista", "vtkmodules", "pyvistaqt", "qtpy")
 #: die Bildchen daneben findet es nicht von allein.
 #:
 #: Das Ziel ist derselbe relative Pfad wie in der Quelle. Nur so findet
-#: app/gui/theme.py den Ordner in beiden Betriebsarten ueber __file__ - im
+#: app/darstellung.py den Ordner in beiden Betriebsarten ueber __file__ - im
 #: Quelltextbaum wie im entpackten Paket.
 DATA_FILES = (
     ("app/darkstyle", "app/darkstyle"),

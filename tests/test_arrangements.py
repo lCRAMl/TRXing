@@ -15,10 +15,10 @@ import math
 
 import pytest
 
-from app.dto.vacuum import VacuumPlateSpec
-from app.engines.vacuum import arrangements
-from app.engines.vacuum.arrangements import ArrangementRequest
-from app.engines.vacuum.layout import SuctionLayoutEngine
+from app.vakuum.daten import VacuumPlateSpec
+from app.vakuum import saugermuster
+from app.vakuum.saugermuster import ArrangementRequest
+from app.vakuum.anordnung import SuctionLayoutEngine
 
 PLATES = [
     (750.0, 550.0, 44.0),    # Regelfall
@@ -47,17 +47,17 @@ def _closest_pair_mm(centers) -> float:
 # Grundeigenschaften ------------------------------------------------------------
 
 def test_every_arrangement_is_registered_with_a_label():
-    assert arrangements.available()
-    for strategy_id in arrangements.available():
-        assert arrangements.label_of(strategy_id) != strategy_id
-        assert len(arrangements.description_of(strategy_id)) > 40
+    assert saugermuster.available()
+    for strategy_id in saugermuster.available():
+        assert saugermuster.label_of(strategy_id) != strategy_id
+        assert len(saugermuster.description_of(strategy_id)) > 40
 
 
-@pytest.mark.parametrize("strategy", arrangements.available())
+@pytest.mark.parametrize("strategy", saugermuster.available())
 @pytest.mark.parametrize("span_x,span_y,pitch", PLATES)
 def test_minimum_spacing_is_never_violated(strategy, span_x, span_y, pitch):
     """Ueberlappende Sauger liessen sich nicht montieren."""
-    layout = arrangements.generate(strategy, _request(span_x, span_y, pitch))
+    layout = saugermuster.generate(strategy, _request(span_x, span_y, pitch))
     if layout.count < 2:
         return
     closest = _closest_pair_mm(layout.centers)
@@ -67,26 +67,26 @@ def test_minimum_spacing_is_never_violated(strategy, span_x, span_y, pitch):
     )
 
 
-@pytest.mark.parametrize("strategy", arrangements.available())
+@pytest.mark.parametrize("strategy", saugermuster.available())
 @pytest.mark.parametrize("span_x,span_y,pitch", PLATES)
 def test_no_cup_leaves_the_usable_span(strategy, span_x, span_y, pitch):
-    layout = arrangements.generate(strategy, _request(span_x, span_y, pitch))
+    layout = saugermuster.generate(strategy, _request(span_x, span_y, pitch))
     for x, y in layout.centers:
         assert 25.0 - 1e-6 <= x <= 25.0 + span_x + 1e-6
         assert 25.0 - 1e-6 <= y <= 25.0 + span_y + 1e-6
 
 
-@pytest.mark.parametrize("strategy", arrangements.available())
+@pytest.mark.parametrize("strategy", saugermuster.available())
 def test_arrangements_are_reproducible(strategy):
     """Spezifikation 39."""
     request = _request(750.0, 550.0, 44.0)
-    assert arrangements.generate(strategy, request).centers == \
-           arrangements.generate(strategy, request).centers
+    assert saugermuster.generate(strategy, request).centers == \
+           saugermuster.generate(strategy, request).centers
 
 
 def test_unknown_arrangement_is_a_clear_error():
     with pytest.raises(KeyError, match="Unbekanntes Saugermuster"):
-        arrangements.generate("windrad", _request(750.0, 550.0, 44.0))
+        saugermuster.generate("windrad", _request(750.0, 550.0, 44.0))
 
 
 # Die einzelnen Muster ----------------------------------------------------------
@@ -99,8 +99,8 @@ def test_dense_packing_beats_the_square_grid():
     passen damit rund fuenfzehn Prozent mehr Sauger.
     """
     request = _request(750.0, 550.0, 44.0)
-    grid = arrangements.generate("grid_spread", request)
-    dense = arrangements.generate("hexagonal", request)
+    grid = saugermuster.generate("grid_spread", request)
+    dense = saugermuster.generate("hexagonal", request)
 
     assert dense.count > grid.count
     assert dense.count / grid.count > 1.10
@@ -108,7 +108,7 @@ def test_dense_packing_beats_the_square_grid():
 
 def test_dense_packing_uses_the_triangular_lattice():
     """Der Reihenabstand betraegt das sqrt(3)/2-fache des Rastermasses."""
-    layout = arrangements.generate("hexagonal", _request(750.0, 550.0, 44.0))
+    layout = saugermuster.generate("hexagonal", _request(750.0, 550.0, 44.0))
     rows = sorted({round(y, 6) for _x, y in layout.centers})
     steps = [b - a for a, b in zip(rows, rows[1:])]
     expected = 44.0 * math.sqrt(3.0) / 2.0
@@ -119,7 +119,7 @@ def test_dense_packing_uses_the_triangular_lattice():
 
 
 def test_dense_rows_are_staggered():
-    layout = arrangements.generate("hexagonal", _request(750.0, 550.0, 44.0))
+    layout = saugermuster.generate("hexagonal", _request(750.0, 550.0, 44.0))
     by_row: dict[float, list[float]] = {}
     for x, y in layout.centers:
         by_row.setdefault(round(y, 3), []).append(x)
@@ -132,8 +132,8 @@ def test_dense_rows_are_staggered():
 def test_spread_and_dense_grid_hold_the_same_count():
     """Beide Raster nehmen gleich viele Sauger auf - sie stehen nur anders."""
     request = _request(750.0, 550.0, 44.0)
-    spread = arrangements.generate("grid_spread", request)
-    dense = arrangements.generate("grid_dense", request)
+    spread = saugermuster.generate("grid_spread", request)
+    dense = saugermuster.generate("grid_dense", request)
     assert spread.count == dense.count
 
     spread_width = max(x for x, _y in spread.centers) - min(x for x, _y in spread.centers)
@@ -142,8 +142,8 @@ def test_spread_and_dense_grid_hold_the_same_count():
 
 
 def test_perimeter_leaves_the_middle_empty():
-    layout = arrangements.generate("perimeter", _request(750.0, 550.0, 44.0))
-    grid = arrangements.generate("grid_spread", _request(750.0, 550.0, 44.0))
+    layout = saugermuster.generate("perimeter", _request(750.0, 550.0, 44.0))
+    grid = saugermuster.generate("grid_spread", _request(750.0, 550.0, 44.0))
     assert 0 < layout.count < grid.count
 
     xs = sorted({round(x, 3) for x, _y in layout.centers})
@@ -162,7 +162,7 @@ def test_over_packages_places_cups_only_on_cartons():
         span_x_mm=750.0, span_y_mm=550.0, pitch_mm=44.0,
         package_rects=(package,), origin_x_mm=25.0, origin_y_mm=25.0,
     )
-    layout = arrangements.generate("over_packages", request)
+    layout = saugermuster.generate("over_packages", request)
     radius = 22.0
 
     assert layout.count > 0
@@ -170,19 +170,19 @@ def test_over_packages_places_cups_only_on_cartons():
         assert package[0] <= x - radius and x + radius <= package[0] + package[2]
         assert package[1] <= y - radius and y + radius <= package[1] + package[3]
 
-    without = arrangements.generate("hexagonal", request)
+    without = saugermuster.generate("hexagonal", request)
     assert layout.count < without.count
 
 
 def test_over_packages_without_packages_falls_back():
-    layout = arrangements.generate("over_packages", _request(750.0, 550.0, 44.0))
+    layout = saugermuster.generate("over_packages", _request(750.0, 550.0, 44.0))
     assert layout.count > 0
     assert any("dichtest bestueckt" in note for note in layout.notes)
 
 
 # Zusammenspiel mit der Verteilung ----------------------------------------------
 
-@pytest.mark.parametrize("strategy", arrangements.available())
+@pytest.mark.parametrize("strategy", saugermuster.available())
 def test_layout_engine_honours_every_arrangement(strategy, settings):
     plate = VacuumPlateSpec(800.0, 600.0, edge_margin_mm=25.0, min_spacing_mm=10.0)
     cup = settings.get_suction_cup("spb2_30")
@@ -201,7 +201,7 @@ def test_layout_engine_honours_every_arrangement(strategy, settings):
         assert placement.center_y_mm + radius <= plate.width_mm + 1e-6
 
 
-@pytest.mark.parametrize("strategy", arrangements.available())
+@pytest.mark.parametrize("strategy", saugermuster.available())
 @pytest.mark.parametrize("wanted", [1, 4, 7, 24, 60])
 def test_a_requested_count_is_met_by_every_arrangement(strategy, wanted, settings):
     """Die gewuenschte Zahl muss genau getroffen werden, nicht ungefaehr.

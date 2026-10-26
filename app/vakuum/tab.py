@@ -37,13 +37,13 @@ from PyQt6.QtWidgets import QWidget
 
 from app.ergebnis import Status
 from app.einheiten import m3s_to_m3h, mbar_to_pa, pa_to_mbar
-from app.dto.suction import RestrictorMode, RestrictorSpec
-from app.dto.vacuum import GripDirection, LeakageSpec, VacuumInput, VacuumPlateSpec, VacuumResult
+from app.vakuum.daten import RestrictorMode, RestrictorSpec
+from app.vakuum.daten import GripDirection, LeakageSpec, VacuumInput, VacuumPlateSpec, VacuumResult
 from app.bedienelemente import restore_splitter, save_splitter, store
 from app.bedienelemente import Debouncer, compact_combo
 from app.tabs import TabHost
 from app.darstellung import PALETTE
-from app.gui.vacuum.ui_vacuum_tab import Ui_VacuumTab
+from app.vakuum.ui_tab import Ui_VacuumTab
 from app.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
 

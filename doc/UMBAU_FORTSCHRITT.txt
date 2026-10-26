@@ -5,8 +5,8 @@ VS Code geschlossen, steht hier, was fertig ist und wo es weitergeht.
 NACH JEDEM SCHRITT AKTUALISIEREN.
 
 Letzte Aktualisierung: 2026-10-26
-Stand:                 Schritte 1-6 abgeschlossen, Schritt 7 beginnt
-Tests:                 569 gruen
+Stand:                 Schritte 1-7 abgeschlossen, Schritt 8 beginnt
+Tests:                 570 gruen
 
 
 ===============================================================================
@@ -158,7 +158,7 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        Die beiden Ordner mussten mit, weil sie ueber __file__ gefunden werden;
        AUTOBUILD.py und tools/build_ui.py wurden nachgezogen.
 
-[ ] 7  Scheibe Vakuum
+[x] 7  Scheibe Vakuum
        dto/{vacuum,suction}.py   -> app/vakuum/daten.py
        engines/vacuum/arrangements -> app/vakuum/muster.py
        engines/vacuum/layout     -> app/vakuum/anordnung.py
@@ -166,7 +166,10 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        engines/vacuum/calculator -> app/vakuum/rechnung.py
        visualization/vacuum_2d   -> app/vakuum/zeichnung.py
        gui/vakuum/*              -> app/vakuum/tab.py, ui_tab.py
-       services/vacuum_service   -> aufgeloest
+       services/vacuum_service   -> vakuum/dienst.py
+       ERLEDIGT. Damit sind dto/, engines/, services/ und visualization/
+       verschwunden. Gemessene Eigenschaft, als Regel festgehalten: die
+       beiden Scheiben importieren einander NICHT.
 
 [ ] 8  Oberflaechenhuelle
        gui/common/widgets + gui/status/* -> app/bedienelemente.py
@@ -248,3 +251,16 @@ LAUFENDE NOTIZEN
             Testzahl vor und nach dem Umbau. Diese Gegenprobe gehoert nach
             jedem Schritt gemacht; gleiche Namenszahl (317) heisst nicht
             gleiche Pruefungszahl.
+
+2026-10-26  Schritt 7. Die Scheiben sind voneinander unabhaengig - weder
+            importiert palette etwas aus vakuum noch umgekehrt. Was beide
+            brauchen, liegt eine Ebene hoeher (legemuster, geometrie, paket,
+            vorgang). Als Regel in test_architecture.py festgehalten.
+
+            Wiederkehrende Falle: Importe der Form
+            "from app.engines.vacuum import contact, flow" treffen kein
+            Modulpfad-Muster. Sie muessen einzeln gesucht werden, samt der
+            qualifizierten Aufrufe (contact.x -> physik.x).
+
+            Gegenprobe der Pruefungszahlen je Datei erneut gemacht: nichts
+            geschrumpft, nur test_architecture.py um eins gewachsen.

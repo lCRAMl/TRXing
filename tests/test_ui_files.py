@@ -9,7 +9,7 @@ zwischen Bearbeiten und Ausfuehren:
     app/gui/vacuum/ui_vacuum_tab.py       erzeugt, nicht von Hand aendern
        |
        v
-    app/gui/vacuum/vacuum_tab.py          Verhalten
+    app/vakuum/tab.py          Verhalten
 
 Vergisst jemand den Zwischenschritt, laeuft die Anwendung weiter - mit dem
 alten Layout. Der Fehler ist heimtueckisch, weil nichts abstuerzt und die
@@ -151,7 +151,7 @@ def test_wrapping_notes_keep_their_minimum_width() -> None:
     Ohne sie schaetzt Qt die noetige Hoehe fuer eine Breite von einem Bildpunkt:
     rechnerisch bricht der Text nach jedem Wort um, das Formular reserviert
     mehrere hundert Bildpunkte Hoehe, und zwischen den Eingabefeldern klafft
-    eine handbreite Luecke. Siehe NOTE_WRAP_WIDTH in app/gui/common/widgets.py.
+    eine handbreite Luecke. Siehe NOTE_WRAP_WIDTH in app/bedienelemente.py.
     """
     from app.bedienelemente import NOTE_WRAP_WIDTH
 

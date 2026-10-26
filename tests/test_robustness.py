@@ -21,11 +21,11 @@ from app.katalog import SettingsService
 from app.nebenlaeufig import CancellationToken
 from app.fehler import ErrorReporter, Severity
 from app.paket import PackageSpec, validate_package
-from app.dto.vacuum import VacuumInput, VacuumPlateSpec
+from app.vakuum.daten import VacuumInput, VacuumPlateSpec
 from app.palette.rechnung import PalletOptimizer, PalletizingError, build_constraints
 from app.legemuster import PatternRequest, available_strategies, generate
-from app.engines.vacuum.calculator import VacuumCalculator, VacuumError
-from app.engines.vacuum.layout import SuctionLayoutEngine
+from app.vakuum.rechnung import VacuumCalculator, VacuumError
+from app.vakuum.anordnung import SuctionLayoutEngine
 
 
 # Extreme Masse ----------------------------------------------------------------
@@ -172,7 +172,7 @@ def test_every_strategy_survives_a_large_instance():
 
 def test_many_suction_cups(settings):
     """Eine grosse Platte mit kleinen Saugern: mehrere tausend Positionen."""
-    from app.engines.vacuum.layout import MAX_CUP_POSITIONS
+    from app.vakuum.anordnung import MAX_CUP_POSITIONS
 
     plate = VacuumPlateSpec(length_mm=2000.0, width_mm=1500.0, edge_margin_mm=10.0, min_spacing_mm=2.0)
     cup = settings.get_suction_cup("spb2_20")
@@ -192,7 +192,7 @@ def test_automatic_layout_is_capped_and_says_so(settings):
     Begrenzt statt abgewiesen: das Ergebnis bleibt brauchbar, und die Meldung
     sagt, wie man mehr bekommt.
     """
-    from app.engines.vacuum.layout import MAX_CUP_POSITIONS
+    from app.vakuum.anordnung import MAX_CUP_POSITIONS
 
     plate = VacuumPlateSpec(length_mm=3000.0, width_mm=2500.0, edge_margin_mm=5.0, min_spacing_mm=1.0)
     layout = SuctionLayoutEngine().distribute(settings.get_suction_cup("spb2_20"), plate)
@@ -257,7 +257,7 @@ def test_more_packages_than_the_plate_holds_are_arranged_anyway(settings):
 
 def test_zero_flow_pump_gives_a_clear_result(settings):
     """Ein Erzeuger ohne Leistung: kein Vakuum, keine Kraft, klare Aussage."""
-    from app.dto.vacuum import PumpSpec
+    from app.vakuum.daten import PumpSpec
 
     defaults = settings.get_vacuum_defaults()
     request = VacuumInput(
@@ -276,7 +276,7 @@ def test_zero_flow_pump_gives_a_clear_result(settings):
 
 
 def test_extremely_permeable_carton(settings):
-    from app.dto.vacuum import LeakageModel, LeakageSpec
+    from app.vakuum.daten import LeakageModel, LeakageSpec
 
     defaults = settings.get_vacuum_defaults()
     request = VacuumInput(

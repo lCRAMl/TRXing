@@ -71,7 +71,7 @@ MAX_PLACEMENTS_PER_LAYER = 10_000
 #: Antwort auf eine richtige Frage.
 #:
 #: Die tatsaechliche Grenze liegt in der 3D-Darstellung; sie wird dort
-#: behandelt (MAX_RENDERED_BOXES in app/visualization/pallet_3d.py), indem nur
+#: behandelt (MAX_RENDERED_BOXES in app/palette/szene3d.py), indem nur
 #: die von aussen sichtbaren Pakete gezeichnet werden - nicht dadurch, dass die
 #: Berechnung verweigert wird.
 MAX_TOTAL_PLACEMENTS = 200_000

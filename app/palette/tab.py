@@ -6,7 +6,7 @@ Musterstrategien, und er rechnet nichts - auch nicht die Flaechenausnutzung,
 die steht im Ergebnis.
 
 Am Kopf sitzt das Paketformular. Es ist kein Teil dieses Tabs, sondern ein
-eigenes Widget mit eigener Layoutdatei (app/gui/package/package_form.py): die
+eigenes Widget mit eigener Layoutdatei (app/palette/formular.py): die
 Paketdaten gelten fuer die ganze Anwendung, nicht nur fuer die Palettierung.
 Der Tab nimmt es auf und reicht ihm die drei Lebenszeichen weiter, die ein Tab
 von aussen bekommt - Zustandsaenderung, Uebernahme, Ende.

@@ -440,7 +440,7 @@ Aus: rechnet mit dem eingestellten Sollvakuum und warnt nur bei Ueberlast.</stri
   <customwidget>
    <class>Vacuum2DView</class>
    <extends>QWidget</extends>
-   <header>app.visualization.vacuum_2d</header>
+   <header>app.vakuum.zeichnung</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -14,8 +14,8 @@ from app.katalog import ConfigLoader, strip_comments
 from app.katalog import parse_pallets, parse_suction_cups, parse_vacuum_defaults
 from app.katalog import SettingsService
 from app.fehler import Severity
-from app.dto.suction import RestrictorMode
-from app.dto.vacuum import GripDirection, LeakageModel
+from app.vakuum.daten import RestrictorMode
+from app.vakuum.daten import GripDirection, LeakageModel
 
 
 # Mitgelieferte Dateien ---------------------------------------------------------

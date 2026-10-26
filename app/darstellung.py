@@ -49,7 +49,7 @@ Windows-Fassungen oder auf einem anderen Betriebssystem -, gilt hell.
 
 Warum die Registry und nicht QStyleHints.colorScheme(): die Abfrage muss VOR
 der QApplication beantwortet sein. Die Farbpalette in
-app/visualization/theme.py entscheidet beim Import, welche Werte gelten, und
+app/darstellung.py entscheidet beim Import, welche Werte gelten, und
 sie darf Qt ausdruecklich nicht kennen (Spezifikation 10) - die Renderer und
 die Engines sollen ohne Fenster testbar bleiben. Eine Registryabfrage aus der
 Standardbibliothek erfuellt beides.
@@ -146,14 +146,14 @@ Oberflaeche: die 2D- und 3D-Renderer brauchen dieselben Farben wie die
 Bedienelemente. Laege sie in app/gui, muesste app/visualization dorthin
 zurueckgreifen - eine Abhaengigkeit entgegen der Datenflussrichtung, die
 tests/test_architecture.py verbietet. So zeigt sie in eine Richtung:
-app/gui/theme.py holt sich die Palette von hier und ergaenzt das
+app/darstellung.py holt sich die Palette von hier und ergaenzt das
 Stylesheet.
 
 Bewusst ohne Qt-Import: reine Zeichenketten, in Stylesheets, QColor und
 PyVista gleichermassen verwendbar.
 
 Zwei Fassungen, hell und dunkel. Welche gilt, entscheidet die Einstellung von
-Windows - abgefragt in app/core/os_theme.py, uebersteuerbar mit der
+Windows - abgefragt in app/darstellung.py, uebersteuerbar mit der
 Umgebungsvariablen TRXING_THEME.
 
 Die Entscheidung faellt EINMAL beim Import und gilt fuer den ganzen Lauf. Der
@@ -163,7 +163,7 @@ die Anwendung sie zur Laufzeit austauschen, sahen diese Module weiter die alte -
 die Anzeige waere halb hell und halb dunkel. Ein Wechsel des Windows-Modus wirkt
 deshalb beim naechsten Start, nicht im laufenden Fenster.
 
-Die dunklen Werte sind auf die Qt-Palette in app/gui/theme.py abgestimmt:
+Die dunklen Werte sind auf die Qt-Palette in app/darstellung.py abgestimmt:
 Fensterfarbe 53,53,53, Eingabefelder 42,42,42, Auswahlfarbe 42,130,218. Beide
 Stellen zeigen dieselben Farben, nur in verschiedener Schreibweise.
 """
@@ -301,7 +301,7 @@ def toned(color: QColor | str, amount: int = 170) -> QColor:
 # ---------------------------------------------------------------------------
 """Stylesheet der Anwendung.
 
-Die Farbwerte selbst stehen in app/visualization/theme.py - dort, wo auch die
+Die Farbwerte selbst stehen in app/darstellung.py - dort, wo auch die
 Renderer sie holen. Hier steht nur, wie Qt sie anwendet. Die Palette wird
 weitergereicht, damit die Bedienelemente einen Importpfad haben.
 
@@ -323,7 +323,7 @@ Dunkle Fenster
 --------------
 
 Steht Windows auf dunkle Fenster, gilt die dunkle Palette (entschieden in
-app/visualization/theme.py, abgefragt in app/core/os_theme.py) und zusaetzlich
+app/darstellung.py, abgefragt in app/darstellung.py) und zusaetzlich
 das Stylesheet aus darkstyle/. apply_theme() setzt das vor dem ersten Fenster.
 
 Drei Teile greifen ineinander:
@@ -454,7 +454,7 @@ def dark_stylesheet() -> str:
 def dark_palette(palette: Palette = DARK) -> QPalette:
     """Die Qt-Palette der dunklen Fassung.
 
-    Dieselben Werte wie in app/visualization/theme.py, nur in der Schreibweise
+    Dieselben Werte wie in app/darstellung.py, nur in der Schreibweise
     von Qt. Die Rollen, fuer die es dort keine Entsprechung gibt - Schatten,
     heller Warntext, die ausgegrauten Zustaende -, stehen hier.
 

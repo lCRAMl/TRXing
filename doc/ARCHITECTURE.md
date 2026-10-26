@@ -55,10 +55,10 @@ ein Belang der Oberfläche. Dadurch bleibt die Serviceschicht frei von
 `QtWidgets` — eine schärfere Trennung, als der Entwurf verlangt, und
 maschinell prüfbar.
 
-**Die Farbpalette liegt in `app/visualization/theme.py`.** 2D- und 3D-Renderer
+**Die Farbpalette liegt in `app/darstellung.py`.** 2D- und 3D-Renderer
 brauchen dieselben Farben wie die Bedienelemente. Läge sie in `app/gui`, müsste
 `app/visualization` dorthin zurückgreifen — entgegen der Datenflussrichtung.
-`app/gui/theme.py` holt sie von dort und ergänzt nur das Stylesheet.
+`app/darstellung.py` holt sie von dort und ergänzt nur das Stylesheet.
 
 **Services dürfen `QtCore`.** Signale sind der einzige threadsichere Weg, ein
 Ergebnis aus einem Worker in die Oberfläche zu bringen. Verboten bleiben
@@ -68,7 +68,7 @@ Bedienelemente.
 
 Es gibt zwei Paletten, `LIGHT` und `DARK`. Welche gilt, steht in `PALETTE` und
 wird **einmal beim Import** entschieden — abgefragt wird die Einstellung von
-Windows in `app/core/os_theme.py` (Registry, Qt-frei, übersteuerbar mit
+Windows in `app/darstellung.py` (Registry, Qt-frei, übersteuerbar mit
 `TRXING_THEME`).
 
 Der Zeitpunkt ist der Punkt, auf den es ankommt. Ein Dutzend Module holt sich
@@ -78,18 +78,18 @@ weiter die alten Farben, und die Anzeige wäre halb hell und halb dunkel. Ein
 Wechsel des Windows-Modus wirkt deshalb beim nächsten Start.
 
 Die Abfrage gehört aus zwei Gründen in `app/core` und nicht in die Oberfläche:
-`app/visualization/theme.py` braucht die Antwort, darf Qt aber nicht kennen —
+`app/darstellung.py` braucht die Antwort, darf Qt aber nicht kennen —
 und die Antwort muss vor der `QApplication` feststehen, womit
 `QStyleHints.colorScheme()` ausscheidet.
 
-Was Qt daraus macht, steht in `app/gui/theme.py`: der Stil *Fusion* (der
+Was Qt daraus macht, steht in `app/darstellung.py`: der Stil *Fusion* (der
 einzige, der eine eigene Palette vollständig durchreicht), die `QPalette` mit
 denselben Farbwerten und das Stylesheet aus `app/gui/darkstyle/` für die
 Feinheiten, für die eine Palette nicht reicht. `apply_theme()` setzt beides vor
 dem ersten Fenster; danach erreicht eine Palette bereits erzeugte Widgets nur
 noch teilweise.
 
-Für die Zeichnungen gilt dieselbe Trennung: `app/visualization/colors.py`
+Für die Zeichnungen gilt dieselbe Trennung: `app/darstellung.py`
 kennt die Richtung, nicht die Farbe. Eine blasse Füllung wird auf hellem Grund
 aufgehellt und auf dunklem abgedunkelt — beides rückt sie an den Hintergrund
 heran und lässt den Ring die Aussage tragen.
@@ -153,7 +153,7 @@ Ergebnisanzeige ebenfalls (`_build_result_rows`). Dass eine Länge in
 Millimetern angegeben wird und höchstens 5000 betragen darf, ist Fachwissen und
 keine Gestaltung — in der XML-Datei läge es als namenlose Eigenschaft ohne jede
 Prüfung. Farben ebenso: die Layoutdatei setzt `role="note"`, das Aussehen steht
-einmal im Stylesheet in `app/gui/theme.py`.
+einmal im Stylesheet in `app/darstellung.py`.
 
 **Was der Designer nicht speichern kann,** steht in `_configure_layout()`: die
 Aufteilung eines Splitters, die Streckung des Wurzellayouts und die
@@ -226,7 +226,7 @@ und wer den Tab öffnet, sieht nie eine veraltete Zahl.
 
 ## Herkunft der physikalischen Kennwerte
 
-`app/dto/suction.py` und `config/suction_cups.json` führen für jeden Wert seine
+`app/vakuum/daten.py` und `config/suction_cups.json` führen für jeden Wert seine
 Quelle. Drei Klassen, in der Oberfläche unterschieden:
 
 | Klasse | Bedeutung | Beispiel |
@@ -324,7 +324,7 @@ er dort exakt aufgeht.
 
 ## Saugermuster
 
-`app/engines/vacuum/arrangements.py` führt eine Registry wie die
+`app/vakuum/saugermuster.py` führt eine Registry wie die
 Palettiermuster: ein neues Muster braucht eine Funktion und einen
 Registryeintrag, keinen Eingriff in Verteillogik, Service oder Tab. Die
 Oberfläche füllt ihr Auswahlfeld aus `VacuumService.available_arrangements()`.

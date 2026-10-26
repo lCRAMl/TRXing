@@ -23,8 +23,8 @@ from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPen
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
-from app.dto.suction import ContactClass
-from app.dto.vacuum import VacuumResult
+from app.vakuum.daten import ContactClass
+from app.vakuum.daten import VacuumResult
 from app.darstellung import toned
 from app.darstellung import MONO_FAMILY, PALETTE
 

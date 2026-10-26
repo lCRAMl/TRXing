@@ -198,7 +198,7 @@ def circle_rect_overlap_area_mm2(
     # Viertelkreis und heben sich rechnerisch exakt auf; in
     # Gleitkommaarithmetik bleibt von 193,6 minus 193,6 ein Rest von rund
     # 1e-15 mm2 stehen. Der ist groesser als null, und die Kontaktpruefung in
-    # app/engines/vacuum/contact.py hat daraus eine Beruehrung gemacht: eine
+    # app/vakuum/physik.py hat daraus eine Beruehrung gemacht: eine
     # ganze Reihe angeblich teilweise aufliegender Sauger ueber der leeren
     # Platte, mehr als hundert Millimeter vom naechsten Karton entfernt.
     #

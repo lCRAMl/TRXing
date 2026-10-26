@@ -73,7 +73,13 @@ FORBIDDEN: dict[str, tuple[str, ...]] = {
     # dazugehoeren. Dass die RECHNENDEN Module Qt-frei bleiben, prueft
     # test_the_calculating_modules_stay_qt_free - das ist die Zusage, auf der
     # die schnelle Testsuite beruht.
+    # Die beiden Scheiben kennen einander NICHT. Was sie teilen, liegt eine
+    # Ebene hoeher: legemuster.py, geometrie.py, paket.py, vorgang.py. Das ist
+    # keine Absichtserklaerung, sondern der gemessene Zustand - und genau
+    # deshalb lohnt es, ihn festzuhalten: eine Abkuerzung von der einen Scheibe
+    # in die andere waere der erste Schritt zurueck in den alten Zustand.
     "palette": ("app.vakuum",),
+    "vakuum": ("app.palette",),
 
     # Reine Dateiordner ohne Logik: das Programmsymbol und das dunkle
     # Stylesheet. Sie importieren nichts ausser Qt.
@@ -338,7 +344,7 @@ def _dataclass_fields(path: pathlib.Path):
 #:
 #: permeability_value ist die begruendete Ausnahme: seine Einheit haengt vom
 #: gewaehlten Leckagemodell ab - je Sauger, je Flaeche, oder je Flaeche und
-#: Druck (siehe app/engines/vacuum/leakage.py). Ein fester Suffix waere fuer
+#: Druck (siehe app/vakuum/physik.py). Ein fester Suffix waere fuer
 #: drei der vier Modelle falsch. Die Einheit wird deshalb im Feld unit_label
 #: mitgefuehrt und in der Oberflaeche neben dem Eingabefeld angezeigt. Genau
 #: das verlangt Spezifikation 22: die Permeabilitaet ist keine Naturkonstante,
@@ -351,7 +357,7 @@ _UNITLESS_FIELDS = {
 
 
 def test_numeric_dto_fields_carry_a_unit_suffix() -> None:
-    """Die Einheitenkonvention aus app/core/units.py, maschinell geprueft.
+    """Die Einheitenkonvention aus app/einheiten.py, maschinell geprueft.
 
     Eine Vakuumrechnung mischt mbar, l/min, m3/h, N, kg und mm. Wer das ohne
     feste Konvention rechnet, produziert Ergebnisse, die um Faktor 60 oder 1000

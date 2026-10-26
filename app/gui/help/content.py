@@ -478,8 +478,8 @@ deshalb genuegt eine Intervallhalbierung:</p>
 <p>Die Sauger verteilen sich damit wieder ueber die ganze Platte, und die Form
 des Musters bleibt erhalten &ndash; ein gespreiztes Raster bleibt ein Raster,
 eine dichteste Packung bleibt versetzt.</p>
-""" + _source("app/engines/vacuum/arrangements.py", "die Muster") + _source(
-    "app/engines/vacuum/layout.py", "SuctionLayoutEngine.distribute(), _thin_to()"
+""" + _source("app/vakuum/saugermuster.py", "die Muster") + _source(
+    "app/vakuum/anordnung.py", "SuctionLayoutEngine.distribute(), _thin_to()"
 ) + """
 
 <h3>Die Platte darf kleiner sein als das Paket</h3>
@@ -554,7 +554,7 @@ Kippmoment &ndash; bis zu einer halben Paketlaenge Versatz.</p>
 <p>Alle Pakete sind gleich schwer, der Flaechenschwerpunkt ist also zugleich der
 Massenschwerpunkt. Die Verschiebung gilt fuer alle Pakete gleichermassen; die
 Anordnung untereinander bleibt unberuehrt.</p>
-""" + _source("app/engines/vacuum/layout.py", "package_layout(), _layout_span(), _innermost()") + """
+""" + _source("app/vakuum/anordnung.py", "package_layout(), _layout_span(), _innermost()") + """
 
 <h2>Die drei Durchmesser eines Saugers</h2>
 <p>Sie werden regelmaessig verwechselt, und die Verwechslung fuehrt zu zu knapp
@@ -655,7 +655,7 @@ die einzige Groesse mit Abweichung (SPB2&nbsp;30) wird nicht stillschweigend um
 ausgewiesen.</p>
 <p>Der Bezugsdruck steht am Saugertyp, nicht als Konstante im Code &ndash;
 andere Hersteller beziehen auf &minus;0,7 oder &minus;0,8&nbsp;bar.</p>
-""" + _source("app/engines/vacuum/force.py", "datasheet_effective_area_mm2()") + """
+""" + _source("app/vakuum/physik.py", "datasheet_effective_area_mm2()") + """
 
 <h2>Haltekraft</h2>
 """ + _formula(
@@ -704,7 +704,7 @@ Sicherheitsfaktor 1,0:</p>
 """ + _formula(
     "F_noetig = 10 * 9,80665 * 1,0  = 98,07 N",
     "n        = aufrunden(98,07 / 14,4) = aufrunden(6,81) = 7 Sauger",
-) + _source("app/engines/vacuum/force.py",
+) + _source("app/vakuum/physik.py",
             "required_force_n(), max_mass_kg(), required_cup_count()") + """
 
 <h2>Bewertung</h2>
@@ -786,7 +786,7 @@ Ausnahme.</div>
 <p>Kein Ventil schliesst vollstaendig; die Restleckage ist als Flaechenanteil
 modelliert. Alle Angaben dazu stammen aus der Konfiguration, nicht aus dem
 Datenblatt.</p>
-""" + _source("app/engines/vacuum/flow.py", "orifice_flow_m3s(), orifice_area_mm2()") + """
+""" + _source("app/vakuum/physik.py", "orifice_flow_m3s(), orifice_area_mm2()") + """
 
 <h2>Kartonpermeabilitaet</h2>
 <p>Die Permeabilitaet ist keine Naturkonstante und wird hier auch nicht als
@@ -808,7 +808,7 @@ eingegebenen Wert:</p>
 ) + """
 <p>Welche Einheit gilt, steht in der Oberflaeche neben dem Eingabefeld. Ohne
 diese Angabe waere die Zahl bedeutungslos.</p>
-""" + _source("app/engines/vacuum/leakage.py", "die vier Modellklassen") + """
+""" + _source("app/vakuum/physik.py", "die vier Modellklassen") + """
 
 <h2>Pumpenkennlinie</h2>
 """ + _formula(
@@ -855,7 +855,7 @@ Sollwert. Ein offener Sauger senkt damit unmittelbar die Traglast, statt nur
 eine Warnung zu erzeugen.</p>
 <p>Ueber den Schalter <i>Arbeitspunkt loesen</i> laesst sich die einfache
 Betrachtung einschalten; beide Zahlen stehen im Ergebnis nebeneinander.</p>
-""" + _source("app/engines/vacuum/calculator.py", "_solve_operating_point()")
+""" + _source("app/vakuum/rechnung.py", "_solve_operating_point()")
 
 
 # 7 Programmatischer Aufbau -----------------------------------------------------

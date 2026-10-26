@@ -42,7 +42,7 @@ nimmt es seine Kinder mit. Die Palettierung nutzt das, wenn ein Durchlauf
 mehrere Musterkandidaten parallel bewertet.
 
 Der Abbruch ist die eine Haelfte des Schutzes vor veralteten Ergebnissen, die
-monoton steigende request_id in app/jobs/job_manager.py die andere: abgebrochen
+monoton steigende request_id in app/nebenlaeufig.py die andere: abgebrochen
 wird, was noch laeuft - verworfen wird, was schon fertig ist, aber zu einer
 ueberholten Anfrage gehoert.
 """
