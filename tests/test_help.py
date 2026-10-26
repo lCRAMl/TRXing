@@ -88,7 +88,7 @@ def test_the_important_engines_are_referenced():
         "app/engines/vacuum/flow.py",
         "app/engines/vacuum/leakage.py",
         "app/engines/vacuum/calculator.py",
-        "app/engines/geometry/shapes.py",
+        "app/geometrie.py",
     ):
         assert path in document, path + " wird nicht erwaehnt"
 

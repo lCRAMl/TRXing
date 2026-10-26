@@ -11,11 +11,11 @@ import time
 
 import pytest
 
-from app.core.cancellation import CancellationToken
+from app.nebenlaeufig import CancellationToken
 from app.fehler import Severity
-from app.core.requests import RequestGate
-from app.jobs.job import FunctionJob, Job, JobState
-from app.jobs.job_manager import JobManager, PoolConfig
+from app.nebenlaeufig import RequestGate
+from app.nebenlaeufig import FunctionJob, Job, JobState
+from app.nebenlaeufig import JobManager, PoolConfig
 
 pytestmark = pytest.mark.usefixtures("qt_app")
 

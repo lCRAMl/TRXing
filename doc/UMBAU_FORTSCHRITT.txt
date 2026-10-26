@@ -5,7 +5,7 @@ VS Code geschlossen, steht hier, was fertig ist und wo es weitergeht.
 NACH JEDEM SCHRITT AKTUALISIEREN.
 
 Letzte Aktualisierung: 2026-10-26
-Stand:                 Schritt 1 abgeschlossen, Schritt 2 beginnt
+Stand:                 Schritte 1-4 abgeschlossen, Schritt 5 beginnt
 
 
 ===============================================================================
@@ -119,18 +119,20 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        Erkennung des Betriebssystems; Schritt 8 legt Farben und Stylesheet
        dazu und schreibt dann auch den Dateikopf neu.
 
-[ ] 2  Nebenlaeufigkeit
+[x] 2  Nebenlaeufigkeit
        jobs/* + core/cancellation.py + core/requests.py -> app/nebenlaeufig.py
        Ziel: ein kleiner Helfer, der einen Lauf startet, abbricht und
        Fortschritt meldet. Der Abbruch langer Palettierlaeufe MUSS bleiben.
 
-[ ] 3  Gemeinsamer Zustand
+[x] 3  Gemeinsamer Zustand
        services/app_state.py -> app/vorgang.py
        Die uebrigen services/* werden in Schritt 6 und 7 aufgeloest:
        ihr Inhalt wandert in die jeweilige rechnung.py oder in den Tab.
+       ERLEDIGT fuer app_state.py.
 
-[ ] 4  Geometrie
+[x] 4  Geometrie
        engines/geometry/shapes.py -> app/geometrie.py
+       ERLEDIGT.
 
 [ ] 5  Paket
        dto/package.py + gui/package/* -> app/paket.py (+ ui_paket.py)
@@ -207,3 +209,10 @@ LAUFENDE NOTIZEN
             trifft, und app/gui/help/content.py verweist auf Quelldateien -
             dieser Test meldet zuverlaessig, welche Verweise ein Umbau
             bricht.
+
+2026-10-26  Schritte 2 bis 4. Neuer Melder entdeckt: tests/test_help.py
+            prueft, dass jeder Quelltextverweis in der Hilfe auf eine
+            vorhandene Datei zeigt. Dieser Test faellt bei JEDEM Umzug und
+            ist damit die zuverlaessigste Erinnerung, die Dokumentation
+            mitzufuehren. Die Verweise werden mit einem kleinen Werkzeug
+            nachgezogen, das auch doc/ARCHITECTURE.md und README.md erfasst.

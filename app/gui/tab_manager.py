@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import QLabel, QTabWidget, QVBoxLayout, QWidget
 from app.fehler import AppError, ErrorReporter, Severity
 from app.gui.module_registry import CalculationModule, ModuleRegistry
 from app.gui.theme import PALETTE
-from app.services.app_state import AppStateSnapshot, StateChange
+from app.vorgang import AppStateSnapshot, StateChange
 from app.services.context import AppContext
 
 

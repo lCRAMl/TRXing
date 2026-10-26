@@ -10,12 +10,12 @@ from PyQt6.QtCore import QObject, pyqtSignal
 
 from app.katalog import SettingsService
 from app.fehler import ErrorReporter
-from app.core.requests import RequestGate
+from app.nebenlaeufig import RequestGate
 from app.dto.package import PackageSpec
 from app.dto.pallet import PalletConstraints, PalletSpec, PatternSpec, SharedLayer
 from app.engines.palletizing.optimizer import PalletOptimizer, PalletizingError, build_constraints
-from app.jobs.job_manager import JobManager
-from app.jobs.job_types import CHANNEL_PALLET, JobHandle
+from app.nebenlaeufig import JobManager
+from app.nebenlaeufig import CHANNEL_PALLET, JobHandle
 from app.services.calculation_service import CalculationService
 
 

@@ -47,7 +47,7 @@ from app.gui.package.package_form import PackageForm
 from app.gui.pallet.ui_pallet_tab import Ui_PalletTab
 from app.gui.tab_manager import TabHost
 from app.gui.theme import PALETTE
-from app.services.app_state import AppStateSnapshot, StateChange
+from app.vorgang import AppStateSnapshot, StateChange
 from app.services.context import AppContext
 from app.visualization.adapters import create_scene
 

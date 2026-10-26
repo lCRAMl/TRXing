@@ -19,7 +19,7 @@ from app.dto.common import Footprint
 from app.dto.package import PackageSpec
 from app.dto.suction import ContactClass, RestrictorMode, RestrictorSpec, SuctionPlacement
 from app.dto.vacuum import GripDirection, LeakageModel, LeakageSpec, PumpSpec, VacuumInput, VacuumPlateSpec
-from app.engines.geometry.shapes import circle_rect_overlap_area_mm2
+from app.geometrie import circle_rect_overlap_area_mm2
 from app.engines.vacuum import contact, flow, force, layout
 from app.engines.vacuum.calculator import VacuumCalculator, VacuumError
 from app.engines.vacuum.leakage import workpiece_flow_m3s
@@ -565,7 +565,7 @@ def test_result_is_reproducible(calculator, base_request):
 
 
 def test_cancellation_stops_the_run(calculator, base_request):
-    from app.core.cancellation import CancellationToken, CancelledError
+    from app.nebenlaeufig import CancellationToken, CancelledError
 
     token = CancellationToken()
     token.cancel()

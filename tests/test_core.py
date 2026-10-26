@@ -6,9 +6,9 @@ import threading
 
 import pytest
 
-from app.core.cancellation import CancellationToken, CancelledError
+from app.nebenlaeufig import CancellationToken, CancelledError
 from app.fehler import AppError, CallbackSink, Severity
-from app.core.requests import RequestGate
+from app.nebenlaeufig import RequestGate
 from app.ergebnis import Status, ValidationIssue, ValidationReport, classify
 from app.ergebnis import new_trace
 from app.einheiten import force_from_pressure, lpm_to_m3s, m3s_to_lpm, mbar_to_pa

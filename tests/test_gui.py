@@ -17,7 +17,7 @@ from dataclasses import replace
 
 import pytest
 
-from app.services.app_state import StateChange
+from app.vorgang import StateChange
 
 pytestmark = pytest.mark.usefixtures("qt_app")
 
@@ -468,7 +468,7 @@ def test_pattern_from_the_pallet_tab_reaches_the_vacuum_tab(window, application,
 
 def test_invalidation_map_covers_every_change(application):
     """Jede Zustandsaenderung muss wissen, welche Anzeige sie entwertet."""
-    from app.services.app_state import AppState
+    from app.vorgang import AppState
 
     for change in StateChange:
         assert AppState.invalidated_channels(change), (

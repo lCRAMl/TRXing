@@ -177,7 +177,7 @@ fertigen Fenster auffallen:
 
 ## Einheitenkonvention
 
-Definiert in `app/core/units.py`, erzwungen durch
+Definiert in `app/einheiten.py`, erzwungen durch
 `test_numeric_dto_fields_carry_a_unit_suffix`.
 
 | Größe | Einheit | Feldsuffix |
@@ -203,8 +203,8 @@ Anzeige.
 Zwei Mechanismen, die zusammengehören:
 
 ```
-CancellationToken   bricht ab, was noch läuft      (app/core/cancellation.py)
-RequestGate         verwirft, was überholt wurde   (app/core/requests.py)
+CancellationToken   bricht ab, was noch läuft      (app/nebenlaeufig.py)
+RequestGate         verwirft, was überholt wurde   (app/nebenlaeufig.py)
 ```
 
 Der Abbruch allein genügt nicht: zwischen „abgebrochen“ und „Ergebnis liegt

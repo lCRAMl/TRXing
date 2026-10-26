@@ -44,7 +44,7 @@ from app.gui.common.widgets import Debouncer, compact_combo
 from app.gui.tab_manager import TabHost
 from app.gui.theme import PALETTE
 from app.gui.vacuum.ui_vacuum_tab import Ui_VacuumTab
-from app.services.app_state import AppStateSnapshot, StateChange
+from app.vorgang import AppStateSnapshot, StateChange
 from app.services.context import AppContext
 
 MODULE_ID = "vacuum"

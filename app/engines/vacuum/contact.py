@@ -36,7 +36,7 @@ from dataclasses import dataclass
 
 from app.dto.common import Footprint
 from app.dto.suction import ContactClass, CupContact, SuctionCupSpec, SuctionPlacement
-from app.engines.geometry.shapes import circle_fits_in_rect, circle_rect_overlap_area_mm2
+from app.geometrie import circle_fits_in_rect, circle_rect_overlap_area_mm2
 from app.engines.vacuum.force import datasheet_effective_area_mm2
 
 

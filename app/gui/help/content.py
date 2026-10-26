@@ -617,7 +617,7 @@ Inklusion und Exklusion &ndash; jeder Quadrant mit eigenem Vorzeichen:</p>
 ) + """
 <p>Gegenprobe: ein Kreis mit r&nbsp;=&nbsp;5 zur Haelfte im Rechteck ergibt
 <code>pi&middot;25/2 = 39,2699</code> &ndash; exakt, nicht genaehert.</p>
-""" + _source("app/engines/geometry/shapes.py",
+""" + _source("app/geometrie.py",
               "circle_rect_overlap_area_mm2(), circle_fits_in_rect()")
 
 
@@ -922,7 +922,7 @@ das sich nicht schliessen laesst. Die Torpruefung beim Empfang schliesst es.</p>
     "Anfrage 42 startet",
     "Anfrage 41 endet   ->  Ergebnis verwerfen",
     "Anfrage 42 endet   ->  Ergebnis anzeigen",
-) + _source("app/core/requests.py", "RequestGate; app/core/cancellation.py") + """
+) + _source("app/nebenlaeufig.py", "RequestGate und CancellationToken") + """
 
 <h2>Nachrechnen statt melden</h2>
 <p>Aenderungen an den Paketdaten loesen in beiden Tabs eine neue Berechnung
@@ -932,7 +932,7 @@ waere verschenkt.</p>
 <p>Der zentrale Zustand fuehrt dafuer einen Zaehler, den jede fachliche
 Aenderung erhoeht. Jedes Ergebnis merkt sich den Stand, unter dem es entstand;
 weichen beide ab, ist die Anzeige ueberholt.</p>
-""" + _source("app/services/app_state.py", "AppState.revision, INVALIDATES") + """
+""" + _source("app/vorgang.py", "AppState.revision, INVALIDATES") + """
 
 <h2>Reproduzierbarkeit</h2>
 <p>Gleiche Eingabe, gleiches Ergebnis &ndash; sonst waere ein Palettierplan als

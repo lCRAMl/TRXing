@@ -32,9 +32,9 @@ from app.katalog import ConfigStatus, SettingsService
 from app.fehler import ErrorReporter
 from app.fehler import LoggingSink, install_excepthooks, setup_logging
 from app.pfade import config_dir, log_dir
-from app.core.requests import RequestGate
-from app.jobs.job_manager import JobManager, PoolConfig
-from app.services.app_state import AppState
+from app.nebenlaeufig import RequestGate
+from app.nebenlaeufig import JobManager, PoolConfig
+from app.vorgang import AppState
 from app.services.package_service import PackageService
 from app.services.pallet_service import PalletService
 from app.services.vacuum_service import VacuumService

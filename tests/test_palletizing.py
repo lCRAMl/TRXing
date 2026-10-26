@@ -12,7 +12,7 @@ import pytest
 
 from app.dto.package import Orientation, PackageSpec
 from app.dto.pallet import LimitingFactor, PatternSpec, ZMode
-from app.engines.geometry.shapes import any_overlap
+from app.geometrie import any_overlap
 from app.engines.palletizing import loads
 from app.engines.palletizing.optimizer import PalletOptimizer, PalletizingError, build_constraints
 from app.engines.patterns import PatternRequest, available_strategies, generate
@@ -413,7 +413,7 @@ def test_trace_records_the_path(optimizer, settings, euro_pallet, package):
 
 
 def test_cancellation_stops_the_run(optimizer, settings, euro_pallet, package):
-    from app.core.cancellation import CancellationToken, CancelledError
+    from app.nebenlaeufig import CancellationToken, CancelledError
 
     token = CancellationToken()
     token.cancel()

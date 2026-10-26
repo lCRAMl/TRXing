@@ -18,7 +18,7 @@ from dataclasses import replace
 import pytest
 
 from app.katalog import SettingsService
-from app.core.cancellation import CancellationToken
+from app.nebenlaeufig import CancellationToken
 from app.fehler import ErrorReporter, Severity
 from app.dto.package import PackageSpec, validate_package
 from app.dto.vacuum import VacuumInput, VacuumPlateSpec
@@ -380,7 +380,7 @@ def test_configuration_with_wrong_types(tmp_path):
 
 def test_cancellation_during_a_large_run(settings):
     """Ein Abbruch muss auch mitten in einer grossen Rechnung greifen."""
-    from app.core.cancellation import CancelledError
+    from app.nebenlaeufig import CancelledError
 
     pallet = settings.get_pallet("iso_1200x1200")
     small = PackageSpec(80.0, 60.0, 50.0, 0.3)

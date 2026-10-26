@@ -26,7 +26,7 @@ from app.dto.common import Footprint
 from app.dto.package import PackageSpec
 from app.dto.suction import SuctionCupSpec, SuctionPlacement
 from app.dto.vacuum import VacuumPlateSpec
-from app.engines.geometry.shapes import rect_contains_rect
+from app.geometrie import rect_contains_rect
 from app.engines.patterns import PatternRequest, generate as generate_pattern
 from app.engines.vacuum import arrangements
 from app.engines.vacuum.arrangements import Arrangement, ArrangementRequest

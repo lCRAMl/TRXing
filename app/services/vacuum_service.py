@@ -16,7 +16,7 @@ from PyQt6.QtCore import QObject
 from app.katalog import VacuumDefaults
 from app.katalog import SettingsService
 from app.fehler import ErrorReporter
-from app.core.requests import RequestGate
+from app.nebenlaeufig import RequestGate
 from app.dto.suction import SuctionCupSpec
 from app.dto.vacuum import GripDirection, VacuumInput
 from app.engines.vacuum.calculator import VacuumCalculator, VacuumError
@@ -26,8 +26,8 @@ from app.engines.vacuum.force import (
     required_cup_count,
 )
 from app.engines.vacuum.layout import SuctionLayoutEngine
-from app.jobs.job_manager import JobManager
-from app.jobs.job_types import CHANNEL_VACUUM, JobHandle
+from app.nebenlaeufig import JobManager
+from app.nebenlaeufig import CHANNEL_VACUUM, JobHandle
 from app.services.calculation_service import CalculationService
 
 
