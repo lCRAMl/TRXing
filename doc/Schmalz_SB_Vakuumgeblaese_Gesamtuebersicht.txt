@@ -1,0 +1,143 @@
+SCHMALZ VAKUUM-GEBLÄSE SB – GESAMTÜBERSICHT
+Datenstand der Webauswertung: 26.10.2026
+
+1. QUELLE UND ABGRENZUNG
+Ausgewertet wurde die Schmalz-Produktfamilienseite 'Vakuum-Gebläse SB'. Die Seite nennt 41 bestellbare Artikelvarianten. Viele Artikel unterscheiden sich nur durch Spannung, Länder-/Zulassungsvariante oder Motorausführung. Die nachfolgende Übersicht bildet alle auf der Seite veröffentlichten technischen Kennliniengruppen ab. Nicht öffentlich sichtbare Preise und Verfügbarkeiten sind nicht enthalten.
+Quelle: https://www.schmalz.com/de/produkte/automation-743270/vakuum-erzeuger-307617/elektrische-vakuum-erzeuger-738973/vakuum-geblaese-308520/vakuum-geblaese-sb-308521
+
+2. GEMEINSAME EIGENSCHAFTEN
+- Elektrisch angetriebene Vakuum-Gebläse für sehr hohe Saugleistung.
+- Vorgesehen für Kartonagen, Schaumstoffe, Dämmmaterialien, Recyclingwerkstoffe und andere poröse Materialien.
+- Hoher Volumenstrom dient zur Kompensation großer Leckagen.
+- Gehäuse und Laufrad aus hochpräzisem Aluminium-Druckguss.
+- Voreingestelltes Druckbegrenzungsventil.
+- Motoren mit Energieeffizienzklasse IE3.
+- Gesamtbereich der Familie: 75 bis 1.250 m³/h.
+- Maximal ausgewiesenes Vakuum der Familie: rund 40 % bzw. etwa 400 mbar relativer Unterdruck.
+- Einordnung: Grobvakuum-/Hochvolumen-Erzeuger, nicht Fein- oder Hochvakuumpumpen.
+
+3. LESEHINWEISE ZU DEN KENNLINIEN
+Die erste Zahl jeder Kennlinienzeile ist das freie Saugvermögen bei 0 mbar Unterdruck. Mit zunehmendem Unterdruck sinkt das verfügbare Saugvermögen. 'Vakuum [mbar rel.]' bedeutet Druckdifferenz zur Umgebung, nicht Absolutdruck. Näherung: p_abs = p_atm - Vakuum_rel. Bei 1.013 mbar Atmosphäre entsprechen 390 mbar Unterdruck etwa 623 mbar absolut.
+Die Kennlinienwerte sind Herstellerwerte. Zwischenpunkte dürfen nur interpoliert werden, wenn die konkrete Anwendung das zulässt. Rohrleitungs-, Filter- und Ventilverluste sind nicht enthalten.
+
+4. ALLE VERÖFFENTLICHTEN KENNLINIEN
+
+SB-75 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 40 | 80 | 120
+  Saugvermögen [m³/h]: 75 | 62 | 50 | 37
+
+SB-75 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 40 | 80 | 120
+  Saugvermögen [m³/h]: 91,5 | 79,5 | 66 | 54
+
+SB-130-125 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 40 | 80 | 120
+  Saugvermögen [m³/h]: 130 | 117 | 107 | 93
+
+SB-160-115 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 40 | 80 | 120
+  Saugvermögen [m³/h]: 163 | 150 | 137 | 122
+
+SB-90-330 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 300 | 330
+  Saugvermögen [m³/h]: 90 | 54 | 41 | 31 | 20 | 10 | 6
+
+SB-110-350 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 300 | 330
+  Saugvermögen [m³/h]: 110 | 73 | 60 | 48 | 37 | 26 | 20
+
+SB-180-215 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 215
+  Saugvermögen [m³/h]: 180 | 93 | 58 | 20 | 10
+
+SB-230-230 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 215
+  Saugvermögen [m³/h]: 230 | 129 | 90 | 60 | 52
+
+SB-325-265 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250
+  Saugvermögen [m³/h]: 325 | 225 | 180 | 140 | 105
+
+SB-390-245 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250
+  Saugvermögen [m³/h]: 390 | 345 | 300 | 260 | 220
+
+SB-195-440 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 300 | 350 | 400
+  Saugvermögen [m³/h]: 195 | 148 | 125 | 105 | 87 | 72 | 55 | 47
+
+SB-235-400 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 300 | 350 | 400
+  Saugvermögen [m³/h]: 235 | 180 | 160 | 145 | 126 | 104 | 85 | 73
+
+SB-260-410 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 300 | 350 | 400
+  Saugvermögen [m³/h]: 260 | 190 | 160 | 140 | 120 | 95 | 80 | 60
+
+SB-305-400 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 300 | 350 | 400
+  Saugvermögen [m³/h]: 305 | 240 | 218 | 190 | 170 | 140 | 120 | 100
+
+SB-510-200 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 175
+  Saugvermögen [m³/h]: 510 | 384 | 327 | 300
+
+SB-610-175 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 175
+  Saugvermögen [m³/h]: 610 | 510 | 480 | 468
+
+SB-510-390 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 300 | 350 | 390
+  Saugvermögen [m³/h]: 510 | 432 | 388 | 344 | 304 | 264 | 224 | 200
+
+SB-605-390 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 300 | 350 | 390
+  Saugvermögen [m³/h]: 605 | 518 | 472 | 426 | 382 | 338 | 294 | 255
+
+SB-390-315 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 290
+  Saugvermögen [m³/h]: 390 | 275 | 235 | 180 | 130 | 98
+
+SB-470-290 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 290
+  Saugvermögen [m³/h]: 470 | 360 | 300 | 250 | 200 | 210
+
+SB-375-390 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 300 | 350
+  Saugvermögen [m³/h]: 375 | 300 | 270 | 235 | 210 | 180 | 150
+
+SB-435-340 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 300 | 350
+  Saugvermögen [m³/h]: 435 | 360 | 325 | 290 | 260 | 230 | 200
+
+SB-765-280 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 270
+  Saugvermögen [m³/h]: 765 | 580 | 500 | 420 | 350 | 295
+
+SB-915-280 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 270
+  Saugvermögen [m³/h]: 915 | 715 | 625 | 545 | 465 | 430
+
+SB-1050-290 (50 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 270
+  Saugvermögen [m³/h]: 1050 | 820 | 710 | 605 | 500 | 460
+
+SB-1240-260 (60 Hz)
+  Vakuum [mbar rel.] : 0 | 100 | 150 | 200 | 250 | 270
+  Saugvermögen [m³/h]: 1250 | 1012 | 895 | 780 | 670 | 630
+
+5. TECHNISCHE EINORDNUNG DER TYPEN
+- Niedrigerer Unterdruck, hoher Durchsatz: SB-130-125/SB-160-115, SB-180-215/SB-230-230, SB-510-200/SB-610-175. Geeignet für sehr poröse Werkstücke und große Leckagen.
+- Ausgewogene Typen: SB-325-265, SB-390-245, SB-390-315/SB-470-290, SB-765-280/SB-915-280, SB-1050-290/SB-1240-260.
+- Innerhalb der SB-Reihe vakuumorientiert: SB-90-330/SB-110-350, SB-195-440/SB-235-400, SB-260-410/SB-305-400, SB-375-390/SB-435-340 und SB-510-390/SB-605-390.
+
+6. BESONDERS RELEVANT: SB-510-390 / SB-605-390
+Für die zuvor genannte Ausführung wurden zusätzlich folgende Artikeldaten angegeben: 11,0 kW bei 50 Hz, 13,2 kW bei 60 Hz, D400 V ±10 % bei 50 Hz, D460 V ±10 % bei 60 Hz, Gewicht 125 kg, IE3-Ausführung EU/CN/IND, UL/CSA, Farbe RAL 7035 Lichtgrau. Bei 50 Hz fällt das Saugvermögen von 510 m³/h bei 0 mbar auf 200 m³/h bei 390 mbar. Bei 60 Hz sind es 605 m³/h bei 0 mbar und 255 m³/h bei 390 mbar.
+
+7. PLAUSIBILITÄTSHINWEISE ZUR ORIGINALSEITE
+- Beim SB-470-290 steigt der veröffentlichte Wert von 200 m³/h bei 250 mbar auf 210 m³/h bei 290 mbar. Das widerspricht dem üblichen monoton fallenden Verlauf und sollte vor Auslegung mit dem Originaldatenblatt bzw. Schmalz geklärt werden. Der Wert wurde hier unverändert übernommen.
+- Der Typ heißt SB-1240-260, die publizierte Kennlinie nennt bei 0 mbar jedoch 1.250 m³/h. Auch dieser Wert wurde unverändert übernommen.
+- Bei mehreren Paaren unterscheiden sich Typname und letzter veröffentlichter Kennlinienpunkt. Der Namenssuffix ist daher nicht automatisch als eindeutiges Abschalt- oder Endvakuum zu behandeln.
+
+8. ANWENDUNGSHINWEIS
+Die tatsächliche Auswahl muss anhand des benötigten Betriebspunkts erfolgen: erforderlicher Unterdruck plus Leckagestrom. Das freie Saugvermögen allein reicht nicht. Für Greifer sind zusätzlich Saugeranzahl, Werkstückporosität, Leitungslänge/-querschnitt, Filter, Ventile, Beschleunigungen und Sicherheitsfaktor zu berücksichtigen.

@@ -1,0 +1,87 @@
+SCHMALZ FGC / FSGC BALGSAUGER – DATENÜBERSICHT
+Datenstand der Webauswertung: 26.10.2026
+
+1. ABGRENZUNG
+FGC bezeichnet das Elastomer-Saugteil mit Schmalz-Connector-Schnittstelle SC080. FSGC bezeichnet den montierten Balgsauggreifer aus FGC-Saugteil plus SC-Anbindungselement. Die öffentlich auffindbaren reinen FGC-Artikel sind FGC 40 und FGC 50. Die aktuelle FSGC-Produktfamilie wird mit Durchmessern 30 bis 60 mm, NBR oder Silikon und insgesamt 14 Ergebnisvarianten beschrieben.
+Quellen:
+- https://www.schmalz.com/de-de/search?q=fgc
+- https://www.schmalz.com/de-de/produkte/automation-743270/vakuum-greifer-746238/vakuum-sauggreifer-301609/balgsauggreifer-rund-302817/balgsauggreifer-fsgc-362908
+
+2. GEMEINSAME PRODUKTEIGENSCHAFTEN
+- Runder Balgsauggreifer für Logistik- und Verpackungsanwendungen.
+- Handhabung von Kartonagen, Papierbeuteln, Polybeuteln, Versandtaschen und eingeschweißten Produkten.
+- Geeignet für Sortierzellen, Bin Picking, Order Fulfillment, Mixed-SKU-Handling und unterschiedliche Folientypen.
+- Anpassungsfähige Dichtlippe, optimierter Saugerhals und großer Innendurchmesser für hohe Pickraten.
+- Mehrfaltige Balgstruktur mit großem Hub zur Anpassung an unterschiedliche Höhen und Oberflächen.
+- Spezielle Faltengeometrie soll Schwingungen reduzieren, das Ansaugverhalten verbessern und hohe Haltekräfte ohne Materialschäden ermöglichen.
+- Einteilige steckbare Anbindungselemente ermöglichen schnellen Saugerwechsel.
+
+3. REINE FGC-ELASTOMERTEILE
+
+FGC 40 NBR-55 SC080
+- Artikel-Nr.: 10.01.06.04863
+- Baugröße: 40
+- Werkstoff: Nitrilkautschuk NBR
+- Härte: 55 Shore A
+- Faltenzahl: 4,5
+- Schnittstelle/Nippelfamilie: SC080 / SC 080
+- Theoretische Saugkraft bei -600 mbar: 37 N
+- Höhe H: 47 mm; Höhe H2: 13 mm
+- Außendurchmesser D1: 39 mm
+- Kopfdurchmesser Dk: 25 mm
+- d2: 27,5 mm; Innendurchmesser d: 16 mm
+- Federweg/Hub Z: 25 mm
+- Durchmesser Ds: 39 mm; Dmax(S): 41 mm
+
+FGC 50 NBR-55 SC080
+- Artikel-Nr.: 10.01.06.04920
+- Baugröße: 50
+- Werkstoff: Nitrilkautschuk NBR
+- Härte: 55 Shore A
+- Faltenzahl: 4,5
+- Schnittstelle/Nippelfamilie: SC080 / SC 080
+- Theoretische Saugkraft bei -600 mbar: 55 N
+- Höhe H: 55 mm; Höhe H2: 13 mm
+- Außendurchmesser D1: 49,5 mm
+- Kopfdurchmesser Dk: 26,5 mm
+- d2: 34,5 mm; Innendurchmesser d: 16 mm
+- Federweg/Hub Z: 31 mm
+- Durchmesser Ds: 47 mm; Dmax(S): 51 mm
+
+4. FSGC-KOMPLETTGREIFER MIT AUFFINDBAREN DETAILDATEN
+
+FSGC 40 NBR-55 G1/4-AG
+- Artikel-Nr.: 10.01.06.04870
+- FGC 40 plus Aluminium-Anbindung SC 080 G1/4-AG
+- Höhe H: 54,5 mm; Hub Z: 25 mm; D1: 39 mm; d2: 27,5 mm; Ds: 39 mm; Dmax(S): 41 mm
+- Nenndurchmesser dn: 8 mm; Gewinde G1/4-AG; Gewindelänge LG1: 10 mm; Schlüsselweite SW1: 22 mm
+- Saugkraft bei -600 mbar: 37 N; reale Abreißkraft: 37 N
+- Innenvolumen: 29,1 cm³; empfohlener Schlauchinnendurchmesser: 9 mm
+
+FSGC 40 NBR-55 G3/8-AG
+- Artikel-Nr.: 10.01.06.05654
+- Maße und Leistungsdaten wie FSGC 40 G1/4-AG, jedoch Gewinde G3/8-AG und Nenndurchmesser dn 10,3 mm
+- Höhe H: 54,5 mm; Gewindelänge LG1: 10 mm; SW1: 22 mm
+- Saugkraft/Abreißkraft: 37 N; Volumen: 29,1 cm³; empfohlener Schlauchinnendurchmesser: 9 mm
+
+FSGC 50 NBR-55 G1/4-AG
+- Artikel-Nr.: 10.01.06.05020
+- FGC 50 plus Aluminium-Anbindung SC 080 G1/4-AG
+- Höhe H: 62,5 mm; Hub Z: 31 mm; D1: 49,5 mm; d2: 34,5 mm; Ds: 47 mm; Dmax(S): 51 mm
+- Nenndurchmesser dn: 8 mm; Gewinde G1/4-AG; Gewindelänge LG1: 10 mm; SW1: 22 mm
+- Theoretische Saugkraft bei -600 mbar: 55 N; reale Abreißkraft: 59 N
+- Innenvolumen: 52,4 cm³; empfohlener Schlauchinnendurchmesser: 9 mm
+
+5. WEITERE FAMILIENANGABEN
+Die FSGC-Familienseite nennt Durchmesser/Baugrößen von 30 bis 60 mm und Werkstoffe NBR sowie SI (Silikon). Als sichtbare Variante wird außerdem FSGC 30 NBR-55 G1/4-AG, Artikel-Nr. 10.01.06.06075, mit Baugröße 30, NBR 55 Shore A, Aluminium-Anbindung und 3,5 Falten aufgeführt. Für diese Variante waren in der Suchansicht keine vollständigen Maß- und Kraftdaten verfügbar.
+
+6. BEDEUTUNG DER KRAFTANGABEN
+Schmalz weist darauf hin, dass die Saugkraftwerte theoretische Werte bei -0,6 bar, trockener, glatter und ebener Werkstückoberfläche und ohne Sicherheitsfaktor sind. Der empfohlene Schlauchinnendurchmesser bezieht sich auf etwa 2 m Schlauchlänge. In einer realen Anlage müssen Leckage, Oberflächenrauheit, Beschleunigung, Einbaulage, Lastverteilung, Verschleiß und Sicherheitsfaktor berücksichtigt werden.
+
+7. KRAFTABSCHÄTZUNG BEI ANDEREM VAKUUM
+Bei gleicher wirksamer Saugfläche kann die theoretische Kraft näherungsweise linear umgerechnet werden: F(p) ≈ F_600 × |p| / 600. Beispiel FGC 40: bei -390 mbar etwa 37 × 390/600 = 24,1 N. FGC 50: bei -390 mbar etwa 55 × 390/600 = 35,8 N. Dies ist eine rechnerische Näherung, keine veröffentlichte Schmalz-Kennlinie.
+
+8. QUELLEN
+- FGC 40 Produktseite/Datenblatt: https://www.schmalz.com/de-de/produkte/automation-743270/vakuum-greifer-746238/vakuum-sauggreifer-301609/balgsauggreifer-rund-302817/10.01.06.04863
+- FGC 50 Produktseite/Datenblatt: https://www.schmalz.com/de-de/produkte/automation-743270/vakuum-greifer-746238/vakuum-sauggreifer-301609/balgsauggreifer-rund-302817/10.01.06.04920
+- FSGC-Familie: https://www.schmalz.com/de-de/produkte/automation-743270/vakuum-greifer-746238/vakuum-sauggreifer-301609/balgsauggreifer-rund-302817/balgsauggreifer-fsgc-362908

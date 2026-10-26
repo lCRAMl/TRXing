@@ -1,0 +1,379 @@
+PROGRAMMARCHITEKTUREN - AUSWAHLLISTE FUER DEN UMBAU VON TRXing
+Erstellt: 2026-10-26
+Zweck: Entscheidungsgrundlage. Du waehlst eine Nummer (oder eine Mischung),
+       danach wird umgebaut. Dieses Dokument baut nichts um.
+
+
+===============================================================================
+TEIL 1 - WO DAS PROGRAMM HEUTE STEHT
+===============================================================================
+
+Gemessen, nicht geschaetzt:
+
+    Anwendungscode        14.089 Zeilen in 85 Dateien
+    davon erzeugte UI        687 Zeilen (ui_*.py aus Qt Designer)
+    Tests                  5.020 Zeilen
+    Verhaeltnis Test/Code  etwa 1 : 2,8
+
+Die heutige Einordnung lautet:
+
+    SCHICHTENARCHITEKTUR (Layered Architecture)
+    mit Elementen aus Ports-and-Adapters, Microkernel und Observer
+
+Die Schichten, von innen nach aussen:
+
+    app/dto/          Datenobjekte, keine Logik, keine Abhaengigkeiten
+    app/core/         Querschnitt: Einheiten, Fehler, Abbruch, Trace
+    app/engines/      Rechnen. Qt-frei, ohne Oberflaeche pruefbar
+    app/services/     Vermittlung, Nebenlaeufigkeit, gemeinsamer Zustand
+    app/gui/          Bedienung. Kennt die Engines nicht
+    app/jobs/         Hintergrundarbeit, Abbruch, Fortschritt
+    app/config/       Laden und Pruefen der JSON-Kataloge
+
+Belege fuer die Einordnung, jeweils mit Fundstelle:
+
+    Ports-and-Adapters   app/visualization/adapters.py kapselt PyVista hinter
+                         dem Protokoll Scene3D - die 3D-Bibliothek ist
+                         austauschbar, ohne dass ein Tab davon erfaehrt.
+
+    Microkernel/Plugin   app/engines/patterns/strategies.py und
+                         app/engines/vacuum/arrangements.py melden ihre Muster
+                         ueber einen Dekorator in einer Registry an. Ein neues
+                         Muster braucht eine Funktion und einen Eintrag, sonst
+                         nichts.
+
+    Observer             app/services/app_state.py verteilt Zustandsaenderungen
+                         ueber gewoehnliche Rueckrufe an alle Interessenten.
+                         Die Tabs kennen einander nicht.
+
+    Strategy             Palettiermuster und Saugermuster sind austauschbare
+                         Funktionen hinter einer gemeinsamen Signatur.
+
+    Dependency Injection app/services/context.py buendelt alles, was ein Tab
+                         sehen darf. Zusammengebaut wird nur in
+                         app/application.py (Composition Root).
+
+Eine Architekturpruefung erzwingt die Schichtregeln maschinell:
+tests/test_architecture.py verbietet der Serviceschicht QtWidgets und jeden
+Import aus app.gui.
+
+
+-------------------------------------------------------------------------------
+WAS DIE JETZIGE ARCHITEKTUR TATSAECHLICH TRAEGT
+-------------------------------------------------------------------------------
+
+Damit die Entscheidung auf Fakten steht - diese vier Dinge leistet der heutige
+Aufbau, und sie muessen nach dem Umbau anders geloest sein oder bewusst
+entfallen:
+
+1. ABBRUCHBARE LANGLAEUFER
+   Die Palettierung kann mit CP-SAT (ortools) rechnen. Das ist der einzige
+   wirklich langsame Teil des Programms. app/jobs/ haelt dafuer Threadpool,
+   Abbruchtoken und Fortschritt bereit. Die Oberflaeche friert nicht ein, und
+   der Lauf laesst sich abbrechen (Knopf "Abbrechen" im Palettentab).
+   -> Faellt das weg, blockiert ein langer Lauf das Fenster.
+
+2. SCHUTZ VOR VERALTETEN ERGEBNISSEN
+   Jedes Ergebnis merkt sich die Revision, unter der es entstand. Weicht sie
+   vom aktuellen Stand ab, wird die Anzeige blass gezeichnet. Ohne das steht
+   ein Ergebnis zum alten Paket weiter da und sieht gueltig aus.
+   -> Das ist kein Schichtenthema, sondern ein Zaehler. Es laesst sich in
+      jeder Architektur mitnehmen, muss aber mitgenommen WERDEN.
+
+3. ENTPRELLUNG
+   Jede Eingabeaenderung loest sonst einen eigenen Rechenlauf aus. Der
+   Debouncer in app/gui/common/widgets.py sammelt 200 ms.
+
+4. PRUEFBARKEIT OHNE OBERFLAECHE
+   Von den 565 Tests laeuft der Grossteil ohne QApplication. Das geht nur,
+   weil die Rechenteile Qt nicht kennen. Diese Eigenschaft ist unabhaengig
+   von der Schichtenzahl und sollte in jeder Zielarchitektur erhalten bleiben
+   - sie ist der Grund, warum die Testsuite in 14 Sekunden durchlaeuft.
+
+
+===============================================================================
+TEIL 2 - DIE LISTE
+===============================================================================
+
+Bewertung jeweils gegen deine Vorgaben:
+schnell, leicht, gut dokumentiert, Funktionen 1:1 erhalten, Ebenen raus.
+
+Spalte "Aufwand" meint den Umbauaufwand ausgehend vom heutigen Stand.
+
+
+-------------------------------------------------------------------------------
+1  SCHICHTENARCHITEKTUR (heutiger Stand)
+-------------------------------------------------------------------------------
+Idee        Waagerechte Schichten, Abhaengigkeiten nur nach innen.
+Struktur    dto / core / engines / services / gui / jobs / config
+Hier        Bereits umgesetzt.
+Dafuer      Austauschbarkeit, maschinell pruefbare Regeln, Testbarkeit.
+Dagegen     Eine fachliche Aenderung fasst vier bis sechs Dateien an. Fuer ein
+            Werkzeug dieser Groesse ist das die Hauptkritik - und deine.
+Aufwand     keiner
+Passung     gering (du willst sie weghaben)
+
+
+-------------------------------------------------------------------------------
+2  PAKET-JE-FACHGEBIET / VERTIKALE SCHNITTE (Package by Feature)
+-------------------------------------------------------------------------------
+Idee        Nicht nach technischer Art gruppieren, sondern nach Fachgebiet.
+            Alles zu einem Thema liegt beieinander - Daten, Rechnung, Anzeige.
+Struktur    trxing/
+                paket.py           Paketdaten
+                palette/           Palettierung: rechnen + Tab + Zeichnung
+                vakuum/            Saugplatte: rechnen + Tab + Zeichnung
+                verlauf/           neues drittes Tab
+                katalog.py         JSON-Kataloge laden
+                gemeinsam.py       Einheiten, Zahlenfelder, Debouncer
+                start.py           Fenster zusammenbauen
+Hier        Aus 85 Dateien wuerden etwa 15 bis 20. Eine Aenderung am
+            Vakuumteil fasst genau einen Ordner an.
+Dafuer      Kurze Wege, alles zum Thema an einem Ort, trotzdem ordentlich
+            getrennt. Neues Tab = neuer Ordner. Gut dokumentierbar, weil
+            jeder Ordner eine Geschichte erzaehlt statt einer Technik.
+Dagegen     Qt und Rechnung liegen im selben Ordner. Ohne Disziplin wandert
+            Rechenlogik in den Tab, und die Tests brauchen plötzlich eine
+            QApplication. Empfehlung: je Fachgebiet zwei Dateien
+            (rechnung.py ohne Qt, tab.py mit Qt).
+Aufwand     mittel - vor allem Verschieben und Zusammenlegen, wenig Neuschrieb
+Passung     SEHR HOCH
+
+
+-------------------------------------------------------------------------------
+3  KERN ALS BIBLIOTHEK, OBERFLAECHE DUENN (Library-first)
+-------------------------------------------------------------------------------
+Idee        Die Rechnung ist ein importierbares Modul ohne jede Oberflaeche.
+            Die GUI ist nur ein Aufrufer davon - so duenn wie moeglich.
+Struktur    trxing_core/     reine Rechnung, importierbar, auch ohne Qt
+            trxing_gui/      Fenster, Tabs, Zeichnungen
+Hier        Entspricht der heutigen Trennung engines/ gegen gui/, nur ohne
+            die Zwischenschichten services/ und dto/.
+Dafuer      Der Kern bleibt ohne Qt pruefbar und ist von aussen benutzbar
+            (Skript, Batch, spaeter eine Weboberflaeche). Zwei Begriffe
+            statt sechs.
+Dagegen     Sagt nichts darueber, wie der Kern INNEN geordnet ist - das muss
+            zusaetzlich entschieden werden (meist Nr. 2 oder Nr. 4).
+Aufwand     gering bis mittel
+Passung     HOCH - gut als Ergaenzung zu Nr. 2 oder Nr. 4
+
+
+-------------------------------------------------------------------------------
+4  MODUL-JE-THEMA, FLACH (Pragmatisches Skriptmodell)
+-------------------------------------------------------------------------------
+Idee        Ein Ordner, eine Datei je Thema, keine Unterordner.
+Struktur    trxing/
+                daten.py       Paket, Palette, Platte, Sauger (dataclasses)
+                palette.py     Palettierrechnung
+                muster.py      Palettier- und Saugermuster
+                vakuum.py      Kraft, Leckage, Stroemung, Kontakt
+                geometrie.py   Kreis/Rechteck, Ueberdeckung
+                zeichnen.py    2D-Darstellungen
+                szene3d.py     PyVista
+                oberflaeche.py alle Tabs
+                katalog.py     JSON
+                main.py
+Hier        Etwa 10 bis 12 Dateien. Maximal kurze Wege.
+Dafuer      Am schnellsten zu lesen und zu ueberblicken. Jeder Import ist
+            sofort auffindbar. Fuer ein Werkzeug dieser Groesse vertretbar.
+Dagegen     oberflaeche.py wuerde bei drei Tabs schnell 2.000+ Zeilen. Die
+            Muster-Registry verliert ihren natuerlichen Ort. Beim vierten
+            Tab wird es unuebersichtlich.
+Aufwand     mittel bis hoch (viel Zusammenlegen, Kollisionsgefahr bei Namen)
+Passung     MITTEL bis HOCH - abhaengig davon, ob noch Tabs kommen
+
+
+-------------------------------------------------------------------------------
+5  MODEL-VIEW-CONTROLLER / MVP / MVVM
+-------------------------------------------------------------------------------
+Idee        Trennung von Daten (Model), Anzeige (View) und Vermittlung
+            (Controller/Presenter/ViewModel).
+Struktur    je Tab ein Trio aus model.py / view.py / presenter.py
+Hier        Das Programm ist heute faktisch schon MVP-aehnlich: der Tab ist
+            die View, der Service der Presenter, das DTO das Model.
+Dafuer      Vertraut, gut dokumentiert in der Literatur, testbare Presenter.
+Dagegen     Verdreifacht die Dateizahl je Tab. Das ist genau die Art von
+            Schichtung, die du loswerden willst - nur anders benannt.
+Aufwand     hoch
+Passung     GERING
+
+
+-------------------------------------------------------------------------------
+6  HEXAGONAL / PORTS AND ADAPTERS
+-------------------------------------------------------------------------------
+Idee        Der Kern kennt nur Schnittstellen (Ports); alles Aeussere - GUI,
+            Dateien, Bibliotheken - haengt als Adapter daran.
+Hier        In Teilen schon da (adapters.py fuer PyVista).
+Dafuer      Austauschbarkeit von allem Aeusseren.
+Dagegen     Lohnt sich bei vielen Fremdsystemen. Hier gibt es zwei: PyVista
+            und die JSON-Kataloge. Fuer zwei Adapter ist der Apparat zu gross.
+Aufwand     hoch
+Passung     GERING
+
+
+-------------------------------------------------------------------------------
+7  CLEAN ARCHITECTURE / ONION
+-------------------------------------------------------------------------------
+Idee        Konzentrische Ringe, Abhaengigkeiten ausschliesslich nach innen,
+            Anwendungsfaelle (Use Cases) als eigene Schicht.
+Dafuer      Sehr streng, sehr austauschbar.
+Dagegen     Mehr Schichten als heute, nicht weniger. Use-Case-Klassen fuer
+            "Palette berechnen" waeren ein zusaetzlicher Ring.
+Aufwand     sehr hoch
+Passung     SEHR GERING (gegenlaeufig zu deinem Ziel)
+
+
+-------------------------------------------------------------------------------
+8  PIPES AND FILTERS / RECHENKETTE
+-------------------------------------------------------------------------------
+Idee        Die Rechnung als Kette von Schritten, jeder nimmt ein Ergebnis
+            entgegen und gibt das naechste weiter.
+Hier        Der Vakuumrechner ist INNEN schon so gebaut: Pakete anordnen ->
+            Sauger verteilen -> Kontakt pruefen -> Arbeitspunkt loesen ->
+            Kraft rechnen. Siehe app/engines/vacuum/calculator.py.
+Dafuer      Sehr gut dokumentierbar, jeder Schritt einzeln pruefbar, passt zu
+            dem schon vorhandenen Trace-Mechanismus.
+Dagegen     Ordnet nur das Rechnen, nicht das Programm als Ganzes.
+Aufwand     gering (ist da)
+Passung     HOCH als INNERE Ordnung der Rechenmodule, nicht als Gesamtform
+
+
+-------------------------------------------------------------------------------
+9  EREIGNISGESTEUERT (Event Bus / Signal-Slot durchgaengig)
+-------------------------------------------------------------------------------
+Idee        Bausteine reden nur ueber Ereignisse, niemand ruft jemanden direkt.
+Hier        In Ansaetzen vorhanden (AppState, Qt-Signale).
+Dafuer      Lose Kopplung, neue Zuhoerer ohne Eingriff.
+Dagegen     Der Weg eines Werts ist im Code nicht mehr ablesbar. Genau das
+            wurde in dieser Sitzung zweimal zum Problem (die Lage kam nicht
+            beim Vakuumtab an). Fuer ein Werkzeug mit drei Tabs ist direkter
+            Aufruf ehrlicher.
+Aufwand     mittel
+Passung     GERING als Leitbild; einzelne Signale bleiben natuerlich sinnvoll
+
+
+-------------------------------------------------------------------------------
+10 DOCUMENT-VIEW
+-------------------------------------------------------------------------------
+Idee        Ein Dokument haelt den gesamten Zustand, mehrere Ansichten zeigen
+            Ausschnitte davon und melden sich bei Aenderungen an.
+Hier        Passt ueberraschend gut: Paket, Palette, Platte, Pumpe und die
+            Ergebnisse sind EIN Vorgang, den drei Tabs verschieden zeigen.
+            Waere zugleich die saubere Loesung fuer das Problem, das wir
+            gerade behoben haben - die Lage laege im Dokument, nicht im Tab.
+Dafuer      Ein Ort fuer den Zustand, Speichern/Laden eines Vorgangs faellt
+            fast nebenbei ab. Kein Service noetig, um Daten zwischen Tabs zu
+            reichen.
+Dagegen     Das Dokument wird gross und muss diszipliniert gehalten werden,
+            sonst ist es eine Sammelhalde.
+Aufwand     mittel
+Passung     HOCH - besonders als Ergaenzung zu Nr. 2 oder Nr. 4
+
+
+-------------------------------------------------------------------------------
+11 TRANSACTION SCRIPT
+-------------------------------------------------------------------------------
+Idee        Je Anwendungsfall eine Funktion, die den Fall von Anfang bis Ende
+            durchrechnet. Keine Objektmodelle.
+Hier        berechne_palette(eingabe) -> ergebnis
+            berechne_vakuum(eingabe) -> ergebnis
+            berechne_verlauf(eingabe) -> ergebnis
+Dafuer      So einfach wie es geht. Jede Rechnung an einer Stelle lesbar.
+Dagegen     Bei gemeinsamen Teilen (Mustererzeugung, Geometrie) entsteht
+            schnell Doppelung, wenn nicht ausgelagert wird.
+Aufwand     gering
+Passung     HOCH als Form der EINSTIEGSPUNKTE in die Rechnung
+
+
+-------------------------------------------------------------------------------
+12 BLACKBOARD / GEMEINSAMER ZUSTAND
+-------------------------------------------------------------------------------
+Idee        Alle Bausteine lesen und schreiben einen gemeinsamen Speicher.
+Dafuer      Sehr wenig Verdrahtung.
+Dagegen     Niemand weiss mehr, wer was geaendert hat. Bei Nebenlaeufigkeit
+            gefaehrlich.
+Aufwand     gering
+Passung     SEHR GERING
+
+
+===============================================================================
+TEIL 3 - WAS SICH SINNVOLL KOMBINIEREN LAESST
+===============================================================================
+
+Die Nummern sind keine Entweder-oder-Liste. Brauchbare Kombinationen:
+
+    A)  Nr. 2 + Nr. 3 + Nr. 11
+        Vertikale Schnitte je Fachgebiet, je Schnitt eine Qt-freie
+        rechnung.py mit einer Einstiegsfunktion und eine tab.py mit Qt.
+        -> Mein Vorschlag. Erfuellt alle vier Vorgaben, haelt die Testsuite
+           schnell, und ein neues Tab ist ein neuer Ordner.
+
+    B)  Nr. 4 + Nr. 11
+        Flach, zehn Dateien, je Rechnung eine Funktion.
+        -> Am einfachsten. Riskiert eine sehr grosse oberflaeche.py.
+
+    C)  A oder B, zusaetzlich Nr. 10
+        Ein Vorgangsobjekt haelt Paket, Palette, Platte, Pumpe und die
+        zuletzt gerechneten Ergebnisse. Tabs lesen daraus.
+        -> Loest das Datenreichen zwischen Tabs ohne Serviceschicht und
+           macht Speichern/Laden spaeter leicht.
+
+    D)  A oder B, zusaetzlich Nr. 8 INNEN
+        Die Rechenfunktionen bleiben als dokumentierte Schrittkette gebaut.
+        -> Kostet nichts, ist schon so, und traegt den Trace weiter.
+
+
+===============================================================================
+TEIL 4 - WAS UNABHAENGIG VON DER WAHL ERHALTEN BLEIBEN SOLLTE
+===============================================================================
+
+Diese Punkte sind keine Architektur, sondern Eigenschaften. Sie gehen bei
+einem Umbau leicht verloren, ohne dass es sofort auffaellt:
+
+    1. Die Rechenteile bleiben Qt-frei.
+       Grund: 565 Tests in 14 Sekunden. Mit QApplication je Test waere es ein
+       Vielfaches.
+
+    2. Die JSON-Kataloge bleiben neben der .exe, nicht eingebettet.
+       Grund: ein neuer Saugertyp oder eine neue Pumpe darf keinen Neubau
+       erfordern. Siehe AUTOBUILD.py.
+
+    3. Der Revisionszaehler gegen veraltete Anzeigen bleibt.
+       Grund: sonst steht ein Ergebnis zum alten Paket als gueltig da.
+
+    4. Die Registry fuer Muster bleibt.
+       Grund: 13 Palettiermuster und 5 Saugermuster. Ohne Registry wird
+       daraus eine lange Fallunterscheidung an mehreren Stellen.
+
+    5. Die Entprellung der Eingabefelder bleibt.
+
+    6. Der Abbruch langer Palettierlaeufe bleibt - oder faellt bewusst weg.
+       Das ist eine Entscheidung, die du treffen solltest (siehe Fragen).
+
+    7. Die Testsuite bleibt gruen.
+       Vorschlag: der Umbau erfolgt in Schritten, nach jedem Schritt laeuft
+       die Suite. Tests, die nur Dateipfade pruefen, werden angepasst; Tests,
+       die Verhalten pruefen, duerfen sich NICHT aendern - sie sind der
+       Beweis, dass die Funktionen 1:1 erhalten sind.
+
+
+===============================================================================
+TEIL 5 - DEINE ENTSCHEIDUNG
+===============================================================================
+
+Bitte nenne mir:
+
+    1. Die Nummer oder Kombination (z. B. "A" oder "2 + 10").
+
+    2. Ob der Abbruch langer Palettierlaeufe erhalten bleiben soll.
+       - erhalten  -> ein kleiner Threadhelfer bleibt noetig (ca. 80 Zeilen
+                      statt der heutigen jobs/-Schicht)
+       - entfaellt -> alles rechnet im Oberflaechen-Thread; bei CP-SAT kann
+                      das Fenster fuer Sekunden stehen
+
+    3. Ob der Ordnername app/ bleibt oder das Paket neu heissen soll.
+
+    4. Ob der Umbau VOR oder NACH den neuen Funktionen passieren soll
+       (Vakuumqualitaet, Pumpenauswahl, FGC-Sauger, drittes Tab).
+       Empfehlung: Umbau zuerst, dann die neuen Funktionen in der neuen Form.
+       Sonst werden die neuen Teile zweimal gebaut.

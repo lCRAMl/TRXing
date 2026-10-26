@@ -1,0 +1,191 @@
+UMBAU TRXing - PLAN UND FORTSCHRITT
+===============================================================================
+Diese Datei ist der Wiederaufsetzpunkt. Wird die Sitzung unterbrochen oder
+VS Code geschlossen, steht hier, was fertig ist und wo es weitergeht.
+NACH JEDEM SCHRITT AKTUALISIEREN.
+
+Letzte Aktualisierung: 2026-10-26
+Stand:                 Schritt 0 abgeschlossen, Schritt 1 beginnt
+
+
+===============================================================================
+ENTSCHEIDUNGEN (vom Benutzer bestaetigt, 2026-10-26)
+===============================================================================
+
+Zielarchitektur   Kombination A aus doc/Programmarchitekturen_Auswahl.txt
+                  = Nr. 2  Paket je Fachgebiet (vertikale Schnitte)
+                  + Nr. 3  Kern als Bibliothek, Oberflaeche duenn
+                  + Nr. 11 Transaction Script (eine Einstiegsfunktion je
+                           Rechnung)
+
+Paketname         bleibt "app"
+Abbruch           bleibt erhalten (kleiner Threadhelfer statt jobs/-Schicht)
+Reihenfolge       Umbau ZUERST, neue Funktionen danach
+Funktionsumfang   1:1 erhalten. Was laeuft, wird nicht geaendert.
+
+Spaetere Funktionen (NACH dem Umbau, hier nur als Merkposten):
+  - Vakuumqualitaet als Skala (1013 abs bis 0,0000001 mbar abs, 10 Dekaden)
+  - Eingabefelder umschaltbar zwischen Absolut- und Relativdruck
+  - Pumpen-Auswahlfeld, Daten aus doc/Schmalz_SB_Vakuumgeblaese_*.txt,
+    neue config/pumps.json
+  - Pumpenempfehlung ueber den vorhandenen Arbeitspunktloeser
+  - suction_cups.json um FGC/FSGC ergaenzen; Typen mit fehlenden Werten
+    werden WEGGELASSEN, nicht geraten
+  - drittes Tab: Vakuumverlauf ueber der Zeit, Frequenzabschnitte per
+    Schieberegler, Zielvakuum und Saettigungsbereich eingezeichnet
+  - Zielvakuum bleibt bei 600 mbar; die Pumpenliste wird spaeter erweitert
+    (die heutige SB-Familie erreicht nur rund 400 mbar rel.)
+
+Eigene Widget-Bibliothek QtControlsPyRS: erst NACH dem Umbau einbinden.
+Fehlende Elemente dort (Reihenfolge nach Dringlichkeit):
+  1 SpinBox double+int   2 GroupBox   3 RadioButton   4 LineEdit
+  5 Slider mit mehreren Griffen   6 Diagramm-Widget   7 log. Skala
+  nachrangig: ProgressBar, Splitter, ScrollArea, StackedWidget,
+              TreeWidget, ListWidget, TextBrowser
+  Umgekehrt gehoeren aus TRXing in die Lib: NumberField, IntField,
+  ResultGrid, StaleBanner.
+
+
+===============================================================================
+ZIELSTRUKTUR
+===============================================================================
+
+app/
+    __init__.py          APP_NAME, APP_SLUG, __version__
+    __main__.py          Kommandozeile und Start
+    start.py             Fenster und Tabs zusammenbauen (Composition Root)
+
+    einheiten.py         Einheiten, Konstanten
+    pfade.py             Wo Konfiguration und Protokoll liegen
+    fehler.py            Fehlerobjekte, Meldungssammlung, Protokoll
+    ergebnis.py          Status, Trace
+    katalog.py           JSON-Kataloge laden und pruefen
+    nebenlaeufig.py      Threadhelfer: Lauf starten, abbrechen, Fortschritt
+    vorgang.py           Gemeinsamer Zustand, Revisionszaehler
+    geometrie.py         Kreis/Rechteck, Ueberdeckung
+    paket.py             Paketdaten und Eingabeformular
+    bedienelemente.py    NumberField, IntField, ResultGrid, Debouncer,
+                         Statuszeile, Problemliste
+    darstellung.py       Farben, Stylesheet, Hell/Dunkel
+    hilfe.py             Hilfetexte und Formeldialog
+
+    palette/
+        daten.py         PalletSpec, Placement, Layer, PalletResult
+        muster.py        Palettiermuster-Registry
+        rechnung.py      berechne_palette(...)  - Einstiegsfunktion
+        zeichnung.py     2D-Draufsicht
+        szene3d.py       PyVista hinter dem Adapter
+        tab.py           Bedienoberflaeche
+        ui_tab.py        erzeugt aus der .ui-Datei
+
+    vakuum/
+        daten.py         VacuumPlateSpec, SuctionCupSpec, Ein-/Ausgabe
+        muster.py        Saugermuster-Registry
+        anordnung.py     Sauger verteilen, Pakete anordnen
+        physik.py        Kraft, Leckage, Stroemung, Kontakt
+        rechnung.py      berechne_vakuum(...)  - Einstiegsfunktion
+        zeichnung.py     2D-Plattenbild
+        tab.py           Bedienoberflaeche
+        ui_tab.py        erzeugt aus der .ui-Datei
+
+Ergibt etwa 20 statt 85 Dateien. Ordner "engines", "services", "dto",
+"jobs", "core", "config", "visualization", "gui" entfallen.
+
+REGEL, die bleibt: rechnung.py, physik.py, anordnung.py, muster.py, daten.py
+und geometrie.py importieren KEIN Qt. Nur so bleibt die Testsuite schnell.
+
+
+===============================================================================
+SCHRITTE
+===============================================================================
+Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
+
+[x] 0  Ausgangsstand sichern
+       - Arbeitsbaum sauber, letzter Commit 89ecc31
+       - Ausgangswert Tests: 565 gruen
+       - diese Datei angelegt
+
+[ ] 1  Querschnitt zusammenlegen
+       core/units.py        -> app/einheiten.py
+       core/paths.py        -> app/pfade.py
+       core/errors.py       -> app/fehler.py  (mit logging_setup.py)
+       core/result.py       -> app/ergebnis.py (mit trace.py)
+       core/os_theme.py     -> app/darstellung.py
+       config/*             -> app/katalog.py
+       Danach: core/ und config/ sind leer.
+
+[ ] 2  Nebenlaeufigkeit
+       jobs/* + core/cancellation.py + core/requests.py -> app/nebenlaeufig.py
+       Ziel: ein kleiner Helfer, der einen Lauf startet, abbricht und
+       Fortschritt meldet. Der Abbruch langer Palettierlaeufe MUSS bleiben.
+
+[ ] 3  Gemeinsamer Zustand
+       services/app_state.py -> app/vorgang.py
+       Die uebrigen services/* werden in Schritt 6 und 7 aufgeloest:
+       ihr Inhalt wandert in die jeweilige rechnung.py oder in den Tab.
+
+[ ] 4  Geometrie
+       engines/geometry/shapes.py -> app/geometrie.py
+
+[ ] 5  Paket
+       dto/package.py + gui/package/* -> app/paket.py (+ ui_paket.py)
+
+[ ] 6  Scheibe Palette
+       dto/pallet.py             -> app/palette/daten.py
+       engines/patterns/*        -> app/palette/muster.py
+       engines/palletizing/*     -> app/palette/rechnung.py
+       visualization/pallet_2d   -> app/palette/zeichnung.py
+       visualization/pallet_3d + adapters -> app/palette/szene3d.py
+       gui/pallet/*              -> app/palette/tab.py, ui_tab.py
+       services/pallet_service   -> aufgeloest
+
+[ ] 7  Scheibe Vakuum
+       dto/{vacuum,suction}.py   -> app/vakuum/daten.py
+       engines/vacuum/arrangements -> app/vakuum/muster.py
+       engines/vacuum/layout     -> app/vakuum/anordnung.py
+       engines/vacuum/{force,flow,leakage,contact} -> app/vakuum/physik.py
+       engines/vacuum/calculator -> app/vakuum/rechnung.py
+       visualization/vacuum_2d   -> app/vakuum/zeichnung.py
+       gui/vakuum/*              -> app/vakuum/tab.py, ui_tab.py
+       services/vacuum_service   -> aufgeloest
+
+[ ] 8  Oberflaechenhuelle
+       gui/common/widgets + gui/status/* -> app/bedienelemente.py
+       gui/help/*                        -> app/hilfe.py
+       gui/theme + visualization/{colors,theme} -> app/darstellung.py
+       gui/{main_window,tab_manager,module_registry} + application.py
+                                         -> app/start.py
+       services/context.py               -> aufgeloest
+
+[ ] 9  Einstiegsfunktionen vereinheitlichen
+       Je Scheibe genau eine oeffentliche Rechenfunktion:
+       berechne_palette(eingabe) -> ergebnis
+       berechne_vakuum(eingabe)  -> ergebnis
+
+[ ]10  Nacharbeiten
+       - tools/build_ui.py auf die neuen Pfade
+       - AUTOBUILD.py: DATA_FILES und Symbolpfad pruefen
+       - tests/test_architecture.py neu fassen (prueft jetzt: kein Qt in den
+         Rechenmodulen, statt der alten Schichtregeln)
+       - doc/ARCHITECTURE.md neu schreiben
+       - README.md anpassen
+
+
+===============================================================================
+ARBEITSWEISE
+===============================================================================
+
+1. Ein Schritt zur Zeit. Nach jedem Schritt laeuft die volle Testsuite.
+2. Verhaltenstests duerfen sich NICHT aendern - sie sind der Beweis, dass die
+   Funktionen 1:1 erhalten sind. Angepasst werden nur Importpfade.
+3. Nach jedem gruenen Schritt: Commit und diese Datei aktualisieren.
+4. Beim Verschieben zuerst kopieren, Importe umbiegen, Tests laufen lassen,
+   dann die alte Datei loeschen.
+
+
+===============================================================================
+LAUFENDE NOTIZEN
+===============================================================================
+
+2026-10-26  Ausgangsstand: 565 Tests gruen in rund 14 Sekunden.
+            85 Dateien, 14.089 Zeilen Anwendungscode, 5.020 Zeilen Tests.
