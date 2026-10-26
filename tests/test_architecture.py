@@ -31,53 +31,12 @@ APP = pathlib.Path(__file__).resolve().parent.parent / "app"
 
 
 # Paket -> Praefixe, die es NICHT importieren darf.
+#
+# Seit dem Umbau auf vertikale Schnitte gibt es nur noch zwei Pakete mit
+# Fachlogik. Die alten Schichtregeln (core, dto, engines, services, jobs,
+# visualization, gui) sind entfallen - was ein Modul darf, sagt jetzt sein
+# NAME und nicht mehr sein Ordner. Siehe ROLLEN weiter unten.
 FORBIDDEN: dict[str, tuple[str, ...]] = {
-    # Die Querschnittsschicht kennt niemanden. Qt-frei, damit die gesamte
-    # Fachlogik ohne QApplication testbar bleibt.
-    "core": ("PyQt6", "PySide6", "app.dto", "app.config", "app.engines",
-             "app.services", "app.jobs", "app.visualization", "app.gui"),
-
-    # Datenobjekte tragen Daten, kein Verhalten und keine Abhaengigkeiten
-    # ausser der Querschnittsschicht.
-    "dto": ("PyQt6", "PySide6", "app.config", "app.engines", "app.services",
-            "app.jobs", "app.visualization", "app.gui"),
-
-    # Engines: Fachlogik. Kein Qt, keine Services, keine Konfiguration - sie
-    # bekommen alles als DTO uebergeben.
-    "engines": ("PyQt6", "PySide6", "app.config", "app.services", "app.jobs",
-                "app.visualization", "app.gui"),
-
-    # Konfiguration: liest Dateien und erzeugt DTOs. Kennt keine Engine.
-    "config": ("PyQt6", "PySide6", "app.engines", "app.services", "app.jobs",
-               "app.visualization", "app.gui"),
-
-    # Services duerfen QtCore (Signale sind der threadsichere Rueckweg aus dem
-    # Worker), aber keine Bedienelemente und keine Oberflaeche.
-    "services": ("PyQt6.QtWidgets", "PyQt6.QtGui", "PySide6",
-                 "app.visualization", "app.gui"),
-
-    # Die Jobschicht ist fachlich blind: sie fuehrt aus, was ihr uebergeben
-    # wird, und kennt weder Engine noch Oberflaeche.
-    "jobs": ("app.engines", "app.services", "app.visualization", "app.gui"),
-
-    # Darstellung: zeichnet DTOs. Keine Fachlogik, keine Services, und
-    # ausdruecklich kein Rueckgriff auf die Oberflaeche.
-    "visualization": ("app.engines", "app.services", "app.jobs", "app.config", "app.gui"),
-
-    # Die Oberflaeche spricht ueber Services. Sie kennt keine Engine und liest
-    # keine Konfigurationsdatei.
-    "gui": ("app.engines", "app.katalog", "app.katalog", "json"),
-
-    # Scheibe Palettierung (entsteht gerade, siehe doc/UMBAU_FORTSCHRITT.txt).
-    # Qt ist in der Scheibe erlaubt, weil tab.py, zeichnung.py und szene3d.py
-    # dazugehoeren. Dass die RECHNENDEN Module Qt-frei bleiben, prueft
-    # test_the_calculating_modules_stay_qt_free - das ist die Zusage, auf der
-    # die schnelle Testsuite beruht.
-    # Die beiden Scheiben kennen einander NICHT. Was sie teilen, liegt eine
-    # Ebene hoeher: legemuster.py, geometrie.py, paket.py, vorgang.py. Das ist
-    # keine Absichtserklaerung, sondern der gemessene Zustand - und genau
-    # deshalb lohnt es, ihn festzuhalten: eine Abkuerzung von der einen Scheibe
-    # in die andere waere der erste Schritt zurueck in den alten Zustand.
     "palette": ("app.vakuum",),
     "vakuum": ("app.palette",),
 
@@ -100,6 +59,66 @@ QT_FREE = (
     "daten.py", "rechnung.py", "stapel.py", "physik.py", "anordnung.py",
     "saugermuster.py",
 )
+
+
+#: Wer was darf - nach dem Namen des Moduls, nicht nach seinem Ordner.
+#:
+#: In einer Schichtenarchitektur sagte der ORDNER, was ein Modul darf. Bei
+#: vertikalen Schnitten liegt alles zu einem Thema beieinander, und der Ordner
+#: sagt nur noch, WORUM es geht. Die Rolle steckt im Dateinamen - und der ist
+#: in jeder Scheibe derselbe: eine rechnung.py ist ueberall eine rechnung.py.
+ROLLEN: dict[str, tuple[str, ...]] = {
+    # Rechnen. Kein Qt, keine Dateien, keine Oberflaeche.
+    "rechnend": QT_FREE,
+
+    # Zeichnen. Stellt dar, was im Ergebnis steht, und entscheidet nichts.
+    "zeichnend": ("zeichnung.py", "szene3d.py"),
+
+    # Bedienen. Nimmt entgegen und zeigt an; gerechnet wird hinter der Tuer,
+    # die dienst.py aufmacht. Bewusst NUR die beiden Tab-Module: dienst.py
+    # gehoert zur Oberflaeche, darf die Rechnung aber anstossen.
+    "bedienend": ("tab.py", "formular.py"),
+
+    # Die Oberflaeche im weiteren Sinn - alles, was Qt anfasst, ohne zu
+    # zeichnen. Fuer die Regel "hier wird nicht gerechnet" ist das der
+    # richtige Umfang: frueher war es der ganze Ordner app/gui.
+    "oberflaeche": ("tab.py", "formular.py", "dienst.py", "start.py",
+                    "tabs.py", "kontext.py", "rechenlauf.py",
+                    "bedienelemente.py", "meldungen.py", "hilfe.py",
+                    "darstellung.py"),
+
+    # Datentragend. Eingefrorene Objekte mit Einheitensuffix, kein Verhalten.
+    #
+    # geometrie.py steht mit drin, seit dto/common.py aufgeteilt ist - Rect2D
+    # und Footprint sind Datentypen wie zuvor. ergebnis.py dagegen NICHT: dort
+    # steht neben CalculationMeta auch CalculationTrace, und das ist ein
+    # Sammler, der waehrend der Rechnung waechst. Veraenderlich zu sein ist
+    # seine Aufgabe, nicht sein Fehler.
+    "daten": ("daten.py", "paket.py", "geometrie.py"),
+}
+
+#: Die Rechenteile, in die die Oberflaeche nicht hineingreifen darf.
+#:
+#: daten.py fehlt hier bewusst: die Datenobjekte sind das, WAS angezeigt wird.
+#: dienst.py ebenfalls - es ist die Tuer. Alles uebrige ist Rechnung, und wer
+#: von einem Tab aus direkt hineinfasst, baut die Fachlogik in die Anzeige.
+RECHENTEILE = ("rechnung.py", "physik.py", "anordnung.py", "stapel.py",
+               "saugermuster.py", "legemuster.py", "geometrie.py")
+
+#: Module, die auf Dateien zugreifen DUERFEN - und zwar nur diese drei.
+#:
+#: katalog.py liest die JSON-Kataloge, pfade.py sagt wo sie liegen, und
+#: fehler.py legt die Protokolldatei an. Alles andere bekommt gereicht, was es
+#: braucht.
+DATEIZUGRIFF_ERLAUBT = ("katalog.py", "pfade.py", "fehler.py")
+
+
+def _rolle(name: str) -> list[pathlib.Path]:
+    """Alle Module einer Rolle, quer ueber die Scheiben."""
+    return sorted(
+        p for p in APP.rglob("*.py")
+        if p.name in ROLLEN[name] and "__pycache__" not in p.parts
+    )
 
 
 def _imports_of(path: pathlib.Path) -> list[tuple[str, int]]:
@@ -140,50 +159,30 @@ def test_layer_does_not_import_upwards(package: str) -> None:
     )
 
 
-def test_gui_talks_only_to_services_dtos_and_renderers() -> None:
-    """Spezifikation 29: die Oberflaeche kennt Services und DTOs, sonst nichts.
+def test_the_interface_does_not_reach_into_the_calculation() -> None:
+    """Ein Tab zeigt an - gerechnet wird hinter der Tuer.
 
-    Ausnahmen sind die Querschnittsschicht core, die Jobhuellen (fuer
-    JobHandle), die Darstellungsschicht und die Composition Root, die die
-    Oberflaeche mit fertigen Objekten versorgt.
+    Frueher sicherte das die Serviceschicht: die Oberflaeche kam an die Engine
+    gar nicht heran. Bei vertikalen Schnitten liegt beides im selben Ordner,
+    und der Griff ist nur noch eine Zeile weit. Deshalb diese Regel.
+
+    Erlaubt bleiben daten.py - die Datenobjekte sind das, was angezeigt wird -
+    und dienst.py, das die Rechnung im Hintergrund anstoesst. Verboten ist der
+    direkte Zugriff auf rechnung, physik, anordnung, stapel und die Muster.
+
+    Gemessener Zustand zum Zeitpunkt des Umbaus: kein einziger Verstoss. Die
+    Regel haelt ihn fest, statt ihn dem Zufall zu ueberlassen.
     """
-    allowed = ("app.services", "app.dto", "app.core", "app.jobs",
-               "app.visualization", "app.gui", "app.start", "app.katalog", "app")
     violations: list[str] = []
-
-    for path in _python_files("gui"):
+    for path in _rolle("bedienend"):
         for module, line in _imports_of(path):
-            if not module.startswith("app"):
-                continue
-            if not any(module == entry or module.startswith(entry + ".") for entry in allowed):
+            letzter = module.rsplit(".", 1)[-1] + ".py"
+            if letzter in RECHENTEILE:
                 violations.append(_relative(path) + ":" + str(line) + " -> " + module)
 
-    assert not violations, "Die Oberflaeche greift an der Serviceschicht vorbei:\n  " + "\n  ".join(violations)
-
-
-def test_engines_are_free_of_qt() -> None:
-    """Die Kernforderung: Berechnungen laufen ohne Qt.
-
-    Wird sie verletzt, braucht jeder Engine-Test eine QApplication, und die
-    Fachlogik ist nicht mehr ohne Bildschirm pruefbar.
-    """
-    violations = [
-        _relative(path) + ":" + str(line) + " -> " + module
-        for path in _python_files("engines")
-        for module, line in _imports_of(path)
-        if module.startswith(("PyQt", "PySide"))
-    ]
-    assert not violations, "Engines importieren Qt:\n  " + "\n  ".join(violations)
-
-
-def test_core_is_free_of_qt() -> None:
-    violations = [
-        _relative(path) + ":" + str(line) + " -> " + module
-        for path in _python_files("core")
-        for module, line in _imports_of(path)
-        if module.startswith(("PyQt", "PySide"))
-    ]
-    assert not violations, "Die Querschnittsschicht importiert Qt:\n  " + "\n  ".join(violations)
+    assert not violations, (
+        "Die Oberflaeche greift direkt in die Rechnung: " + ", ".join(violations)
+    )
 
 
 # Dateizugriffe ----------------------------------------------------------------
@@ -203,15 +202,19 @@ def _calls_named(path: pathlib.Path, names: set[str]) -> list[tuple[str, int]]:
     return found
 
 
-def test_engines_do_not_touch_the_filesystem() -> None:
-    """Spezifikation 04: Engines lesen keine Dateien.
+def test_the_calculating_modules_do_not_touch_the_filesystem() -> None:
+    """Spezifikation 04: gerechnet wird mit dem, was hereingereicht wird.
 
-    Alles, was sie brauchen, kommt als DTO herein. Ohne diese Regel wandert die
-    Konfiguration nach und nach in die Fachlogik, und die Engine ist ohne
-    Dateisystem nicht mehr testbar.
+    Alles, was eine Rechnung braucht, kommt als Datenobjekt herein. Ohne diese
+    Regel wandert die Konfiguration nach und nach in die Fachlogik, und die
+    Rechnung ist ohne Dateisystem nicht mehr pruefbar.
+
+    Ausgenommen sind katalog.py und pfade.py - Dateien lesen ist ihre Aufgabe.
     """
     violations: list[str] = []
-    for path in _python_files("engines"):
+    for path in _rolle("rechnend"):
+        if path.name in DATEIZUGRIFF_ERLAUBT:
+            continue
         for module, line in _imports_of(path):
             if module in ("json", "pathlib", "csv", "configparser", "sqlite3", "shutil", "os.path"):
                 violations.append(_relative(path) + ":" + str(line) + " -> " + module)
@@ -221,22 +224,32 @@ def test_engines_do_not_touch_the_filesystem() -> None:
     assert not violations, "Engines greifen auf Dateien zu:\n  " + "\n  ".join(violations)
 
 
-def test_configuration_is_read_only_in_the_config_layer() -> None:
-    """Spezifikation 27: die Oberflaeche ruft niemals json.load.
+def test_configuration_is_read_in_exactly_one_module() -> None:
+    """Spezifikation 27: json.load steht in katalog.py und sonst nirgends.
 
-    Geprueft wird der ganze Baum ausser app/config - dort gehoert der Zugriff
-    hin, und nur dort.
+    Frueher sicherte das ein eigener Ordner app/config. Den gibt es nicht
+    mehr, die Regel schon: wer anderswo eine JSON-Datei aufmacht, baut einen
+    zweiten Weg in die Konfiguration, der die Pruefungen des ersten nicht
+    kennt.
     """
     violations: list[str] = []
-    for package in sorted(p.name for p in APP.iterdir() if p.is_dir() and not p.name.startswith("__")):
-        if package == "config":
+    for path in sorted(APP.rglob("*.py")):
+        if path.name == "katalog.py" or "__pycache__" in path.parts:
             continue
-        for path in _python_files(package):
-            for module, line in _imports_of(path):
-                if module == "json" or module.startswith("json."):
-                    violations.append(_relative(path) + ":" + str(line) + " -> " + module)
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            # Geprueft wird der LESENDE Aufruf, nicht der Import. app/__main__.py
+            # gibt mit --json einen Statusbericht aus; Schreiben ist erlaubt,
+            # Lesen nicht. Der blosse Import sagt darueber nichts.
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                continue
+            ziel = node.func
+            if (isinstance(ziel.value, ast.Name) and ziel.value.id == "json"
+                    and ziel.attr in ("load", "loads")):
+                violations.append(_relative(path) + ":" + str(node.lineno)
+                                  + " -> json." + ziel.attr + "()")
 
-    assert not violations, "JSON-Zugriff ausserhalb der Konfigurationsschicht:\n  " + "\n  ".join(violations)
+    assert not violations, "Konfiguration wird ausserhalb von katalog.py gelesen: " + ", ".join(violations)
 
 
 # Fachlogik in der Oberflaeche -------------------------------------------------
@@ -251,7 +264,7 @@ def test_gui_contains_no_calculation_formulas() -> None:
     """
     violations = [
         _relative(path) + ":" + str(line) + " -> " + module
-        for path in _python_files("gui")
+        for path in _rolle("oberflaeche")
         for module, line in _imports_of(path)
         if module in ("math", "numpy", "scipy", "statistics") or module.startswith(("numpy.", "scipy."))
     ]
@@ -267,9 +280,9 @@ def test_renderers_contain_no_business_logic() -> None:
     """
     violations = [
         _relative(path) + ":" + str(line) + " -> " + module
-        for path in _python_files("visualization")
+        for path in _rolle("zeichnend")
         for module, line in _imports_of(path)
-        if module.startswith("app.engines")
+        if module.rsplit(".", 1)[-1] + ".py" in RECHENTEILE
     ]
     assert not violations, "Fachlogik in der Darstellung:\n  " + "\n  ".join(violations)
 
@@ -371,7 +384,7 @@ def test_numeric_dto_fields_carry_a_unit_suffix() -> None:
     from app.einheiten import FIELD_SUFFIXES
 
     violations: list[str] = []
-    for path in _python_files("dto"):
+    for path in _rolle("daten"):
         for class_name, field, annotation, line in _dataclass_fields(path):
             if field in _UNITLESS_FIELDS or field.startswith("_"):
                 continue
@@ -397,7 +410,7 @@ def test_dtos_are_frozen() -> None:
     nicht mehr die der Engine ist.
     """
     violations: list[str] = []
-    for path in _python_files("dto"):
+    for path in _rolle("daten"):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             if not isinstance(node, ast.ClassDef):

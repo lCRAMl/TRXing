@@ -102,6 +102,31 @@ class _Candidate:
         return sum(f.length_mm * f.width_mm for f in self.footprints)
 
 
+def berechne_palette(
+    package: PackageSpec,
+    pallet: PalletSpec,
+    pattern: PatternSpec,
+    constraints: PalletConstraints,
+    token: CancellationToken | None = None,
+    request_id: int = 0,
+    state_revision: int = 0,
+) -> PalletResult:
+    """Die eine Tuer in diese Scheibe: Eingaben hinein, Ergebnis heraus.
+
+    Wer palettieren will, ruft diese Funktion - nicht die Klasse darunter.
+    Eine Scheibe hat genau einen Einstieg, und er ist eine Funktion: so steht
+    die ganze Rechnung an einer Stelle lesbar da, statt sich ueber ein Objekt
+    mit Lebenszyklus zu verteilen.
+
+    PalletOptimizer bleibt als Umsetzung darunter stehen. Sie haelt keinen
+    Zustand - die Funktion darf sich deshalb bei jedem Aufruf eine neue bauen.
+    """
+    return PalletOptimizer().optimize(
+        package=package, pallet=pallet, pattern=pattern, constraints=constraints,
+        token=token, request_id=request_id, state_revision=state_revision,
+    )
+
+
 class PalletOptimizer:
     """Ordnet gleiche Pakete auf einer Palette an."""
 

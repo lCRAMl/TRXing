@@ -1,6 +1,6 @@
 """Serviceschicht der Palettierung (Spezifikation 29).
 
-Die Oberflaeche kennt weder PalletOptimizer noch die Musterstrategien. Sie ruft
+Die Oberflaeche kennt weder die Rechnung noch die Musterstrategien. Sie ruft
 calculate_async mit DTOs und bekommt spaeter ein PalletResult ueber ein Signal.
 """
 
@@ -13,7 +13,7 @@ from app.fehler import ErrorReporter
 from app.nebenlaeufig import RequestGate
 from app.paket import PackageSpec
 from app.palette.daten import PalletConstraints, PalletSpec, PatternSpec, SharedLayer
-from app.palette.rechnung import PalletOptimizer, PalletizingError, build_constraints
+from app.palette.rechnung import PalletizingError, berechne_palette, build_constraints
 from app.nebenlaeufig import JobManager
 from app.nebenlaeufig import CHANNEL_PALLET, JobHandle
 from app.rechenlauf import CalculationService
@@ -40,7 +40,6 @@ class PalletService(CalculationService):
     ) -> None:
         super().__init__(jobs, gate, reporter, parent)
         self._settings = settings
-        self._optimizer = PalletOptimizer()
         self._layer: SharedLayer | None = None
 
     # Uebergabe an die Vakuumplatte ---------------------------------------------
@@ -104,7 +103,7 @@ class PalletService(CalculationService):
         def work(token, progress, ticket):
             progress(0, 3, "Muster erzeugen")
             try:
-                result = self._optimizer.optimize(
+                result = berechne_palette(
                     package=package,
                     pallet=pallet,
                     pattern=pattern,

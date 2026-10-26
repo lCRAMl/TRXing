@@ -80,6 +80,23 @@ class VacuumError(Exception):
     Programmfehler. Beispiel: die Platte ist kleiner als ein Sauger."""
 
 
+def berechne_vakuum(
+    request: VacuumInput,
+    token: CancellationToken | None = None,
+    request_id: int = 0,
+    state_revision: int = 0,
+) -> VacuumResult:
+    """Die eine Tuer in diese Scheibe: Eingabe hinein, Ergebnis heraus.
+
+    Gegenstueck zu berechne_palette() in der anderen Scheibe. VacuumCalculator
+    bleibt als Umsetzung darunter stehen und haelt keinen Zustand ausser der
+    Saugerverteilung, die ihrerseits zustandslos ist.
+    """
+    return VacuumCalculator().calculate(
+        request, token=token, request_id=request_id, state_revision=state_revision,
+    )
+
+
 class VacuumCalculator:
     """Rechnet eine Saugerplatte durch."""
 

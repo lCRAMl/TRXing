@@ -1,6 +1,6 @@
 """Serviceschicht der Vakuumplatte (Spezifikation 29).
 
-Die Oberflaeche kennt weder VacuumCalculator noch LeakageModel oder ForceModel.
+Die Oberflaeche kennt weder die Rechnung noch LeakageModel oder ForceModel.
 Sie stellt einen VacuumInput zusammen und bekommt ein VacuumResult zurueck.
 
 Die Rueckwaertsrechnung aus Spezifikation 24 - welche Saugerzahl braucht ein
@@ -19,7 +19,7 @@ from app.fehler import ErrorReporter
 from app.nebenlaeufig import RequestGate
 from app.vakuum.daten import SuctionCupSpec
 from app.vakuum.daten import GripDirection, VacuumInput
-from app.vakuum.rechnung import VacuumCalculator, VacuumError
+from app.vakuum.rechnung import VacuumError, berechne_vakuum
 from app.vakuum.physik import (
     holding_force_per_cup_n,
     max_mass_kg,
@@ -51,7 +51,6 @@ class VacuumService(CalculationService):
     ) -> None:
         super().__init__(jobs, gate, reporter, parent)
         self._settings = settings
-        self._calculator = VacuumCalculator()
         self._layout_engine = SuctionLayoutEngine()
 
     # Auswahllisten ------------------------------------------------------------
@@ -94,7 +93,7 @@ class VacuumService(CalculationService):
         def work(token, progress, ticket):
             progress(0, 2, "Sauger verteilen")
             try:
-                result = self._calculator.calculate(
+                result = berechne_vakuum(
                     request, token=token,
                     request_id=ticket.request_id, state_revision=ticket.state_revision,
                 )
