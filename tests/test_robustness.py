@@ -348,7 +348,7 @@ def test_all_configuration_files_broken(tmp_path):
 def test_application_starts_with_broken_configuration(tmp_path):
     """Die Anwendung muss auch mit zerlegter Konfiguration startbar bleiben -
     sonst kann man den Fehler nicht einmal ansehen."""
-    from app.application import Application
+    from app.start import Application
 
     (tmp_path / "pallets.json").write_text("[]", encoding="utf-8")
     app = Application(config_directory=tmp_path, log_directory=tmp_path / "logs")
@@ -430,7 +430,7 @@ def test_parallel_jobs_of_both_modules(qt_app, tmp_path):
     """Palettierung und Vakuum gleichzeitig - getrennte Pools, getrennte Kanaele."""
     from pathlib import Path
 
-    from app.application import Application
+    from app.start import Application
 
     root = Path(__file__).resolve().parent.parent
     app = Application(config_directory=root / "config", log_directory=tmp_path / "logs")
@@ -478,7 +478,7 @@ def test_burst_of_requests_leaves_exactly_one_result(qt_app, tmp_path):
     """Zwanzig Anfragen in Folge - genau die letzte darf ankommen."""
     from pathlib import Path
 
-    from app.application import Application
+    from app.start import Application
 
     root = Path(__file__).resolve().parent.parent
     app = Application(config_directory=root / "config", log_directory=tmp_path / "logs")

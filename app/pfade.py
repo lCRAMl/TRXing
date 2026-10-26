@@ -26,12 +26,24 @@ def is_frozen() -> bool:
     return getattr(sys, "frozen", False)
 
 
+#: Die Projektwurzel, von dieser Datei aus gezaehlt.
+#:
+#: EIN parent, weil diese Datei direkt in app/ liegt. Sie lag frueher in
+#: app/core/ und brauchte deshalb zwei - beim Umzug blieb die Zahl stehen,
+#: und die Suche landete eine Ebene ueber dem Projekt. Gefunden hat das kein
+#: Test: sie haengen sich ihr eigenes Konfigurationsverzeichnis ein. Nur der
+#: Start von Hand zeigte "Keine gueltige Palette gefunden".
+#:
+#: Zieht diese Datei wieder um, muss diese Zeile mit.
+_PROJEKTWURZEL = Path(__file__).resolve().parent.parent
+
+
 def resource_dir() -> Path:
     """Wurzel der mitgelieferten Daten."""
     bundle = getattr(sys, "_MEIPASS", None)
     if bundle:
         return Path(bundle)
-    return Path(__file__).resolve().parent.parent.parent
+    return _PROJEKTWURZEL
 
 
 def config_search_paths() -> list[Path]:
@@ -41,7 +53,7 @@ def config_search_paths() -> list[Path]:
     if is_frozen():
         candidates.append(Path(sys.executable).resolve().parent / "config")
     candidates.append(resource_dir() / "config")
-    source_root = Path(__file__).resolve().parent.parent.parent
+    source_root = _PROJEKTWURZEL
     candidates.append(source_root / "config")
     seen: set[Path] = set()
     unique: list[Path] = []

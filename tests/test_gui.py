@@ -32,7 +32,7 @@ def application(tmp_path):
     """Vollstaendig gestartete Anwendung auf der mitgelieferten Konfiguration."""
     from pathlib import Path
 
-    from app.application import Application
+    from app.start import Application
 
     root = Path(__file__).resolve().parent.parent
     app = Application(config_directory=root / "config", log_directory=tmp_path / "logs")
@@ -50,7 +50,7 @@ def package_form(window):
 
 @pytest.fixture
 def window(qt_app, application):
-    from app.gui.main_window import MainWindow
+    from app.start import MainWindow
 
     win = MainWindow(application.context, application.registry)
     # Der zuletzt benutzte Tab wird aus den Benutzereinstellungen
@@ -135,7 +135,7 @@ def test_a_new_module_needs_only_one_line(application):
     """Spezifikation 06: ein weiteres Modul aendert nichts an der Architektur."""
     from PyQt6.QtWidgets import QLabel
 
-    from app.gui.module_registry import ModuleRegistry
+    from app.start import ModuleRegistry
 
     class DemoModule:
         module_id = "demo"
@@ -650,7 +650,7 @@ def test_the_help_styles_follow_the_palette():
     Fest verdrahtete helle Untergruende ergaben in der dunklen Fassung weisse
     Schrift auf weisser Tabelle.
     """
-    from app.gui.help.content import STYLE
+    from app.hilfe import STYLE
     from app.darstellung import PALETTE
 
     assert PALETTE.surface_alt in STYLE

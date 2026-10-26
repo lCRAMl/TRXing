@@ -148,7 +148,7 @@ def test_gui_talks_only_to_services_dtos_and_renderers() -> None:
     Oberflaeche mit fertigen Objekten versorgt.
     """
     allowed = ("app.services", "app.dto", "app.core", "app.jobs",
-               "app.visualization", "app.gui", "app.application", "app.katalog", "app")
+               "app.visualization", "app.gui", "app.start", "app.katalog", "app")
     violations: list[str] = []
 
     for path in _python_files("gui"):
@@ -278,7 +278,7 @@ def test_renderers_contain_no_business_logic() -> None:
 
 def test_registered_modules_satisfy_the_contract() -> None:
     """Spezifikation 06: neue Module muessen dem Modulvertrag entsprechen."""
-    from app.gui.module_registry import CalculationModule, default_modules
+    from app.tabs import CalculationModule, default_modules
 
     for module in default_modules():
         assert isinstance(module, CalculationModule), (
@@ -290,14 +290,14 @@ def test_registered_modules_satisfy_the_contract() -> None:
 
 
 def test_module_ids_are_unique() -> None:
-    from app.gui.module_registry import default_modules
+    from app.tabs import default_modules
 
     ids = [module.module_id for module in default_modules()]
     assert len(ids) == len(set(ids)), "Doppelte Modulkennung: " + str(ids)
 
 
 def test_registry_rejects_a_module_without_the_contract() -> None:
-    from app.gui.module_registry import ModuleRegistry
+    from app.tabs import ModuleRegistry
 
     class NotAModule:
         pass
@@ -309,12 +309,16 @@ def test_registry_rejects_a_module_without_the_contract() -> None:
 def test_main_window_names_no_module() -> None:
     """Spezifikation 06: kein Code im Hauptfenster ist auf 'Tab 2' zugeschnitten.
 
-    Geprueft wird, dass das Hauptfenster keine Modulkennung als Zeichenkette
+    Geprueft wird, dass der Zusammenbau keine Modulkennung als Zeichenkette
     enthaelt - genau so entstehen die verbotenen Sonderbehandlungen.
-    """
-    from app.gui.module_registry import default_modules
 
-    source = (APP / "gui" / "main_window.py").read_text(encoding="utf-8")
+    Geprueft wird app/start.py, wo seit dem Umbau Application und MainWindow
+    stehen. Die Modulliste selbst nennt die Kennungen natuerlich; sie steht
+    deshalb in app/tabs.py und ausdruecklich nicht hier.
+    """
+    from app.tabs import default_modules
+
+    source = (APP / "start.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     literals = {
         node.value for node in ast.walk(tree)

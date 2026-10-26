@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 from app import APP_NAME, APP_SLUG, __version__
-from app.application import Application
+from app.start import Application
 
 
 def _print_report(report: dict, duration: float, notes: list[str]) -> None:
@@ -116,7 +116,7 @@ def _run_gui(application: Application) -> int:
         logging.getLogger("app").info("Dunkle Fassung: Windows steht auf dunkle Fenster")
 
     try:
-        from app.gui.main_window import MainWindow
+        from app.start import MainWindow
 
         window = MainWindow(application.context, application.registry)
     except Exception as exc:

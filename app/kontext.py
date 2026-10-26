@@ -2,7 +2,7 @@
 
 Ein Tab bekommt genau dieses Objekt und sonst nichts. Er baut sich seine
 Services nicht selbst zusammen und kennt keine Konstruktoren - das passiert
-ausschliesslich in der Composition Root (app/application.py).
+ausschliesslich in der Composition Root (app/start.py).
 
 Der Nutzen zeigt sich beim vierten Berechnungsmodul: es bekommt denselben
 Kontext und muss dafuer weder an der Composition Root noch am Hauptfenster

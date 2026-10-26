@@ -5,8 +5,8 @@ VS Code geschlossen, steht hier, was fertig ist und wo es weitergeht.
 NACH JEDEM SCHRITT AKTUALISIEREN.
 
 Letzte Aktualisierung: 2026-10-26
-Stand:                 Schritte 1-7 abgeschlossen, Schritt 8 beginnt
-Tests:                 570 gruen
+Stand:                 Schritte 1-8 abgeschlossen, Schritt 9 beginnt
+Tests:                 571 gruen
 
 
 ===============================================================================
@@ -171,13 +171,16 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        verschwunden. Gemessene Eigenschaft, als Regel festgehalten: die
        beiden Scheiben importieren einander NICHT.
 
-[ ] 8  Oberflaechenhuelle
+[x] 8  Oberflaechenhuelle
        gui/common/widgets + gui/status/* -> app/bedienelemente.py
        gui/help/*                        -> app/hilfe.py
        gui/theme + visualization/{colors,theme} -> app/darstellung.py
        gui/{main_window,tab_manager,module_registry} + application.py
                                          -> app/start.py
-       services/context.py               -> aufgeloest
+       services/context.py               -> kontext.py (in Schritt 6)
+       ERLEDIGT. gui/ ist verschwunden. Die Modulregistry steht in tabs.py
+       und nicht in start.py - sonst griffe tabs nach start und start
+       zurueck nach tabs.
 
 [ ] 9  Einstiegsfunktionen vereinheitlichen
        Je Scheibe genau eine oeffentliche Rechenfunktion:
@@ -264,3 +267,20 @@ LAUFENDE NOTIZEN
 
             Gegenprobe der Pruefungszahlen je Datei erneut gemacht: nichts
             geschrumpft, nur test_architecture.py um eins gewachsen.
+
+2026-10-26  Schritt 8. Der wichtigste Fund des ganzen Umbaus:
+
+            app/pfade.py zaehlte von __file__ aus DREI Ebenen nach oben, weil
+            es frueher app/core/paths.py war. Nach dem Umzug nach app/ war das
+            eine zuviel, und die Anwendung fand ihr config/ nicht mehr - sie
+            startete mit Notfalldaten statt mit sechs Paletten und
+            vierundzwanzig Saugern. KEIN Test hat das bemerkt, weil sich alle
+            ihr eigenes Konfigurationsverzeichnis einhaengen. Aufgefallen ist
+            es erst beim Start von Hand.
+
+            Daraus zwei Dinge:
+            - tests/test_config.py prueft jetzt den ECHTEN Pfad. Gegengeprueft:
+              mit der alten Ebenenzahl faellt der Test.
+            - Nach jedem Schritt gehoert ein Start von Hand dazu, nicht nur
+              ein Testlauf. Dateipfade, die ueber __file__ laufen, sind der
+              blinde Fleck der Testsuite.

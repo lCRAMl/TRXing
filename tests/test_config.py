@@ -7,6 +7,7 @@ dass ein fehlerhafter Eintrag gemeldet wird, ohne die Anwendung zu stoppen.
 from __future__ import annotations
 
 import json
+import pathlib
 
 import pytest
 
@@ -286,3 +287,30 @@ def test_listeners_are_called_on_reload(tmp_path, reporter):
     service.load()
     service.load()
     assert len(calls) == 2
+
+
+def test_the_real_configuration_directory_is_found_in_the_source_tree() -> None:
+    """Die mitgelieferte Konfiguration muss ohne Zutun gefunden werden.
+
+    Alle uebrigen Tests haengen sich ihr eigenes Verzeichnis ein und koennen
+    deshalb nicht bemerken, wenn die Suche im Quelltextbaum ins Leere laeuft.
+    Genau das ist beim Umbau passiert: app/pfade.py zaehlte von __file__ aus
+    drei Ebenen nach oben, weil es frueher in app/core/ lag. Nach dem Umzug
+    nach app/ war das eine zuviel, und die Anwendung startete mit
+    Notfalldaten - sechs Paletten und vierundzwanzig Sauger fehlten, ohne
+    dass ein Test rot wurde.
+
+    Geprueft wird deshalb der echte Pfad, nicht ein eingehaengter.
+    """
+    from app.pfade import config_dir, config_search_paths
+
+    root = pathlib.Path(__file__).resolve().parent.parent
+    assert (root / "config").is_dir(), "Im Projekt fehlt der Ordner config/"
+
+    assert root / "config" in config_search_paths(), (
+        "Der Quelltextbaum wird nicht durchsucht. Gefunden wurde: "
+        + ", ".join(str(p) for p in config_search_paths())
+    )
+    assert config_dir() == root / "config", (
+        "config_dir() zeigt auf " + str(config_dir()) + " statt auf " + str(root / "config")
+    )

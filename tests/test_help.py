@@ -13,7 +13,7 @@ import re
 
 import pytest
 
-from app.gui.help.content import full_document, sections
+from app.hilfe import full_document, sections
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -116,7 +116,7 @@ def test_assumptions_are_declared_as_such():
 # Fenster -----------------------------------------------------------------------
 
 def test_dialog_opens_and_lists_every_section(qt_app):
-    from app.gui.help.formula_dialog import FormulaHelpDialog
+    from app.hilfe import FormulaHelpDialog
 
     dialog = FormulaHelpDialog()
     try:
@@ -127,7 +127,7 @@ def test_dialog_opens_and_lists_every_section(qt_app):
 
 
 def test_dialog_search_finds_a_formula(qt_app):
-    from app.gui.help.formula_dialog import FormulaHelpDialog
+    from app.hilfe import FormulaHelpDialog
 
     dialog = FormulaHelpDialog()
     try:
@@ -138,7 +138,7 @@ def test_dialog_search_finds_a_formula(qt_app):
 
 
 def test_dialog_jumps_to_a_section(qt_app):
-    from app.gui.help.formula_dialog import FormulaHelpDialog
+    from app.hilfe import FormulaHelpDialog
 
     dialog = FormulaHelpDialog()
     try:
@@ -152,8 +152,8 @@ def test_help_is_reachable_from_the_menu(qt_app, tmp_path):
     """Der vom Benutzer geforderte Weg: Menue Hilfe."""
     from pathlib import Path
 
-    from app.application import Application
-    from app.gui.main_window import MainWindow
+    from app.start import Application
+    from app.start import MainWindow
 
     application = Application(
         config_directory=Path(__file__).resolve().parent.parent / "config",

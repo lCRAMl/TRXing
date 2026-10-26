@@ -1,3 +1,195 @@
+"""Der Zusammenbau: aus Teilen wird ein Programm.
+
+Hier und nur hier wird gewusst, welche Teile es gibt und wie sie
+zusammenhaengen. Alles andere bekommt den fertigen Kontext gereicht und baut
+sich seine Dienste nicht selbst.
+
+Drei Dinge in dieser Reihenfolge:
+
+    Application     Dienste bauen, Konfiguration laden, Protokoll einrichten
+    ModuleRegistry  welche Rechenmodule es gibt und in welcher Reihenfolge
+    MainWindow      das Fenster, die Reiter, Menue und Statuszeile
+
+Die Registry ist der Grund, warum ein viertes Rechenmodul weder das Fenster
+noch den Zusammenbau anfasst: es meldet sich an, und der Rest ergibt sich.
+
+Zusammengelegt aus application.py, gui/module_registry.py und
+gui/main_window.py.
+"""
+
+from __future__ import annotations
+
+import logging
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+from app import APP_NAME, __version__
+from app.katalog import ConfigStatus, SettingsService
+from app.fehler import ErrorReporter
+from app.fehler import LoggingSink, install_excepthooks, setup_logging
+from app.pfade import config_dir, log_dir
+from app.nebenlaeufig import RequestGate
+from app.nebenlaeufig import JobManager, PoolConfig
+from app.vorgang import AppState
+from app.vorgang import PackageService
+from app.palette.dienst import PalletService
+from app.vakuum.dienst import VacuumService
+from typing import Protocol, runtime_checkable
+from PyQt6.QtWidgets import QWidget
+from app.kontext import AppContext
+from PyQt6.QtCore import QByteArray, Qt, QUrl
+from PyQt6.QtGui import QAction, QCloseEvent, QDesktopServices, QKeySequence
+from PyQt6.QtWidgets import QMainWindow, QMessageBox, QTabWidget
+from app import APP_NAME, version_label
+from app.fehler import AppError, Severity
+from app.bedienelemente import restore_splitter, save_splitter, store
+from app.meldungen import ErrorBridge
+from app.meldungen import ProblemPanel
+from app.meldungen import StatusBar
+from app.tabs import CalculationModule, ModuleRegistry, TabManager
+from app.darstellung import stylesheet
+
+
+# ---------------------------------------------------------------------------
+# application.py
+# ---------------------------------------------------------------------------
+"""Composition Root - hier und nur hier werden die Schichten verdrahtet.
+
+Startsequenz (Reihenfolge ist bindend):
+
+    1. Logging einrichten, Ausnahmehaken installieren
+    2. ErrorReporter mit Protokollsenke aufsetzen
+    3. Konfiguration laden und pruefen
+    4. Anwendungszustand anlegen
+    5. JobManager starten
+    6. Services erzeugen
+    7. AppContext buendeln
+    8. Modulregistry fuellen
+
+Erst danach darf ein Fenster entstehen. Schritt 3 kann mit Beanstandungen enden,
+ohne den Start zu verhindern - die Konfigurationsschicht weicht auf eingebaute
+Mindestdaten aus und meldet, was fehlt.
+
+Kein Tab baut sich seine Services selbst zusammen. Genau das ist der Zweck
+dieser Datei: ein neues Berechnungsmodul bekommt denselben Kontext und aendert
+hier nichts.
+"""
+
+@dataclass
+class StartupResult:
+    ok: bool = True
+    message: str = ""
+    notes: list[str] = field(default_factory=list)
+    duration_s: float = 0.0
+    config_status: ConfigStatus | None = None
+
+
+class Application:
+    """Haelt die langlebigen Komponenten und ihren Lebenszyklus."""
+
+    def __init__(self, config_directory: Path | None = None, log_directory: Path | None = None) -> None:
+        self._config_directory = config_directory
+        self._log_directory = log_directory
+
+        self.reporter = ErrorReporter()
+        self.settings: SettingsService | None = None
+        self.state: AppState | None = None
+        self.jobs: JobManager | None = None
+        self.gate: RequestGate | None = None
+        self.packages: PackageService | None = None
+        self.pallets: PalletService | None = None
+        self.vacuum: VacuumService | None = None
+        self.context = None
+        self.registry = None
+        self.log_file: Path | None = None
+        self._started = False
+
+    # Start --------------------------------------------------------------------
+
+    def startup(self) -> StartupResult:
+        started = time.perf_counter()
+        notes: list[str] = []
+
+        self.log_file = setup_logging(directory=self._log_directory or log_dir())
+        self.reporter.add_sink(LoggingSink())
+        install_excepthooks(self.reporter)
+        logging.getLogger("app").info("%s %s startet", APP_NAME, __version__)
+
+        directory = self._config_directory or config_dir()
+        self.settings = SettingsService(directory, self.reporter)
+        config_status = self.settings.load()
+        if not config_status.ok:
+            if config_status.failed_files:
+                notes.append("Nicht gelesen: " + ", ".join(config_status.failed_files))
+            if config_status.used_builtin:
+                notes.append("Notfalldaten aktiv fuer: " + ", ".join(config_status.used_builtin))
+
+        self.state = AppState()
+        self.gate = RequestGate()
+        self.jobs = JobManager(self.reporter, PoolConfig())
+        self.packages = PackageService(self.state, self.reporter)
+        self.pallets = PalletService(self.jobs, self.gate, self.reporter, self.settings)
+        self.vacuum = VacuumService(self.jobs, self.gate, self.reporter, self.settings)
+
+        # Erst hier, damit der Kontext keine halb aufgebauten Komponenten sieht.
+        from app.kontext import AppContext
+
+        self.context = AppContext(
+            state=self.state,
+            settings=self.settings,
+            reporter=self.reporter,
+            jobs=self.jobs,
+            gate=self.gate,
+            packages=self.packages,
+            pallets=self.pallets,
+            vacuum=self.vacuum,
+        )
+
+        from app.tabs import default_modules
+
+        self.registry = ModuleRegistry()
+        self.registry.register_all(default_modules())
+
+        self._started = True
+        duration = time.perf_counter() - started
+        logging.getLogger("app").info(
+            "Start abgeschlossen in %.3f s, %d Module", duration, len(self.registry)
+        )
+        return StartupResult(ok=True, notes=notes, duration_s=duration, config_status=config_status)
+
+    # Bericht ------------------------------------------------------------------
+
+    def status_report(self) -> dict:
+        """Kurzbericht fuer --check. Keine Objektabbilder (Spezifikation 40)."""
+        config_status = self.settings.status() if self.settings else None
+        return {
+            "version": __version__,
+            "log_file": str(self.log_file) if self.log_file else "",
+            "config_dir": str(self.settings.directory) if self.settings else "",
+            "pallets": config_status.pallet_count if config_status else 0,
+            "patterns": config_status.pattern_count if config_status else 0,
+            "suction_cups": config_status.cup_count if config_status else 0,
+            "config_ok": bool(config_status and config_status.ok),
+            "modules": list(self.registry.ids()) if self.registry else [],
+            "pools": self.jobs.pool_sizes() if self.jobs else {},
+            "problems": self.reporter.problems.count(),
+        }
+
+    # Ende ---------------------------------------------------------------------
+
+    def shutdown(self) -> None:
+        if self.jobs is not None:
+            self.jobs.cancel_all()
+            self.jobs.wait_for_done(3000)
+        if self._started:
+            logging.getLogger("app").info("%s beendet", APP_NAME)
+        logging.shutdown()
+        self._started = False
+
+
+# ---------------------------------------------------------------------------
+# main_window.py
+# ---------------------------------------------------------------------------
 """Hauptfenster.
 
     +--------------------------------------------------------------+
@@ -13,34 +205,9 @@
 Das Fenster enthaelt keine Fachlogik und keine Modulkenntnis. Es haengt die
 Statusleiste an die Signale von JobManager und ErrorReporter, laesst den
 TabManager die Tabs bauen und merkt sich die Fenstergeometrie. Welche Module es
-gibt, steht in app/gui/module_registry.py.
+gibt, steht in app/start.py.
 """
 
-from __future__ import annotations
-
-from PyQt6.QtCore import QByteArray, Qt, QUrl
-from PyQt6.QtGui import QAction, QCloseEvent, QDesktopServices, QKeySequence
-from PyQt6.QtWidgets import QMainWindow, QMessageBox, QTabWidget
-
-from app import APP_NAME, version_label
-from app.fehler import AppError, Severity
-from app.bedienelemente import restore_splitter, save_splitter, store
-from app.gui.module_registry import ModuleRegistry
-from app.meldungen import ErrorBridge
-from app.meldungen import ProblemPanel
-from app.meldungen import StatusBar
-from app.tabs import TabManager
-from app.darstellung import stylesheet
-from app.kontext import AppContext
-
-#: Fenstergroesse beim allerersten Start, Breite x Hoehe in Bildpunkten.
-#: ---> HIER STELLT MAN DIE STARTGROESSE DES FENSTERS EIN.
-#:
-#: Nur beim ALLERERSTEN Start. Danach gilt, was der Benutzer eingestellt hat:
-#: beim Schliessen merkt sich das Fenster Groesse und Lage und stellt sie beim
-#: naechsten Mal wieder her (siehe _restore_geometry und closeEvent). Wer die
-#: Vorgabe hier aendert und sie sehen will, muss den gemerkten Wert loeschen -
-#: wo der liegt, steht in app/bedienelemente.py.
 DEFAULT_SIZE = (1600, 1000)
 
 #: Abschnitt, unter dem sich das Fenster seine Geometrie merkt.
@@ -205,7 +372,7 @@ class MainWindow(QMainWindow):
         Wiederoeffnen die Stelle wieder, an der man war.
         """
         if self._formula_help is None:
-            from app.gui.help.formula_dialog import FormulaHelpDialog
+            from app.hilfe import FormulaHelpDialog
 
             self._formula_help = FormulaHelpDialog(self)
         self._formula_help.show()
