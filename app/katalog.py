@@ -25,7 +25,7 @@ import math
 from typing import Any, Callable
 from app.fehler import ErrorReporter
 from app.einheiten import lpm_to_m3s
-from app.dto.pallet import PalletSpec, PatternSpec, ZMode
+from app.palette.daten import PalletSpec, PatternSpec, ZMode
 from app.dto.suction import RestrictorMode, RestrictorSpec, SuctionCupSpec
 from app.dto.vacuum import GripDirection, LeakageModel, LeakageSpec, PumpSpec, VacuumPlateSpec
 import threading

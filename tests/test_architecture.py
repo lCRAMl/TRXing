@@ -67,7 +67,28 @@ FORBIDDEN: dict[str, tuple[str, ...]] = {
     # Die Oberflaeche spricht ueber Services. Sie kennt keine Engine und liest
     # keine Konfigurationsdatei.
     "gui": ("app.engines", "app.katalog", "app.katalog", "json"),
+
+    # Scheibe Palettierung (entsteht gerade, siehe doc/UMBAU_FORTSCHRITT.txt).
+    # Qt ist in der Scheibe erlaubt, weil tab.py, zeichnung.py und szene3d.py
+    # dazugehoeren. Dass die RECHNENDEN Module Qt-frei bleiben, prueft
+    # test_the_calculating_modules_stay_qt_free - das ist die Zusage, auf der
+    # die schnelle Testsuite beruht.
+    "palette": ("app.vakuum",),
 }
+
+
+#: Module, die unter keinen Umstaenden Qt importieren duerfen.
+#:
+#: Sie sind der Grund, warum die Testsuite in Sekunden statt Minuten laeuft:
+#: der Grossteil der Tests braucht keine QApplication. Ein einziger
+#: Qt-Import an der falschen Stelle kippt das, ohne dass sofort etwas
+#: auffaellt - deshalb diese Liste.
+QT_FREE = (
+    "einheiten.py", "ergebnis.py", "fehler.py", "pfade.py", "katalog.py",
+    "vorgang.py", "geometrie.py", "paket.py", "legemuster.py",
+    "daten.py", "rechnung.py", "stapel.py", "physik.py", "anordnung.py",
+    "saugermuster.py",
+)
 
 
 def _imports_of(path: pathlib.Path) -> list[tuple[str, int]]:
@@ -416,3 +437,29 @@ def test_no_module_imports_itself_in_a_circle() -> None:
                     cycles.append(pair)
 
     assert not cycles, "Zyklische Paketabhaengigkeiten:\n  " + "\n  ".join(cycles)
+
+
+def test_the_calculating_modules_stay_qt_free() -> None:
+    """Die rechnenden Module duerfen Qt nicht kennen.
+
+    Nicht aus Reinheit, sondern aus Geschwindigkeit: von den Tests laeuft der
+    Grossteil ohne QApplication, und das geht nur, solange die Rechnung keine
+    mitzieht. Ein einziger Import an der falschen Stelle macht aus einer
+    Sekunde eine Minute - und faellt sonst erst auf, wenn die Suite schon
+    unertraeglich langsam ist.
+
+    Geprueft werden Module nach ihrem NAMEN, quer ueber alle Scheiben: eine
+    rechnung.py ist in jeder Scheibe eine rechnung.py.
+    """
+    offenders: list[str] = []
+    for path in sorted(APP.rglob("*.py")):
+        if path.name not in QT_FREE:
+            continue
+        for module, line in _imports_of(path):
+            if module.split(".")[0] in ("PyQt6", "PySide6", "PyQt5", "qtpy"):
+                offenders.append(
+                    str(path.relative_to(APP.parent)) + ":" + str(line) + " -> " + module
+                )
+    assert not offenders, (
+        "Diese rechnenden Module importieren Qt: " + ", ".join(offenders)
+    )

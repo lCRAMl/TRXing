@@ -197,7 +197,7 @@ zulaessige Hoechstlast ist.</p>
 exakt fuer den Saeulenstapel. Sobald ein Verband im Spiel ist, verteilt sich
 die Last anders &ndash; die genaue Rechnung steht unter
 <i>Palettierung &rarr; Lastkaskade</i>.</div>
-""" + _source("app/engines/palletizing/loads.py", "max_layers_by_stack_load()") + """
+""" + _source("app/palette/stapel.py", "max_layers_by_stack_load()") + """
 
 <h2>Validierung</h2>
 <p>Geprueft wird feldweise, damit die Meldung am richtigen Eingabefeld
@@ -225,7 +225,7 @@ wirken je Seite, also doppelt:</p>
 """ + _formula(
     "L_nutz = L_Palette + 2 * (Ueberstand - Randabstand)",
     "B_nutz = B_Palette + 2 * (Ueberstand - Randabstand)",
-) + _source("app/dto/pallet.py", "PalletSpec.usable_length_mm / .usable_width_mm") + """
+) + _source("app/palette/daten.py", "PalletSpec.usable_length_mm / .usable_width_mm") + """
 
 <h2>Aufbau einer Lage</h2>
 <p>Alle Muster fuellen ein Rechteck mit gleichen Rechtecken. Das Rechteck ist
@@ -303,7 +303,7 @@ geht er exakt auf. Welche Wechselfolge ein Muster verwendet:</p>
 </table>
 <p>Der Ringstapel ist die Ausnahme: sein freier Kern ist die Definition des
 Musters, nicht ein Mangel.</p>
-""" + _source("app/engines/patterns/strategies.py",
+""" + _source("app/legemuster.py",
               "alle Muster; alternating_bands() in base.py") + """
 
 <h2>Stapelaufbau</h2>
@@ -320,7 +320,7 @@ gegenueberliegenden Rand und der Stapel bekaeme eine Schraeglage:</p>
 """ + _formula(
     "x' = x_min + x_max - x - l",
     "y' = y_min + y_max - y - b",
-) + _source("app/engines/palletizing/stacking.py", "repeat(), mirror_footprints()") + """
+) + _source("app/palette/stapel.py", "repeat(), mirror_footprints()") + """
 
 <h2>Lagenzahl</h2>
 <p>Drei Grenzen, die kleinste gewinnt:</p>
@@ -368,7 +368,7 @@ erlaubt.</p>
 der Kartons bleiben unberuecksichtigt. Eine Kiste, die zwischen zwei Nachbarn
 spannt, traegt in Wirklichkeit anders. Das exakt zu rechnen erforderte eine
 Strukturanalyse; verwendet wird die uebliche statische Naeherung.</div>
-""" + _source("app/engines/palletizing/loads.py", "analyze()") + """
+""" + _source("app/palette/stapel.py", "analyze()") + """
 
 <h2>Ausnutzung</h2>
 """ + _formula(
@@ -378,7 +378,7 @@ Strukturanalyse; verwendet wird die uebliche statische Naeherung.</div>
     "",
     "Gesamthoehe      H = n_Lagen * h  +  Bauhoehe der Palette",
     "Gesamtgewicht    G = n_gesamt * m",
-) + _source("app/engines/palletizing/optimizer.py", "_build_result()")
+) + _source("app/palette/rechnung.py", "_build_result()")
 
 
 # 4 Vakuum: Geometrie -----------------------------------------------------------

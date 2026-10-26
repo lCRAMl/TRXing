@@ -34,7 +34,7 @@ import pyvista as pv  # noqa: E402
 from pyvistaqt import QtInteractor  # noqa: E402
 from PyQt6.QtWidgets import QWidget  # noqa: E402
 
-from app.dto.pallet import Layer, LoadStatus, PalletResult
+from app.palette.daten import Layer, LoadStatus, PalletResult
 from app.visualization.theme import PALETTE
 
 _STATUS_COLORS = {

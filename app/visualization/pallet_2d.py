@@ -18,7 +18,7 @@ from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPen, QPolygonF
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
-from app.dto.pallet import Layer, LoadStatus, PalletResult
+from app.palette.daten import Layer, LoadStatus, PalletResult
 from app.visualization.colors import toned
 from app.visualization.theme import PALETTE
 

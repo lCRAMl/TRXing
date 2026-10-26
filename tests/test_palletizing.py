@@ -11,11 +11,11 @@ from __future__ import annotations
 import pytest
 
 from app.paket import Orientation, PackageSpec
-from app.dto.pallet import LimitingFactor, PatternSpec, ZMode
+from app.palette.daten import LimitingFactor, PatternSpec, ZMode
 from app.geometrie import any_overlap
-from app.engines.palletizing import loads
-from app.engines.palletizing.optimizer import PalletOptimizer, PalletizingError, build_constraints
-from app.engines.patterns import PatternRequest, available_strategies, generate
+from app.palette import stapel
+from app.palette.rechnung import PalletOptimizer, PalletizingError, build_constraints
+from app.legemuster import PatternRequest, available_strategies, generate
 
 ALL_PATTERNS = [
     "auto", "aligned", "column", "rotated", "brick", "cross", "alternating",
@@ -444,9 +444,9 @@ def test_column_stack_loads_match_the_simple_rule(optimizer, settings, euro_pall
 
 
 def test_max_layers_by_stack_load_is_the_column_rule():
-    assert loads.max_layers_by_stack_load(5.0, 15.0) == 4
-    assert loads.max_layers_by_stack_load(5.0, 0.0) == 0    # keine Begrenzung
-    assert loads.max_layers_by_stack_load(0.0, 15.0) == 0
+    assert stapel.max_layers_by_stack_load(5.0, 15.0) == 4
+    assert stapel.max_layers_by_stack_load(5.0, 0.0) == 0    # keine Begrenzung
+    assert stapel.max_layers_by_stack_load(0.0, 15.0) == 0
 
 
 def test_load_exactly_at_the_limit_is_not_critical(optimizer, settings, euro_pallet):

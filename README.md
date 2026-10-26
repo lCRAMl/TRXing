@@ -166,7 +166,7 @@ Datenblatt des Herstellers:
 ### Ein neues Palettiermuster
 
 Eintrag in `config/pallet_patterns.json`, sofern die Strategie in
-`app/engines/patterns/strategies.py` angemeldet ist. Verfügbar sind `auto`,
+`app/legemuster.py` angemeldet ist. Verfügbar sind `auto`,
 `max_count`, `uniform_grid`, `guillotine_mix`, `running_bond`, `checkerboard`,
 `pinwheel`, `spiral`, `perimeter`, `ring`, `column`.
 

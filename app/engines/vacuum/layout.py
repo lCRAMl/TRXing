@@ -27,7 +27,7 @@ from app.paket import PackageSpec
 from app.dto.suction import SuctionCupSpec, SuctionPlacement
 from app.dto.vacuum import VacuumPlateSpec
 from app.geometrie import rect_contains_rect
-from app.engines.patterns import PatternRequest, generate as generate_pattern
+from app.legemuster import PatternRequest, generate as generate_pattern
 from app.engines.vacuum import arrangements
 from app.engines.vacuum.arrangements import Arrangement, ArrangementRequest
 

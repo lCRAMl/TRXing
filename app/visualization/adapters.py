@@ -23,7 +23,7 @@ from typing import Protocol
 
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
-from app.dto.pallet import PalletResult
+from app.palette.daten import PalletResult
 from app.visualization.theme import PALETTE
 
 

@@ -30,7 +30,7 @@ from app.ergebnis import CalculationTrace, new_trace
 from app.ergebnis import CalculationMeta
 from app.geometrie import Footprint
 from app.paket import Orientation, PackageSpec
-from app.dto.pallet import (
+from app.palette.daten import (
     LimitingFactor,
     Layer,
     PalletConstraints,
@@ -39,8 +39,8 @@ from app.dto.pallet import (
     PatternSpec,
     ZMode,
 )
-from app.engines.palletizing import loads, stacking
-from app.engines.patterns import PatternRequest, generate
+from app.palette import stapel
+from app.legemuster import PatternRequest, generate
 
 #: Version des Rechenverfahrens. Steigt, wenn sich Ergebnisse bei gleicher
 #: Eingabe aendern - damit ist ein altes Protokoll zuordenbar.
@@ -64,7 +64,7 @@ MAX_PLACEMENTS_PER_LAYER = 10_000
 #: Obergrenze der Platzierungen im gesamten Stapel.
 #:
 #: Reiner Sicherheitsriegel gegen Einheitenverwechslungen, keine Leistungsgrenze.
-#: Der Rasterindex in loads.py hat die Lastkaskade von quadratisch auf linear
+#: Der Rasterindex in stapel.py hat die Lastkaskade von quadratisch auf linear
 #: gebracht - gemessen: 148800 Platzierungen in 0,9 Sekunden statt 75. Ein
 #: knapperer Wert wuerde legitime Faelle abweisen: Kartons von 40 x 30 x 25 mm
 #: ergeben auf einer Europalette 52800 Stueck, und das ist eine richtige
@@ -168,7 +168,7 @@ class PalletOptimizer:
             + str(len(layers)) + " Lagen",
         )
 
-        analysis = loads.analyze(layers, constraints.max_stack_load_kg)
+        analysis = stapel.analyze(layers, constraints.max_stack_load_kg)
         trace.step(
             "lastverteilung",
             "hoechste Auslastung " + format(analysis.max_load_pct, ".1f") + " %",
@@ -305,7 +305,7 @@ class PalletOptimizer:
             int(constraints.max_load_kg // layer_weight) if layer_weight > 0 and constraints.max_load_kg > 0 else by_height
         )
 
-        by_stack_load = loads.max_layers_by_stack_load(package.weight_kg, constraints.max_stack_load_kg)
+        by_stack_load = stapel.max_layers_by_stack_load(package.weight_kg, constraints.max_stack_load_kg)
         if by_stack_load <= 0:
             by_stack_load = by_height
 
@@ -330,7 +330,7 @@ class PalletOptimizer:
         if by_stack_load < by_height and by_stack_load < by_pallet_load:
             limiting = LimitingFactor.PACKAGE_LOAD
 
-        layers = stacking.repeat(
+        layers = stapel.repeat(
             base=candidate.footprints,
             alternate=candidate.alternate,
             layer_count=layer_count,
@@ -356,12 +356,12 @@ class PalletOptimizer:
         # gekuerzt, statt der Schranke blind zu vertrauen.
         if constraints.has_stack_load_limit:
             while layer_count > 1:
-                analysis = loads.analyze(layers, constraints.max_stack_load_kg)
+                analysis = stapel.analyze(layers, constraints.max_stack_load_kg)
                 if analysis.critical_count == 0:
                     break
                 layer_count -= 1
                 limiting = LimitingFactor.PACKAGE_LOAD
-                layers = stacking.repeat(
+                layers = stapel.repeat(
                     base=candidate.footprints,
                     alternate=candidate.alternate,
                     layer_count=layer_count,
@@ -375,7 +375,7 @@ class PalletOptimizer:
 
         total = sum(layer.count for layer in layers)
         if constraints.desired_count > 0 and total > constraints.desired_count:
-            layers = stacking.trim_to_count(layers, constraints.desired_count)
+            layers = stapel.trim_to_count(layers, constraints.desired_count)
             limiting = LimitingFactor.DESIRED_COUNT
         elif constraints.desired_count > total:
             warnings.append(

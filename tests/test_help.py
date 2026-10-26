@@ -83,7 +83,7 @@ def test_the_important_engines_are_referenced():
     """Jede Engine muss in der Dokumentation auftauchen."""
     document = full_document()
     for path in (
-        "app/engines/palletizing/loads.py",
+        "app/palette/stapel.py",
         "app/engines/vacuum/force.py",
         "app/engines/vacuum/flow.py",
         "app/engines/vacuum/leakage.py",
