@@ -1,68 +1,117 @@
 # Architektur
 
-## Schichten und Datenflussrichtung
+## Aufbau: zwei Scheiben auf gemeinsamem Grund
+
+Das Programm ist nach **Fachgebieten** geschnitten, nicht nach technischen
+Schichten. Alles, was zu einem Thema gehört — Daten, Rechnung, Zeichnung,
+Bedienung —, liegt in einem Ordner beieinander.
 
 ```
-                        ┌───────────────────────────┐
-                        │           GUI             │
-                        │   Fenster / Tabs / Widgets│
-                        └────────────┬──────────────┘
-                                     │ DTOs
-                        ┌────────────▼──────────────┐   ┌──────────────────┐
-                        │         SERVICES          │──▶│  VISUALIZATION   │
-                        │   öffentliche GUI-API     │   │  2D / 3D-Adapter │
-                        └──────┬─────────────┬──────┘   └──────────────────┘
-                               │             │
-                   ┌───────────▼───┐   ┌─────▼──────────┐
-                   │     JOBS      │   │     CONFIG     │
-                   │ Worker / Pools│   │ Loader / Schema│
-                   └───────────┬───┘   └─────┬──────────┘
-                               │             │
-                        ┌──────▼─────────────▼──────┐
-                        │          ENGINES          │
-                        │  Palettierung / Vakuum    │
-                        └────────────┬──────────────┘
-                                     │
-                        ┌────────────▼──────────────┐
-                        │           DTO             │
-                        └────────────┬──────────────┘
-                                     │
-                        ┌────────────▼──────────────┐
-                        │           CORE            │
-                        │ errors / units / jobs-frei│
-                        └───────────────────────────┘
+                   ┌──────────────────────────────────┐
+                   │             start.py             │
+                   │  Zusammenbau: Dienste, Fenster   │
+                   └───────────────┬──────────────────┘
+                                   │
+         ┌─────────────────────────┴─────────────────────────┐
+         │                                                   │
+┌────────▼──────────┐                              ┌─────────▼─────────┐
+│   app/palette/    │                              │    app/vakuum/    │
+│                   │                              │                   │
+│ daten.py          │                              │ daten.py          │
+│ rechnung.py  ◀── eine Tür je Scheibe ──▶          │ rechnung.py       │
+│ stapel.py         │                              │ physik.py         │
+│ zeichnung.py      │                              │ anordnung.py      │
+│ szene3d.py        │                              │ saugermuster.py   │
+│ tab.py + tab.ui   │                              │ zeichnung.py      │
+│ formular.py       │                              │ tab.py + tab.ui   │
+│ dienst.py         │                              │ dienst.py         │
+└────────┬──────────┘                              └─────────┬─────────┘
+         │                                                   │
+         └─────────────────────┬─────────────────────────────┘
+                               │
+            ┌──────────────────▼───────────────────┐
+            │          Gemeinsamer Grund           │
+            │                                      │
+            │ geometrie.py   legemuster.py         │
+            │ paket.py       vorgang.py            │
+            │ einheiten.py   ergebnis.py           │
+            │ katalog.py     pfade.py   fehler.py  │
+            │ nebenlaeufig.py                      │
+            │                                      │
+            │ bedienelemente.py  darstellung.py    │
+            │ meldungen.py  tabs.py  hilfe.py      │
+            └──────────────────────────────────────┘
 ```
 
-Jede Schicht greift nur nach unten. Die Regeln stehen maschinenlesbar in
-`tests/test_architecture.py` und werden bei jedem Testlauf geprüft.
+**Die beiden Scheiben kennen einander nicht.** Keine Datei in `app/palette`
+importiert etwas aus `app/vakuum` und umgekehrt. Was beide brauchen, liegt
+eine Ebene höher — vor allem `legemuster.py`: die Palettierung legt damit ihre
+Lagen, und die Vakuumplatte ordnet damit die Pakete an, die sie heben soll
+(Spezifikation 18).
 
-| Schicht | darf importieren | darf **nicht** importieren |
+### Wer was darf — nach dem Namen, nicht nach dem Ordner
+
+In einer Schichtenarchitektur sagt der Ordner, was ein Modul darf. Bei
+vertikalen Schnitten liegt alles zu einem Thema beieinander, und der Ordner
+sagt nur noch, *worum* es geht. Die Rolle steckt deshalb im **Dateinamen** —
+und der ist in jeder Scheibe derselbe: eine `rechnung.py` ist überall eine
+`rechnung.py`.
+
+| Rolle | Module | darf **nicht** |
 |---|---|---|
-| `core` | nur Standardbibliothek | alles aus `app`, Qt |
-| `dto` | `core` | Qt, alles darüber |
-| `engines` | `core`, `dto` | Qt, `config`, `services`, `jobs`, `gui` |
-| `config` | `core`, `dto` | Qt, `engines`, `services`, `gui` |
-| `jobs` | `core`, Qt | `engines`, `services`, `gui` |
-| `services` | `core`, `dto`, `config`, `engines`, `jobs`, `QtCore` | `QtWidgets`, `QtGui`, `visualization`, `gui` |
-| `visualization` | `core`, `dto`, Qt | `engines`, `services`, `jobs`, `config`, `gui` |
-| `gui` | `core`, `dto`, `services`, `jobs`, `visualization` | `engines`, `config.loader`, `config.schema`, `json` |
+| rechnend | `daten`, `rechnung`, `physik`, `anordnung`, `stapel`, `saugermuster`, `legemuster`, `geometrie`, `paket`, `einheiten`, `ergebnis`, `katalog`, `pfade`, `fehler`, `vorgang` | Qt importieren, Dateien anfassen |
+| zeichnend | `zeichnung`, `szene3d` | in die Rechenteile greifen |
+| bedienend | `tab`, `formular` | in die Rechenteile greifen |
+| Oberfläche | dazu `dienst`, `start`, `tabs`, `kontext`, `rechenlauf`, `bedienelemente`, `meldungen`, `hilfe`, `darstellung` | `math`, `numpy`, `scipy` importieren |
 
-### Bewusste Abweichungen vom Entwurf in doc/01.txt
+Ausnahmen, jeweils mit Grund: `katalog.py` liest die JSON-Kataloge, `pfade.py`
+sagt wo sie liegen, `fehler.py` legt die Protokolldatei an. `dienst.py` darf
+als einziges Oberflächenmodul die Rechnung anstoßen — es ist die Tür.
 
-**`CalculationModule` liegt in `app/gui/module_registry.py`, nicht in
-`services/module_service.py`.** Der Vertrag liefert ein `QWidget` und ist damit
-ein Belang der Oberfläche. Dadurch bleibt die Serviceschicht frei von
-`QtWidgets` — eine schärfere Trennung, als der Entwurf verlangt, und
-maschinell prüfbar.
+Die Regeln stehen maschinenlesbar in `tests/test_architecture.py` und laufen
+bei jedem Testlauf mit. Jede Rolle wird dort zusätzlich daraufhin geprüft,
+dass sie wirklich Dateien trifft: eine Regel, die ins Leere läuft, ist
+schlimmer als keine.
 
-**Die Farbpalette liegt in `app/darstellung.py`.** 2D- und 3D-Renderer
-brauchen dieselben Farben wie die Bedienelemente. Läge sie in `app/gui`, müsste
-`app/visualization` dorthin zurückgreifen — entgegen der Datenflussrichtung.
-`app/darstellung.py` holt sie von dort und ergänzt nur das Stylesheet.
+### Die Qt-Freiheit ist kein Selbstzweck
 
-**Services dürfen `QtCore`.** Signale sind der einzige threadsichere Weg, ein
-Ergebnis aus einem Worker in die Oberfläche zu bringen. Verboten bleiben
-Bedienelemente.
+Von den rund 560 Tests braucht nur ein kleiner Teil eine `QApplication`. Der
+ganze Lauf dauert deshalb rund vierzehn Sekunden statt Minuten. Das hält genau
+so lange, wie die rechnenden Module kein Qt importieren — ein einziger Import
+an der falschen Stelle kippt es, ohne dass sofort etwas auffällt.
+`test_the_calculating_modules_stay_qt_free` passt darauf auf.
+
+### Eine Tür je Scheibe
+
+Wer rechnen will, ruft eine Funktion:
+
+```python
+from app.palette.rechnung import berechne_palette
+from app.vakuum.rechnung import berechne_vakuum
+```
+
+Die Klassen `PalletOptimizer` und `VacuumCalculator` stehen als Umsetzung
+darunter. Beide sind zustandslos; die Funktion baut sich bei jedem Aufruf eine
+neue. Der Weg über die Funktion ist der dokumentierte — so steht eine Rechnung
+an einer Stelle lesbar da, statt sich über ein Objekt mit Lebenszyklus zu
+verteilen.
+
+### Woher das kommt
+
+Bis Oktober 2026 war das Programm in sieben Schichten geteilt (`core`, `dto`,
+`engines`, `config`, `services`, `jobs`, `visualization`, `gui`) — 85 Dateien.
+Die Trennung war sauber und maschinell geprüft, aber eine fachliche Änderung
+fasste regelmäßig vier bis sechs Dateien an. Für ein Werkzeug dieser Größe war
+das der falsche Tausch. Der Umbau auf vertikale Schnitte ließ 42 Dateien
+übrig, bei gleichem Funktionsumfang und gleicher Testabdeckung.
+
+Was dabei erhalten blieb, weil es trägt: die Qt-Freiheit der Rechnung, der
+abbrechbare Hintergrundlauf (`nebenlaeufig.py`), der Revisionszähler gegen
+veraltete Anzeigen (`vorgang.py`), die Musterregistries und die Kataloge neben
+der Programmdatei.
+
+Der Verlauf steht in `doc/UMBAU_FORTSCHRITT.txt`, die Entscheidungsgrundlage
+in `doc/Programmarchitekturen_Auswahl.txt`.
 
 ### Hell und dunkel: eine Entscheidung, beim Import
 
@@ -77,14 +126,14 @@ fest. Ein Austausch zur Laufzeit erreichte diese Module nicht: sie zeigten
 weiter die alten Farben, und die Anzeige wäre halb hell und halb dunkel. Ein
 Wechsel des Windows-Modus wirkt deshalb beim nächsten Start.
 
-Die Abfrage gehört aus zwei Gründen in `app/core` und nicht in die Oberfläche:
+Die Abfrage gehört aus zwei Gründen nach `app/darstellung.py` und nicht in einen Tab:
 `app/darstellung.py` braucht die Antwort, darf Qt aber nicht kennen —
 und die Antwort muss vor der `QApplication` feststehen, womit
 `QStyleHints.colorScheme()` ausscheidet.
 
 Was Qt daraus macht, steht in `app/darstellung.py`: der Stil *Fusion* (der
 einzige, der eine eigene Palette vollständig durchreicht), die `QPalette` mit
-denselben Farbwerten und das Stylesheet aus `app/gui/darkstyle/` für die
+denselben Farbwerten und das Stylesheet aus `app/darkstyle/` für die
 Feinheiten, für die eine Palette nicht reicht. `apply_theme()` setzt beides vor
 dem ersten Fenster; danach erreicht eine Palette bereits erzeugte Widgets nur
 noch teilweise.
@@ -98,11 +147,11 @@ heran und lässt den Ring die Aussage tragen.
 
 ## Die Oberfläche ist noch einmal geteilt
 
-Innerhalb von `app/gui` verläuft eine zweite Grenze — zwischen **Anordnung**
+Innerhalb jeder Scheibe verläuft eine zweite Grenze — zwischen **Anordnung**
 und **Verhalten**:
 
 ```
-vacuum_tab.ui          Anordnung, Gruppen, Beschriftungen, Größenrichtlinien
+tab.ui                 Anordnung, Gruppen, Beschriftungen, Größenrichtlinien
    │                   im Qt Designer bearbeitet
    │ pyuic6  (tools/build_ui.py)
    ▼
@@ -118,7 +167,7 @@ VacuumTab              ├── Events        Signale der Bedienelemente
 
 **Nicht jede Layoutdatei ist ein Tab.** Die Paketdaten sind die gemeinsame
 Eingabe beider Module und kein Berechnungsprogramm; ihr Formular
-(`app/gui/package/package_form.ui` und `.py`) sitzt am Kopf der Palettierung und
+(`app/palette/formular.ui` und `.py`) sitzt am Kopf der Palettierung und
 unterliegt derselben Trennung. Der Tab hängt es ein und reicht ihm die drei
 Lebenszeichen weiter, die er selbst von außen bekommt — Zustandsänderung,
 Übernahme, Ende. Eingehängt wird im Quelltext und nicht als hochgestufte Klasse

@@ -5,8 +5,9 @@ VS Code geschlossen, steht hier, was fertig ist und wo es weitergeht.
 NACH JEDEM SCHRITT AKTUALISIEREN.
 
 Letzte Aktualisierung: 2026-10-26
-Stand:                 Schritte 1-8 abgeschlossen, Schritt 9 beginnt
-Tests:                 571 gruen
+Stand:                 Schritte 1-10 abgeschlossen. UMBAU FERTIG.
+Tests:                 561 gruen (Zahl sank nur, weil die alten
+                       Schichtregeln als Parametrisierung entfielen)
 
 
 ===============================================================================
@@ -182,18 +183,19 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        und nicht in start.py - sonst griffe tabs nach start und start
        zurueck nach tabs.
 
-[ ] 9  Einstiegsfunktionen vereinheitlichen
+[x] 9  Einstiegsfunktionen vereinheitlichen
        Je Scheibe genau eine oeffentliche Rechenfunktion:
        berechne_palette(eingabe) -> ergebnis
        berechne_vakuum(eingabe)  -> ergebnis
 
-[ ]10  Nacharbeiten
+[x]10  Nacharbeiten
        - tools/build_ui.py auf die neuen Pfade
        - AUTOBUILD.py: DATA_FILES und Symbolpfad pruefen
        - tests/test_architecture.py neu fassen (prueft jetzt: kein Qt in den
          Rechenmodulen, statt der alten Schichtregeln)
        - doc/ARCHITECTURE.md neu schreiben
        - README.md anpassen
+       ALLES ERLEDIGT.
 
 
 ===============================================================================
@@ -284,3 +286,37 @@ LAUFENDE NOTIZEN
             - Nach jedem Schritt gehoert ein Start von Hand dazu, nicht nur
               ein Testlauf. Dateipfade, die ueber __file__ laufen, sind der
               blinde Fleck der Testsuite.
+
+2026-10-26  Schritte 9 und 10. UMBAU ABGESCHLOSSEN.
+
+            Ergebnis: 42 statt 85 Dateien, 14.297 statt 14.089 Zeilen (die
+            Zunahme sind Dokumentationskoepfe und neue Tests). Ordner core,
+            dto, engines, config, services, jobs, visualization und gui gibt
+            es nicht mehr.
+
+            Die Testzahl steht bei 561 statt 571. Der Unterschied ist keine
+            verlorene Pruefung: test_layer_does_not_import_upwards war ueber
+            acht Schichten parametrisiert und ist es jetzt ueber vier Ordner,
+            und test_engines_are_free_of_qt samt test_core_is_free_of_qt sind
+            in test_the_calculating_modules_stay_qt_free aufgegangen, das 17
+            Module statt zwei Ordner prueft.
+
+            test_architecture.py ist nach ROLLEN neu gefasst. Jede Rolle wird
+            beim Aufsetzen daraufhin geprueft, dass sie wirklich Dateien
+            trifft - die Lehre aus test_ui_files.py, das nach einem Umzug
+            still nur noch ein Drittel geprueft hat.
+
+
+WAS ALS NAECHSTES ANSTEHT
+===============================================================================
+Die neuen Funktionen, in dieser Reihenfolge vorgeschlagen:
+
+  1. QtControlsPyRS einbinden. Fehlende Elemente dort stehen oben.
+     Zuerst noetig: SpinBox (double+int), GroupBox, RadioButton, LineEdit.
+  2. suction_cups.json um FGC/FSGC ergaenzen (unvollstaendige Typen weglassen).
+  3. config/pumps.json aus Schmalz_SB_Vakuumgeblaese_Gesamtuebersicht.txt,
+     dazu das Pumpen-Auswahlfeld im Vakuumbereich.
+  4. Absolut/Relativ umschaltbar, Vakuumqualitaet als logarithmische Skala.
+  5. Pumpenempfehlung ueber den vorhandenen Arbeitspunktloeser.
+  6. Drittes Tab: Vakuumverlauf ueber der Zeit. Braucht vorher eine neue
+     Eingabe - das Systemvolumen -, sonst gibt es keine Zeitachse.

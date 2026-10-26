@@ -59,13 +59,13 @@ python -m pytest tests/test_ui_files.py       # nur die Layoutdateien
 
 Die Anordnung jedes Tabs steht in einer eigenen Layoutdatei und lässt sich im
 **Qt Designer** grafisch bearbeiten. Dasselbe gilt für das Paketformular
-(`app/gui/package/package_form.ui`), das kein Tab ist, aber denselben Weg geht:
+(`app/palette/formular.ui`), das kein Tab ist, aber denselben Weg geht:
 
 ```
-app/gui/vacuum/vacuum_tab.ui        Anordnung, Gruppen, Beschriftungen
+app/vakuum/tab.ui        Anordnung, Gruppen, Beschriftungen
    │   python tools/build_ui.py     (pyuic6)
    ▼
-app/gui/vacuum/ui_vacuum_tab.py     erzeugt — nicht von Hand ändern
+app/vakuum/ui_tab.py     erzeugt — nicht von Hand ändern
    │
    ▼
 app/vakuum/tab.py        Ereignisse, Berechnung, Zustand,
@@ -73,7 +73,7 @@ app/vakuum/tab.py        Ereignisse, Berechnung, Zustand,
 ```
 
 ```bash
-pyqt6-tools designer app/gui/vacuum/vacuum_tab.ui   # bearbeiten
+pyqt6-tools designer app/vakuum/tab.ui   # bearbeiten
 python tools/build_ui.py                            # übersetzen
 python tools/build_ui.py --check                    # nur prüfen
 ```
@@ -186,8 +186,8 @@ freier Kern die Definition des Musters ist.
 Drei Schritte, ohne Eingriff in Hauptfenster oder Kernarchitektur:
 
 ```python
-# 1. Layout anlegen (app/gui/<modul>/<modul>_tab.ui) und übersetzen,
-#    dann das Widget bauen (app/gui/<modul>/<modul>_tab.py)
+# 1. Layout anlegen (app/<scheibe>/tab.ui) und übersetzen,
+#    dann das Widget bauen (app/<scheibe>/tab.py)
 class MeinTab(TabHost):
     def __init__(self, context: AppContext, parent=None):
         super().__init__(parent)
@@ -204,7 +204,7 @@ class MeinModul:
     def create_widget(self, context: AppContext) -> QWidget:
         return MeinTab(context)
 
-# 3. In app/gui/module_registry.py eintragen
+# 3. In app/tabs.py eintragen
 def default_modules():
     return [PalletModule(), VacuumModule(), MeinModul()]
 ```
@@ -247,12 +247,12 @@ set TRXING_THEME=auto     :: wie Windows (Vorgabe)
 Die dunkle Fassung besteht aus drei Teilen: der Qt-Palette und den Farben der
 Zeichnungen (`app/darstellung.py`), dem Qt-Stil *Fusion* — der einzige,
 der eine eigene Palette vollständig durchreicht — und dem Stylesheet in
-`app/gui/darkstyle/` für Rollbalken, Ankreuzfelder und Aufklapppfeile samt
+`app/darkstyle/` für Rollbalken, Ankreuzfelder und Aufklapppfeile samt
 ihrer Bildchen. Verdrahtet ist das in `app/darstellung.py`.
 
 ### Programmsymbol
 
-`app/gui/icons/pallet.ico` — eine Datei für zwei Zwecke: die Anwendung setzt sie
+`app/icons/pallet.ico` — eine Datei für zwei Zwecke: die Anwendung setzt sie
 beim Start als Fenstersymbol (jedes Fenster und jeder Dialog erbt es), und
 `AUTOBUILD.py` gibt sie PyInstaller als Symbol der fertigen `.exe` mit. Ein
 Austausch betrifft deshalb nur diese eine Datei — gleicher Name, gleicher Ort,
@@ -276,7 +276,7 @@ Stelle:
 | Einstellung | Datei | Konstante |
 |---|---|---|
 | **Schriftgröße aller Bedienelemente** | `app/darstellung.py` | `FONT_SIZE_OFFSET_PT` |
-| **Fenstergröße beim ersten Start** | `app/gui/main_window.py` | `DEFAULT_SIZE` |
+| **Fenstergröße beim ersten Start** | `app/start.py` | `DEFAULT_SIZE` |
 | Aufteilung Palettierung | `app/palette/tab.py` | `SPLITTER_SIZES` |
 | Aufteilung Vakuumplatte | `app/vakuum/tab.py` | `SPLITTER_SIZES` |
 
