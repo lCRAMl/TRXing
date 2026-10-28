@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from app.darstellung import PALETTE
+from qt_controls_pyrs import HaloButton
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeySequence, QShortcut, QTextDocument
 from PyQt6.QtWidgets import (
@@ -1080,7 +1081,7 @@ class FormulaHelpDialog(QDialog):
         self._search.textChanged.connect(self._on_search_changed)
         row.addWidget(self._search, stretch=1)
 
-        next_button = QPushButton("Weiter")
+        next_button = HaloButton("Weiter")
         next_button.clicked.connect(self._find_next)
         row.addWidget(next_button)
 

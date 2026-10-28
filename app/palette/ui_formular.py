@@ -20,7 +20,7 @@ class Ui_PackageForm(object):
         self.root.setContentsMargins(0, 0, 0, 0)
         self.root.setSpacing(12)
         self.root.setObjectName("root")
-        self.input_box = QtWidgets.QGroupBox(parent=PackageForm)
+        self.input_box = HaloGroupBox(parent=PackageForm)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -71,11 +71,11 @@ class Ui_PackageForm(object):
         self.label_caption.setMinimumSize(QtCore.QSize(0, 26))
         self.label_caption.setObjectName("label_caption")
         self.input_grid.addWidget(self.label_caption, 1, 4, 1, 1, QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTop)
-        self.label_field = QtWidgets.QLineEdit(parent=self.input_box)
+        self.label_field = HaloLineEdit(parent=self.input_box)
         self.label_field.setMinimumSize(QtCore.QSize(0, 26))
         self.label_field.setObjectName("label_field")
         self.input_grid.addWidget(self.label_field, 1, 5, 1, 2, QtCore.Qt.AlignmentFlag.AlignTop)
-        self.tipping = QtWidgets.QCheckBox(parent=self.input_box)
+        self.tipping = HaloCheckBox(parent=self.input_box)
         self.tipping.setMinimumSize(QtCore.QSize(0, 26))
         self.tipping.setObjectName("tipping")
         self.input_grid.addWidget(self.tipping, 1, 7, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft|QtCore.Qt.AlignmentFlag.AlignTop)
@@ -110,3 +110,4 @@ class Ui_PackageForm(object):
 "Ein: der Optimierer darf auch Laenge oder Breite hochkant stellen."))
         self.derived.setTitle(_translate("PackageForm", "Abgeleitete Werte"))
 from app.bedienelemente import NumberField, ResultGrid
+from qt_controls_pyrs import HaloCheckBox, HaloGroupBox, HaloLineEdit

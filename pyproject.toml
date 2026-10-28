@@ -9,6 +9,10 @@ description = "Berechnungs-Suite: Paketdaten, Palettierung, Vakuumplatte"
 requires-python = ">=3.11"
 dependencies = [
     "PyQt6>=6.6",
+    # Die Bedienelemente der Oberflaeche. Liegt als Schwesterprojekt daneben
+    # und wird dort gepflegt; installiert wird sie veraenderlich
+    # (pip install -e ../QtControlsPyRS), damit Aenderungen sofort wirken.
+    "qt-controls-pyrs>=0.2",
 ]
 
 [project.optional-dependencies]

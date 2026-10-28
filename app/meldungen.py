@@ -34,6 +34,7 @@ from app.fehler import AppError, ErrorReporter, Severity
 from app.bedienelemente import mono_font
 from PyQt6.QtCore import QObject, pyqtSignal
 from app.fehler import AppError, ErrorReporter
+from qt_controls_pyrs import HaloButton
 
 
 # ---------------------------------------------------------------------------
@@ -99,7 +100,7 @@ class StatusBar(QStatusBar):
         self._config.setStyleSheet("color: " + PALETTE.text_muted + ";")
         self.addPermanentWidget(self._config)
 
-        self._problems = QPushButton("Keine Probleme")
+        self._problems = HaloButton("Keine Probleme")
         self._problems.setFlat(True)
         self._problems.setCursor(Qt.CursorShape.PointingHandCursor)
         self._problems.clicked.connect(self.problems_clicked.emit)
@@ -212,7 +213,7 @@ class ProblemPanel(QDialog):
         layout.addWidget(self._details, stretch=2)
 
         buttons = QHBoxLayout()
-        clear = QPushButton("Liste leeren")
+        clear = HaloButton("Liste leeren")
         clear.clicked.connect(self._clear)
         buttons.addWidget(clear)
         buttons.addStretch(1)

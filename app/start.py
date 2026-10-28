@@ -47,6 +47,7 @@ from app.meldungen import ErrorBridge
 from app.meldungen import ProblemPanel
 from app.meldungen import StatusBar
 from app.tabs import CalculationModule, ModuleRegistry, TabManager
+from qt_controls_pyrs import HaloTabWidget
 from app.darstellung import stylesheet
 
 
@@ -225,7 +226,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(version_label())
         self.setStyleSheet(stylesheet())
 
-        self._tabs = QTabWidget()
+        # Halo-Reiter: beim Wechsel gleitet ein Strich zum neuen Reiter,
+        # und der Inhalt schiebt sich seitlich hinaus.
+        self._tabs = HaloTabWidget()
         self._tabs.setDocumentMode(True)
         self._tabs.currentChanged.connect(self._on_tab_changed)
         self.setCentralWidget(self._tabs)

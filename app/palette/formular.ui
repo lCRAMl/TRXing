@@ -12,7 +12,7 @@
    <property name="bottomMargin"><number>0</number></property>
    <property name="spacing"><number>12</number></property>
    <item>
-    <widget class="QGroupBox" name="input_box">
+    <widget class="HaloGroupBox" name="input_box">
      <property name="title">
       <string>Paketdaten</string>
      </property>
@@ -93,7 +93,7 @@
        </widget>
       </item>
       <item row="1" column="5" colspan="2" alignment="Qt::AlignTop">
-       <widget class="QLineEdit" name="label_field">
+       <widget class="HaloLineEdit" name="label_field">
         <property name="minimumSize">
          <size><width>0</width><height>26</height></size>
         </property>
@@ -103,7 +103,7 @@
        </widget>
       </item>
       <item row="1" column="7" alignment="Qt::AlignLeft|Qt::AlignTop">
-       <widget class="QCheckBox" name="tipping">
+       <widget class="HaloCheckBox" name="tipping">
         <property name="minimumSize">
          <size><width>0</width><height>26</height></size>
         </property>
@@ -143,6 +143,21 @@ Ein: der Optimierer darf auch Laenge oder Breite hochkant stellen.</string>
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>HaloGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>qt_controls_pyrs</header>
+  </customwidget>
+  <customwidget>
+   <class>HaloCheckBox</class>
+   <extends>QCheckBox</extends>
+   <header>qt_controls_pyrs</header>
+  </customwidget>
+  <customwidget>
+   <class>HaloLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>qt_controls_pyrs</header>
+  </customwidget>
   <customwidget>
    <class>NumberField</class>
    <extends>QWidget</extends>

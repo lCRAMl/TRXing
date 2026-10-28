@@ -73,6 +73,31 @@ bei jedem Testlauf mit. Jede Rolle wird dort zusätzlich daraufhin geprüft,
 dass sie wirklich Dateien trifft: eine Regel, die ins Leere läuft, ist
 schlimmer als keine.
 
+### Die Bedienelemente kommen aus einer Bibliothek
+
+Seit Oktober 2026 benutzt die Oberfläche **qt_controls_pyrs**, ein
+Schwesterprojekt im Nachbarordner. Von dort kommen die Reiter, die
+Gruppenrahmen, die Auswahl-, Eingabe- und Zahlenfelder, die Knöpfe, Kästchen
+und Auswahlknöpfe — und die zusammengesetzten Teile `NumberField`,
+`IntField`, `ResultGrid` und `StaleBanner`, die vorher hier zuhause waren.
+
+Durchgereicht werden sie über `app/bedienelemente.py` und nicht direkt
+importiert. Der Grund steht dort: die `.ui`-Dateien tragen den Modulpfad in die
+XML ein, und der soll nicht an einem Bibliotheksnamen hängen, der sich ändern
+kann.
+
+**Das Stylesheet musste dafür abspecken.** Diese Elemente zeichnen sich selbst,
+Rahmen und Füllung inbegriffen. Eine Stylesheet-Regel daneben ist nicht
+wirkungslos, sondern schädlich: sie legt ihre Füllung über die gezeichnete
+Leiste, und übrig bleibt ein graues Rechteck mit einem zweiten Rahmen darum.
+Genau so sah es beim ersten Versuch aus. In `app/darstellung.py` sind die
+Regeln für `QGroupBox`, `QLineEdit`, `QSpinBox`, `QComboBox`, `QPushButton` und
+die Reiter deshalb entfallen; `HALO_OVERRIDES` räumt zusätzlich hinter
+`darkstyle.qss` auf, das als Fremddatei unangetastet bleibt.
+
+Wer Farben ändern will, ändert sie an der Widgetklasse (`ACCENT`,
+`OUTLINE_ALPHA`, …) oder in einer Unterklasse — nicht im Stylesheet.
+
 ### Die Qt-Freiheit ist kein Selbstzweck
 
 Von den rund 560 Tests braucht nur ein kleiner Teil eine `QApplication`. Der

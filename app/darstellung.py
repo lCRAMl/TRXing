@@ -390,23 +390,19 @@ def stylesheet(palette: Palette = PALETTE) -> str:
     return "\n".join([
         "QWidget { color: " + palette.text + "; }",
         "QMainWindow, QDialog { background: " + palette.background + "; }",
-        "QTabWidget::pane { border: 1px solid " + palette.border + "; background: " + palette.surface + "; }",
-        "QTabBar::tab { padding: 7px 18px; margin-right: 2px; border: 1px solid " + palette.border + ";"
-        " border-bottom: none; background: " + palette.surface_alt + "; }",
-        "QTabBar::tab:selected { background: " + palette.surface + "; font-weight: 600; }",
-        "QGroupBox { border: 1px solid " + palette.border + "; border-radius: 3px; margin-top: 10px;"
-        " background: " + palette.surface + "; }",
-        "QGroupBox::title { subcontrol-origin: margin; left: 9px; padding: 0 4px;"
-        " color: " + palette.text_muted + "; font-weight: 600; }",
-        "QLineEdit, QDoubleSpinBox, QSpinBox, QComboBox { border: 1px solid " + palette.border + ";"
-        " border-radius: 2px; padding: 3px 5px; background: " + palette.surface + "; }",
-        "QLineEdit:focus, QDoubleSpinBox:focus, QSpinBox:focus, QComboBox:focus {"
-        " border: 1px solid " + palette.accent + "; }",
-        "QPushButton { border: 1px solid " + palette.border + "; border-radius: 2px; padding: 5px 14px;"
-        " background: " + palette.surface_alt + "; }",
-        "QPushButton:hover { background: " + palette.accent_soft + "; }",
-        "QPushButton:default { border: 1px solid " + palette.accent + "; }",
-        "QPushButton:disabled { color: " + palette.text_muted + "; }",
+        # Reiter, Gruppenrahmen, Eingabefelder, Zahlenfelder, Auswahlfelder und
+        # Knoepfe stehen hier NICHT mehr. Sie kommen seit dem Wechsel auf
+        # qt_controls_pyrs aus der Bibliothek und zeichnen sich selbst - Rahmen,
+        # Fuellung und Hervorhebung unter der Maus inbegriffen.
+        #
+        # Eine Stylesheet-Regel daneben waere nicht wirkungslos, sondern
+        # schaedlich: sie legt ihre eigene Fuellung UEBER die gezeichnete
+        # Leiste, und von der Halo-Leiste bliebe ein graues Rechteck. Genau so
+        # sah es beim ersten Versuch aus.
+        #
+        # Wer die Farben dieser Elemente aendern will, aendert sie an der
+        # Klasse (ACCENT, OUTLINE_ALPHA, ...) oder in einer Unterklasse.
+        HALO_OVERRIDES,
         "QStatusBar { background: " + palette.surface_alt + "; border-top: 1px solid " + palette.border + "; }",
         "QStatusBar::item { border: none; }",
         "QTableWidget, QTreeWidget { background: " + palette.surface + ";"
@@ -434,6 +430,48 @@ def darkstyle_dir() -> Path:
     return Path(__file__).resolve().parent / DARKSTYLE_DIRNAME
 
 
+#: Ausnahmen fuer die Bedienelemente aus qt_controls_pyrs.
+#:
+#: darkstyle.qss ist eine Fremddatei und bleibt unangetastet - sie wird mit
+#: dem Projekt Qt-Frameless-Window-DarkStyle gepflegt, und eigene Aenderungen
+#: darin gingen beim naechsten Abgleich verloren. Sie bringt aber Regeln fuer
+#: QLineEdit, QAbstractSpinBox, QComboBox, QGroupBox und die Reiter mit, und
+#: die treffen auch deren Halo-Nachfahren.
+#:
+#: Das ist nicht nur ueberfluessig, sondern schaedlich: die Regel legt ihre
+#: Fuellung UEBER die gezeichnete Leiste, und von der Halo-Leiste bleibt ein
+#: graues Rechteck mit einem zweiten Rahmen darum. Diese Ausnahmen stehen
+#: deshalb HINTER der Fremddatei und raeumen fuer die neuen Klassen ab.
+#:
+#: Die Namen sind die Klassennamen: ein Qt-Stylesheet trifft immer die
+#: abgeleiteteste Klasse, HaloLineEdit also und nicht QLineEdit.
+HALO_OVERRIDES = """
+HaloLineEdit, HaloSpinBox, HaloDoubleSpinBox, HaloDropdown, HaloGroupBox,
+HaloButton, HaloCheckBox, HaloRadioButton, HaloTabWidget {
+    background: transparent;
+    border: none;
+    padding: 0px;
+}
+HaloDropdown::drop-down, HaloDropdown::down-arrow,
+HaloSpinBox::up-button, HaloSpinBox::down-button,
+HaloDoubleSpinBox::up-button, HaloDoubleSpinBox::down-button {
+    width: 0px;
+    height: 0px;
+    border: none;
+    image: none;
+}
+HaloCheckBox::indicator, HaloRadioButton::indicator {
+    width: 0px;
+    height: 0px;
+    image: none;
+}
+HaloTabWidget::pane {
+    border: none;
+    background: transparent;
+}
+"""
+
+
 def dark_stylesheet() -> str:
     """darkstyle.qss mit Pfaden, die ohne uebersetzte Qt-Ressource funktionieren.
 
@@ -448,7 +486,7 @@ def dark_stylesheet() -> str:
     except OSError as exc:
         logging.getLogger("app").warning("darkstyle.qss nicht gelesen (%s): %s", source, exc)
         return ""
-    return text.replace(_RESOURCE_PREFIX, directory.as_posix() + "/")
+    return text.replace(_RESOURCE_PREFIX, directory.as_posix() + "/") + HALO_OVERRIDES
 
 
 def dark_palette(palette: Palette = DARK) -> QPalette:

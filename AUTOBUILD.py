@@ -71,6 +71,16 @@ EXCLUDED = ("PySide6", "shiboken6", "PyQt5", "pytest", "_pytest", "pytestqt")
 #: zugleich als Gegenstueck fuer --no-3d: ohne 3D faellt alles hier weg.
 COLLECT_ALL = ("pyvista", "vtkmodules", "pyvistaqt", "qtpy")
 
+#: Pakete, die immer mitmuessen - auch ohne 3D.
+#:
+#: qt_controls_pyrs ist veraenderlich installiert (pip install -e) und liegt
+#: deshalb nicht im site-packages, sondern wird ueber eine .pth-Datei
+#: eingehaengt. PyInstaller folgt zwar den Importen, findet dabei aber nur,
+#: was auch wirklich importiert wird - die Bedienelemente kommen teils ueber
+#: die erzeugten ui_*.py herein. Ausdruecklich mitnehmen ist billiger als
+#: eine .exe, der beim Oeffnen eines Tabs ein Widget fehlt.
+ALWAYS_COLLECT = ("qt_controls_pyrs",)
+
 #: Mitzunehmende Dateien, die kein Python sind: Quelle -> Ziel im Paket, beides
 #: relativ zur Projektwurzel. PyInstaller sammelt nur Module ein; eine .qss und
 #: die Bildchen daneben findet es nicht von allein.
@@ -152,6 +162,9 @@ def build(exe_name: str, with_3d: bool) -> None:
 
     for source, target in DATA_FILES:
         command.append("--add-data=" + str(ROOT / source) + os.pathsep + target)
+
+    for package in ALWAYS_COLLECT:
+        command.append("--collect-all=" + package)
 
     if with_3d:
         for package in COLLECT_ALL:
