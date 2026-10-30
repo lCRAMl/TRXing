@@ -37,19 +37,30 @@ teure Rechenweg der Anwendung.
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QButtonGroup, QWidget
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QButtonGroup, QHBoxLayout, QLabel, QScrollArea, QSplitter,
+    QStackedWidget, QVBoxLayout, QWidget
+)
 
 from app.darstellung import ViewMode
 from app.palette.daten import PalletResult, SharedLayer
 from app.bedienelemente import restore_splitter, save_splitter, store
-from app.bedienelemente import Debouncer, compact_combo
+from app.bedienelemente import (
+    Debouncer, KompaktButton, KompaktDropdown, KompaktRadioButton,
+    StaleBanner, compact_combo
+)
 from app.palette.formular import PackageForm
-from app.palette.ui_tab import Ui_PalletTab
 from app.tabs import TabHost
 from app.darstellung import PALETTE
 from app.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
 from app.palette.szene3d import create_scene
+from app.palette.zeichnung import Pallet2DView
+from app.formularbau import (
+    Ganzzahl, Gruppe, Hinweis, Knopf, Oberflaeche, Raster, Schalter, Wahl,
+    Zahl, Zeile, baue
+)
 
 MODULE_ID = "pallet"
 
@@ -74,6 +85,57 @@ VIEW_ID_3D = 1
 MISSING_PACKAGE = "Die Paketdaten oben sind unvollstaendig oder ungueltig."
 
 
+#: Die Bedienspalte als Beschreibung.
+#:
+#: Wertebereiche und Einheiten stehen hier, weil sie Fachwissen sind und keine
+#: Gestaltung: dass eine Hoehe in Millimetern angegeben wird und eine Null
+#: "nimm den Wert der Palette" bedeutet, gehoert zur Sache. Frueher lagen
+#: Beschriftung und Einheit in zwei verschiedenen Dateien.
+BEDIENSPALTE = [
+    Gruppe("Palettenauswahl", [
+        [Wahl("pallet_box", "Palettentyp")],
+        [Wahl("pattern_box", "Palettiermuster")],
+        [Hinweis("", name="pattern_hint")],
+    ], name="selection_box"),
+
+    Gruppe("Grenzwerte", [
+        [Zahl("max_height", "max. Hoehe", "mm", dict(
+            min=0.0, max=10000.0, stellen=0, schritt=50.0,
+            hinweis="0 uebernimmt den Wert des Palettentyps"))],
+        [Zahl("max_load", "max. Palettenlast", "kg", dict(
+            min=0.0, max=100000.0, stellen=0, schritt=50.0,
+            hinweis="0 uebernimmt den Wert des Palettentyps"))],
+        [Zahl("gap", "Spalt zwischen Paketen", "mm", dict(
+            min=0.0, max=200.0, stellen=1, schritt=1.0,
+            hinweis="Lichter Mindestabstand zwischen zwei Paketen"))],
+        [Ganzzahl("desired", "Gewuenschte Stueckzahl", "Stueck", dict(
+            min=0, max=100000, wert=0, null_text="so viele wie moeglich"))],
+        [Schalter("use_solver", "Zusaetzlichen Loeser verwenden (langsamer, oft dichter)")],
+    ], name="limits_box"),
+
+    Zeile([Knopf("calculate_button", "Berechnen", vorgabe=True),
+           Knopf("cancel_button", "Abbrechen", aktiv=False)]),
+
+    Raster("results", "Ergebnis"),
+]
+
+#: Die Zeilen der Ergebnisanzeige. None ist eine Trennlinie.
+ERGEBNISZEILEN = [
+    ("total", "Pakete gesamt"),
+    ("per_layer", "Pakete je Lage"),
+    ("layers", "Anzahl Lagen"),
+    None,
+    ("weight", "Gesamtgewicht"),
+    ("height", "Gesamthoehe mit Palette"),
+    ("load_height", "Stapelhoehe"),
+    None,
+    ("utilization", "Flaechenausnutzung"),
+    ("volume", "Raumausnutzung"),
+    ("max_load", "Hoechste Paketbelastung"),
+    ("limit", "Begrenzt durch"),
+]
+
+
 class PalletTab(TabHost):
     """Palettierung mit 2D- und 3D-Ansicht."""
 
@@ -87,11 +149,10 @@ class PalletTab(TabHost):
         self._scene = None
         self._debouncer = Debouncer(self.calculate, max(300, context.debounce_ms), self)
 
-        # Zusammensetzung statt Vererbung: die aus der Layoutdatei erzeugten
-        # Namen liegen unter self.ui und koennen weder mit denen von QWidget
-        # noch mit eigenen kollidieren.
-        self.ui = Ui_PalletTab()
-        self.ui.setupUi(self)
+        # Die Namen liegen weiterhin unter self.ui - nur kommen sie jetzt aus
+        # BEDIENSPALTE oben statt aus einer erzeugten Datei.
+        self.ui = Oberflaeche()
+        self._build_layout()
 
         # Als erstes, noch vor allem anderen: das Formular uebernimmt beim
         # Anlegen die angezeigten Vorgabewerte in den Zustand. Danach findet
@@ -111,6 +172,73 @@ class PalletTab(TabHost):
         self._update_enabled()
 
     # Aufbau -------------------------------------------------------------------
+
+    def _build_layout(self) -> None:
+        """Setzt das Fenster zusammen: Formularkopf, Band, Teiler.
+
+        Der Formularteil kommt aus BEDIENSPALTE; was hier steht, ist die
+        Umgebung - Teiler, Rollflaeche und Zeichenbereich. Das sind
+        Einzelstuecke und keine Formularzeilen, deshalb von Hand.
+        """
+        self.ui.root = QVBoxLayout(self)
+        self.ui.root.setContentsMargins(6, 6, 6, 6)
+        self.ui.root.setSpacing(4)
+
+        self.ui.package_host = QWidget()
+        self.ui.package_layout = QVBoxLayout(self.ui.package_host)
+        self.ui.package_layout.setContentsMargins(0, 0, 0, 0)
+        self.ui.root.addWidget(self.ui.package_host)
+
+        self.ui.banner = StaleBanner()
+        self.ui.root.addWidget(self.ui.banner)
+
+        self.ui.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.ui.root.addWidget(self.ui.splitter)
+
+        # Links die Bedienspalte in einer Rollflaeche.
+        self.ui.controls, self.ui = baue(BEDIENSPALTE, self.ui)
+        self.ui.controls_scroll = QScrollArea()
+        self.ui.controls_scroll.setWidgetResizable(True)
+        self.ui.controls_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.ui.controls_scroll.setWidget(self.ui.controls)
+        self.ui.splitter.addWidget(self.ui.controls_scroll)
+
+        # Rechts die Zeichenflaeche mit ihrer Leiste.
+        self.ui.view_panel = QWidget()
+        self.ui.view_layout = QVBoxLayout(self.ui.view_panel)
+        self.ui.view_layout.setContentsMargins(0, 0, 0, 0)
+        self.ui.view_layout.setSpacing(4)
+
+        self.ui.view_bar = QHBoxLayout()
+        self.ui.view_bar.setSpacing(8)
+        self.ui.button_2d = KompaktRadioButton("2D Draufsicht")
+        self.ui.button_2d.setChecked(True)   # die Draufsicht ist die Vorgabe
+        self.ui.button_3d = KompaktRadioButton("3D Ansicht")
+        self.ui.layer_caption = QLabel("Ebene")
+        self.ui.layer_box = KompaktDropdown()
+        self.ui.layer_box.setMinimumWidth(110)
+        self.ui.reset_camera = KompaktButton("Ansicht zuruecksetzen")
+        # Erscheint erst mit der 3D-Ansicht - in der Draufsicht gibt es
+        # keine Kamera zurueckzusetzen.
+        self.ui.reset_camera.setVisible(False)
+        for widget in (self.ui.button_2d, self.ui.button_3d, self.ui.layer_caption,
+                       self.ui.layer_box, self.ui.reset_camera):
+            self.ui.view_bar.addWidget(widget)
+        self.ui.view_bar.addStretch(1)
+        self.ui.view_layout.addLayout(self.ui.view_bar)
+
+        self.ui.views = QStackedWidget()
+        self.ui.view_2d = Pallet2DView()
+        self.ui.scene_host = QWidget()
+        self.ui.scene_layout = QVBoxLayout(self.ui.scene_host)
+        self.ui.scene_layout.setContentsMargins(0, 0, 0, 0)
+        self.ui.views.addWidget(self.ui.view_2d)
+        self.ui.views.addWidget(self.ui.scene_host)
+        self.ui.view_layout.addWidget(self.ui.views)
+
+        self.ui.splitter.addWidget(self.ui.view_panel)
 
     def _configure_layout(self) -> None:
         """Was der Designer nicht speichern kann."""
@@ -149,29 +277,11 @@ class PalletTab(TabHost):
         self._view_group.addButton(self.ui.button_3d, VIEW_ID_3D)
 
     def _configure_fields(self) -> None:
-        """Wertebereiche, Einheiten und Erklaerungen der Eingabefelder.
+        """Was sich nicht beschreiben laesst: die Verfuegbarkeit des Loesers.
 
-        Sie stehen hier und nicht in der XML-Datei: dass eine Hoehe in
-        Millimetern angegeben wird und eine Null "nimm den Wert der Palette"
-        bedeutet, ist Fachwissen und keine Gestaltung.
+        Grenzen und Einheiten stehen in BEDIENSPALTE. Ob ortools installiert
+        ist, weiss erst die laufende Anwendung.
         """
-        self.ui.max_height.configure(
-            "mm", minimum=0.0, maximum=10000.0, decimals=0, step=50.0,
-            tooltip="0 uebernimmt den Wert des Palettentyps",
-        )
-        self.ui.max_load.configure(
-            "kg", minimum=0.0, maximum=100000.0, decimals=0, step=50.0,
-            tooltip="0 uebernimmt den Wert des Palettentyps",
-        )
-        self.ui.gap.configure(
-            "mm", minimum=0.0, maximum=200.0, decimals=1, step=1.0,
-            tooltip="Lichter Mindestabstand zwischen zwei Paketen",
-        )
-        self.ui.desired.configure(
-            "Stueck", minimum=0, maximum=100000, value=0,
-            special_zero_text="so viele wie moeglich",
-        )
-
         available = self._service.solver_available()
         self.ui.use_solver.setEnabled(available)
         self.ui.use_solver.setToolTip(
@@ -182,24 +292,13 @@ class PalletTab(TabHost):
         )
 
     def _build_result_rows(self) -> None:
-        """Die Zeilen der Ergebnisanzeige.
-
-        Sie stehen hier und nicht in der Layoutdatei: es sind Daten, keine
-        Anordnung. Der Designer bestimmt, wo das Raster sitzt und wie es heisst.
-        """
+        """Die Zeilen der Ergebnisanzeige, aus ERGEBNISZEILEN."""
         grid = self.ui.results
-        grid.add_row("total", "Pakete gesamt")
-        grid.add_row("per_layer", "Pakete je Lage")
-        grid.add_row("layers", "Anzahl Lagen")
-        grid.add_separator()
-        grid.add_row("weight", "Gesamtgewicht")
-        grid.add_row("height", "Gesamthoehe mit Palette")
-        grid.add_row("load_height", "Stapelhoehe")
-        grid.add_separator()
-        grid.add_row("utilization", "Flaechenausnutzung")
-        grid.add_row("volume", "Raumausnutzung")
-        grid.add_row("max_load", "Hoechste Paketbelastung")
-        grid.add_row("limit", "Begrenzt durch")
+        for eintrag in ERGEBNISZEILEN:
+            if eintrag is None:
+                grid.add_separator()
+            else:
+                grid.add_row(*eintrag)
 
     def _connect(self) -> None:
         self.ui.calculate_button.clicked.connect(self.calculate)

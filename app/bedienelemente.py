@@ -162,11 +162,18 @@ class KompaktButton(HaloButton):
 
 
 class KompaktCheckBox(HaloCheckBox):
-    """Kaestchen, eng gesetzt."""
+    """Kaestchen, eng gesetzt und mit umbrechender Beschriftung.
+
+    Der Umbruch ist hier kein Schoenheitsfehler, sondern noetig: eine Zeile wie
+    "Teilweise aufliegende Sauger als tragend zaehlen" misst einzeilig ueber
+    600 Bildpunkte und zwaenge die ganze Bedienspalte auf diese Breite - eine
+    Rollflaeche gibt die Mindestbreite ihres Inhalts nach aussen weiter.
+    """
 
     BOX = 13
     ROOM = 4
     GAP = 6
+    WRAP_WIDTH = 240      # dieselbe Breite wie die Hinweistexte daneben
 
 
 class KompaktRadioButton(HaloRadioButton):

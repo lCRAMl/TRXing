@@ -71,3 +71,22 @@ def qt_app():
 
     app = QApplication.instance() or QApplication([])
     yield app
+
+@pytest.fixture
+def application(tmp_path):
+    """Vollstaendig gestartete Anwendung auf der mitgelieferten Konfiguration.
+
+    Steht hier und nicht in test_gui.py, weil sie seit dem Wegfall der
+    .ui-Dateien auch tests/test_formularbau.py braucht: die Tabs lassen sich
+    nur mit einem Kontext bauen.
+    """
+    from pathlib import Path as _Path
+
+    from app.start import Application
+
+    root = _Path(__file__).resolve().parent.parent
+    app = Application(config_directory=root / "config", log_directory=tmp_path / "logs")
+    result = app.startup()
+    assert result.ok
+    yield app
+    app.shutdown()

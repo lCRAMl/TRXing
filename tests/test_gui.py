@@ -28,21 +28,6 @@ TAB_VACUUM = 1
 
 
 @pytest.fixture
-def application(tmp_path):
-    """Vollstaendig gestartete Anwendung auf der mitgelieferten Konfiguration."""
-    from pathlib import Path
-
-    from app.start import Application
-
-    root = Path(__file__).resolve().parent.parent
-    app = Application(config_directory=root / "config", log_directory=tmp_path / "logs")
-    result = app.startup()
-    assert result.ok
-    yield app
-    app.shutdown()
-
-
-@pytest.fixture
 def package_form(window):
     """Das Paketformular im Kopf der Palettierung."""
     return window._tab_manager.widget_for("pallet")._package

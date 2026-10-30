@@ -11,6 +11,10 @@ Ein Aufruf, drei Schritte:
      traegt.
   3. Die Konfigurationsdateien danebenlegen und den Bauplatz aufraeumen.
 
+Seit Oktober 2026 gibt es keinen Zwischenschritt fuer Layoutdateien mehr: die
+Oberflaeche wird in app/formularbau.py aus Beschreibungen gebaut, nicht aus
+.ui-Dateien erzeugt.
+
 **Die Falle dieses Rechners:** PyQt6 und PySide6 liegen in derselben
 Python-Installation und bringen gleichnamige Qt6-DLLs mit. Sammelt PyInstaller
 PySide6 mit ein, gewinnt beim Start die falsche DLL, und die fertige .exe stirbt
@@ -181,24 +185,6 @@ def build(exe_name: str, with_3d: bool) -> None:
     subprocess.run(command, check=True, cwd=ROOT)
 
 
-def compile_layouts() -> None:
-    """Erzeugt die ui_*.py-Dateien aus den Layoutdateien des Qt Designer.
-
-    Steht vor dem Paketieren, weil PyInstaller die .ui-Dateien nicht mitnimmt:
-    im Paket gibt es nur die uebersetzten Python-Dateien. Wer eine .ui-Datei
-    geaendert und den Zwischenschritt vergessen hat, bekaeme sonst ein Paket
-    mit dem alten Layout - ohne Fehlermeldung.
-    """
-    result = subprocess.run(
-        [sys.executable, str(ROOT / "tools" / "build_ui.py")],
-        cwd=ROOT, capture_output=True, text=True,
-    )
-    print(result.stdout.rstrip())
-    if result.returncode != 0:
-        print(result.stderr.rstrip(), file=sys.stderr)
-        raise SystemExit("Die Layoutdateien liessen sich nicht uebersetzen.")
-
-
 def copy_configuration() -> None:
     """Legt config/ neben die Programmdatei - dort wird zuerst gesucht."""
     target = OUTPUT_DIR / "config"
@@ -247,7 +233,6 @@ def main(argv: list[str] | None = None) -> int:
 
     OUTPUT_DIR.mkdir(exist_ok=True)
     print("\nLayoutdateien:")
-    compile_layouts()
     build(exe_name, with_3d=not args.no_3d)
     copy_configuration()
     if not args.keep_build:

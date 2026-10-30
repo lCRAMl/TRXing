@@ -30,13 +30,56 @@ on_state_changed, commit_now und shutdown.
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QWidget
 
 from app.paket import PackageSpec
-from app.bedienelemente import Debouncer
-from app.palette.ui_formular import Ui_PackageForm
+from app.bedienelemente import Debouncer, ResultGrid
 from app.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
+from app.formularbau import Gruppe, Oberflaeche, Schalter, Text, Zahl, baue
+
+
+#: Das Formular als Beschreibung.
+#:
+#: Eine Zeile hier ist eine Zeile auf dem Schirm - vier Felder nebeneinander
+#: sind vier Eintraege in einer Liste. Beschriftung, Einheit und Grenzen stehen
+#: beieinander; frueher lagen sie in zwei Dateien.
+#:
+#: Die Grenzen fangen Tippfehler und Einheitenverwechslungen ab, nicht den
+#: Anwendungsbereich: 5000 mm Kantenlaenge und 2000 kg sind grosszuegig, aber
+#: eine Laenge von 400000 ist eine Eingabe in Mikrometern.
+MASSE = dict(min=0.0, max=5000.0, stellen=1, schritt=10.0)
+
+FORMULAR = [
+    Gruppe("Paketdaten", [
+        [
+            Zahl("length", "Laenge",  "mm", MASSE | dict(wert=400.0)),
+            Zahl("width",  "Breite",  "mm", MASSE | dict(wert=300.0)),
+            Zahl("height", "Hoehe",   "mm", MASSE | dict(wert=200.0)),
+            Zahl("weight", "Gewicht", "kg",
+                 dict(min=0.0, max=2000.0, stellen=3, schritt=0.5, wert=5.0)),
+        ],
+        [
+            Zahl("stack_load", "Max. Stapellast", "kg",
+                 dict(min=0.0, max=20000.0, stellen=1, schritt=5.0, wert=0.0)),
+            Text("label_field", "Bezeichnung", platzhalter="Optional: Artikelnummer"),
+            Schalter("tipping", "Kippen erlaubt",
+                     hinweis="Aus: das Paket wird nur in der Ebene um 90 Grad "
+                             "gedreht ('oben bleibt oben').\n"
+                             "Ein: der Optimierer darf auch Laenge oder Breite "
+                             "hochkant stellen."),
+        ],
+    ], name="input_box"),
+]
+
+#: Die Zeilen der abgeleiteten Werte. Daten und keine Anordnung - deshalb
+#: hier und nicht im Formular oben.
+ABGELEITET = [
+    ("volume", "Volumen"),
+    ("footprint", "Grundflaeche"),
+    ("density", "Dichte"),
+    ("layers", "Stapelbar"),
+]
 
 
 class PackageForm(QWidget):
@@ -48,14 +91,11 @@ class PackageForm(QWidget):
         self._service = context.packages
         self._debouncer = Debouncer(self._commit, context.debounce_ms, self)
 
-        # Zusammensetzung statt Vererbung: die aus der Layoutdatei erzeugten
-        # Namen liegen unter self.ui und koennen weder mit denen von QWidget
-        # noch mit eigenen kollidieren. Beim Lesen ist zudem sofort erkennbar,
-        # was aus dem Designer stammt.
-        self.ui = Ui_PackageForm()
-        self.ui.setupUi(self)
+        # Die Namen liegen weiterhin unter self.ui - nur kommen sie jetzt aus
+        # der Beschreibung oben statt aus einer erzeugten Datei.
+        self.ui = Oberflaeche()
+        self._build_layout()
 
-        self._configure_fields()
         self._build_result_rows()
         self._connect()
 
@@ -69,18 +109,17 @@ class PackageForm(QWidget):
 
     # Aufbau -------------------------------------------------------------------
 
-    def _configure_fields(self) -> None:
-        """Wertebereiche und Einheiten der Eingabefelder.
+    def _build_layout(self) -> None:
+        """Baut das Formular und stellt das Ergebnisraster daneben."""
+        aussen = QHBoxLayout(self)
+        aussen.setContentsMargins(0, 0, 0, 0)
+        aussen.setSpacing(8)
 
-        Die Grenzen fangen Tippfehler und Einheitenverwechslungen ab, nicht den
-        Anwendungsbereich: 5000 mm Kantenlaenge und 2000 kg sind grosszuegig,
-        aber eine Laenge von 400000 ist eine Eingabe in Mikrometern.
-        """
-        self.ui.length.configure("mm", minimum=0.0, maximum=5000.0, decimals=1, step=10.0, value=400.0)
-        self.ui.width.configure("mm", minimum=0.0, maximum=5000.0, decimals=1, step=10.0, value=300.0)
-        self.ui.height.configure("mm", minimum=0.0, maximum=5000.0, decimals=1, step=10.0, value=200.0)
-        self.ui.weight.configure("kg", minimum=0.0, maximum=2000.0, decimals=3, step=0.5, value=5.0)
-        self.ui.stack_load.configure("kg", minimum=0.0, maximum=20000.0, decimals=1, step=5.0, value=0.0)
+        felder, self.ui = baue(FORMULAR, self.ui)
+        aussen.addWidget(felder, 1)
+
+        self.ui.derived = ResultGrid("Abgeleitete Werte")
+        aussen.addWidget(self.ui.derived)
 
     def _build_result_rows(self) -> None:
         """Die Zeilen der Ergebnisanzeige.
@@ -88,11 +127,8 @@ class PackageForm(QWidget):
         Sie stehen hier und nicht in der Layoutdatei: es sind Daten, keine
         Anordnung. Der Designer bestimmt, wo das Feld sitzt und wie es heisst.
         """
-        grid = self.ui.derived
-        grid.add_row("volume", "Volumen", "-")
-        grid.add_row("footprint", "Grundflaeche", "-")
-        grid.add_row("density", "Dichte", "-")
-        grid.add_row("layers", "Stapelbar", "-")
+        for schluessel, beschriftung in ABGELEITET:
+            self.ui.derived.add_row(schluessel, beschriftung, "-")
 
     def _connect(self) -> None:
         for field in self._fields().values():

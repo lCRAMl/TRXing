@@ -33,19 +33,28 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QHBoxLayout, QScrollArea, QSplitter, QVBoxLayout, QWidget
+)
 
 from app.ergebnis import Status
 from app.einheiten import m3s_to_m3h, mbar_to_pa, pa_to_mbar
 from app.vakuum.daten import RestrictorMode, RestrictorSpec
 from app.vakuum.daten import GripDirection, LeakageSpec, VacuumInput, VacuumPlateSpec, VacuumResult
 from app.bedienelemente import restore_splitter, save_splitter, store
-from app.bedienelemente import Debouncer, compact_combo
+from app.bedienelemente import (
+    Debouncer, ResultGrid, StaleBanner, compact_combo
+)
 from app.tabs import TabHost
 from app.darstellung import PALETTE
-from app.vakuum.ui_tab import Ui_VacuumTab
 from app.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
+from app.vakuum.zeichnung import Vacuum2DView
+from app.formularbau import (
+    Ganzzahl, Gruppe, Hinweis, Knopf, Oberflaeche, Schalter, Wahl, Zahl,
+    Zeile, baue
+)
 
 MODULE_ID = "vacuum"
 
@@ -70,6 +79,114 @@ _STATUS_COLORS = {
 }
 
 
+#: Die Bedienspalte als Beschreibung.
+#:
+#: Wertebereiche, Einheiten und Erklaerungen stehen hier, weil sie Fachwissen
+#: sind und keine Gestaltung. Frueher lag die Beschriftung in der XML-Datei und
+#: die Einheit im Quelltext - wer die Einheit aenderte, musste beides suchen.
+BEDIENSPALTE = [
+    Gruppe("Platte und Sauger", [
+        [Wahl("cup_box", "Sauger-Typ")],
+        [Hinweis("", name="cup_info")],
+        [Zahl("plate_length", "Plattenlaenge", "mm",
+              dict(min=10.0, max=3000.0, stellen=0, schritt=10.0))],
+        [Zahl("plate_width", "Plattenbreite", "mm",
+              dict(min=10.0, max=3000.0, stellen=0, schritt=10.0))],
+        [Zahl("edge_margin", "Randabstand", "mm",
+              dict(min=0.0, max=500.0, stellen=0, schritt=5.0))],
+        [Zahl("min_spacing", "Saugerabstand", "mm", dict(
+            min=0.0, max=500.0, stellen=0, schritt=1.0,
+            hinweis="Lichter Abstand zwischen den Aussenmassen zweier Sauger.\n"
+                    "0 bedeutet: die Sauger stossen aneinander."))],
+        [Hinweis("", name="min_spacing_info")],
+        [Wahl("arrangement_box", "Saugermuster")],
+        [Hinweis("", name="arrangement_info")],
+        [Ganzzahl("cup_count", "Saugeranzahl", "Stueck", dict(
+            min=0, max=20000, wert=0, null_text="automatisch (maximal)"))],
+        [Hinweis("", name="cup_limit")],
+    ], name="plate_box"),
+
+    Gruppe("Pakete", [
+        [Ganzzahl("package_count", "Anzahl Pakete", "Stueck",
+                  dict(min=1, max=200, wert=1))],
+        [Schalter("use_pallet_pattern", "Muster aus der Palettierung uebernehmen",
+                  angehakt=True,
+                  hinweis="Ordnet die Pakete nach dem in der Palettierung "
+                          "gewaehlten Muster an.\n"
+                          "Aus: gleichmaessiges Raster.")],
+        [Hinweis("", name="package_info")],
+    ], name="package_box"),
+
+    Gruppe("Vakuum und Sicherheit", [
+        [Zahl("vacuum", "Vakuum", "mbar", dict(
+            min=10.0, max=1000.0, stellen=0, schritt=25.0,
+            hinweis="Unterdruck gegenueber der Umgebung. "
+                    "Datenblattwerte gelten bei 600 mbar."))],
+        [Zahl("flow", "Volumenstrom", "m3/h", dict(
+            min=0.0, max=1000.0, stellen=2, schritt=1.0,
+            hinweis="Nennvolumenstrom des Erzeugers bei geringem Unterdruck."))],
+        [Wahl("restrictor_box", "Absperrung je Sauger",
+              hinweis="Absperrung je Saugerposition. Ohne Begrenzung reissen unbelegte Sauger\n"
+                          "das Vakuum der ganzen Platte ein. Keine Datenblattangabe.")],
+        [Wahl("leakage_box", "Kartonpermeabilitaet")],
+        [Zahl("permeability", "Permeabilitaetswert", "",
+              dict(min=0.0, max=100.0, stellen=3, schritt=0.05))],
+        [Zahl("safety", "Sicherheitsfaktor", "", dict(
+            min=1.0, max=20.0, stellen=1, schritt=0.5,
+            hinweis="Die Datenblattkraefte enthalten ausdruecklich KEINEN "
+                    "Sicherheitsfaktor.\nEr wird hier gesondert angesetzt."))],
+        [Zahl("acceleration", "Beschleunigung", "m/s2", dict(
+            min=0.0, max=200.0, stellen=2, schritt=0.5,
+            hinweis="Zusaetzliche Beschleunigung der Handhabung. "
+                    "0 ergibt die rein statische Rechnung."))],
+        [Wahl("grip_box", "Ansaugrichtung")],
+        [Zahl("friction", "Reibbeiwert", "", dict(
+            min=0.01, max=2.0, stellen=2, schritt=0.05,
+            hinweis="Reibbeiwert Sauger gegen Karton. Benutzerangabe, "
+                    "keine Datenblattgroesse."))],
+        [Schalter("partial_counts", "Teilweise aufliegende Sauger als tragend zaehlen",
+                  hinweis="Aus (empfohlen): ein unterbrochener Dichtlippenring traegt nicht.\n"
+                          "Ein: optimistische Annahme, nur bei sehr nachgiebiger Dichtlippe vertretbar.")],
+        [Schalter("solve_point", "Arbeitspunkt loesen statt Sollvakuum annehmen",
+                  angehakt=True, hinweis="Ein (empfohlen): rechnet das Vakuum, das sich gegen die Leckage tatsaechlich einstellt.\n"
+                          "Aus: rechnet mit dem eingestellten Sollvakuum und warnt nur bei Ueberlast.")],
+    ], name="physics_box"),
+
+    Zeile([Knopf("calculate_button", "Berechnen", vorgabe=True)]),
+]
+
+#: Die Zeilen der beiden Ergebnisanzeigen. None ist eine Trennlinie.
+ERGEBNISZEILEN = [
+    ("status", "Bewertung"),
+    ("max_mass", "Max. Paketgewicht"),
+    ("actual_mass", "Tatsaechliches Gewicht"),
+    ("needed_cups", "Benoetigte wirksame Sauger"),
+    None,
+    ("arrangement", "Saugermuster"),
+    ("cups_total", "Sauger gesamt"),
+    ("cups_sealed", "Wirksame Sauger"),
+    ("cups_partial", "Teilweise aufliegend"),
+    ("cups_open", "Offene Sauger"),
+    ("area", "Effektive Saugflaeche"),
+    None,
+    ("packages", "Pakete unter der Platte"),
+]
+
+STROMZEILEN = [
+    ("vacuum", "Vakuum (Soll / erreicht)"),
+    ("force", "Haltekraft"),
+    ("per_cup", "davon je Sauger"),
+    None,
+    ("flow_required", "Volumenstrom benoetigt"),
+    ("flow_available", "Volumenstrom verfuegbar"),
+    ("flow_open", "davon offene Sauger"),
+    ("flow_workpiece", "davon Karton"),
+    ("flow_left", "Verbleibend"),
+    None,
+    ("safety", "Sicherheitsfaktor"),
+]
+
+
 class VacuumTab(TabHost):
     """Vakuumplatte mit Draufsicht und Ergebnisanzeige."""
 
@@ -86,11 +203,11 @@ class VacuumTab(TabHost):
         # Zusammensetzung statt Vererbung: die aus der Layoutdatei erzeugten
         # Namen liegen unter self.ui und koennen weder mit denen von QWidget
         # noch mit eigenen kollidieren.
-        self.ui = Ui_VacuumTab()
-        self.ui.setupUi(self)
+        # Die Namen kommen aus BEDIENSPALTE statt aus einer erzeugten Datei.
+        self.ui = Oberflaeche()
+        self._build_layout()
 
         self._configure_layout()
-        self._configure_fields()
         self._build_result_rows()
         self._connect()
 
@@ -100,6 +217,49 @@ class VacuumTab(TabHost):
         self._update_cup_limit()
 
     # Aufbau -------------------------------------------------------------------
+
+    def _build_layout(self) -> None:
+        """Setzt das Fenster zusammen: Band, Teiler, Zeichenflaeche.
+
+        Der Formularteil kommt aus BEDIENSPALTE; hier steht die Umgebung.
+        """
+        self.ui.root = QVBoxLayout(self)
+        self.ui.root.setContentsMargins(6, 6, 6, 6)
+        self.ui.root.setSpacing(4)
+
+        self.ui.banner = StaleBanner()
+        self.ui.root.addWidget(self.ui.banner)
+
+        self.ui.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.ui.root.addWidget(self.ui.splitter)
+
+        self.ui.controls, self.ui = baue(BEDIENSPALTE, self.ui)
+        self.ui.controls_scroll = QScrollArea()
+        self.ui.controls_scroll.setWidgetResizable(True)
+        self.ui.controls_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.ui.controls_scroll.setWidget(self.ui.controls)
+        self.ui.splitter.addWidget(self.ui.controls_scroll)
+
+        self.ui.view_panel = QWidget()
+        self.ui.view_layout = QVBoxLayout(self.ui.view_panel)
+        self.ui.view_layout.setContentsMargins(0, 0, 0, 0)
+        self.ui.view_layout.setSpacing(4)
+
+        self.ui.view = Vacuum2DView()
+        self.ui.view_layout.addWidget(self.ui.view, 1)
+
+        # Die beiden Ergebnisraster nebeneinander unter der Zeichnung.
+        self.ui.result_row = QHBoxLayout()
+        self.ui.result_row.setSpacing(6)
+        self.ui.results = ResultGrid("Ergebnis")
+        self.ui.flow_results = ResultGrid("Vakuum, Kraft und Volumenstrom")
+        self.ui.result_row.addWidget(self.ui.results)
+        self.ui.result_row.addWidget(self.ui.flow_results)
+        self.ui.view_layout.addLayout(self.ui.result_row)
+
+        self.ui.splitter.addWidget(self.ui.view_panel)
 
     def _configure_layout(self) -> None:
         """Was der Designer nicht speichern kann."""
@@ -112,6 +272,17 @@ class VacuumTab(TabHost):
         # naechsten Start. SPLITTER_SIZES ist nur der erste Vorschlag.
         restore_splitter(self.ui.splitter, SETTINGS_SECTION, SPLITTER_SIZES)
 
+        # Die Bedienspalte rollt senkrecht - waagerecht nicht. Eine Rollflaeche
+        # gibt die Mindestbreite ihres Inhalts nicht nach aussen weiter; ohne
+        # diese Zeile laesst sich der Griff so weit nach links ziehen, dass
+        # Beschriftungen abgeschnitten werden. Stand frueher als minimumSize
+        # in der .ui-Datei und ist beim Umzug einmal verlorengegangen.
+        scroll = self.ui.controls_scroll
+        scroll.setMinimumWidth(
+            self.ui.controls.minimumSizeHint().width()
+            + scroll.verticalScrollBar().sizeHint().width()
+        )
+
         # Lange Eintraege duerfen die Bedienspalte nicht auseinanderziehen; die
         # Groessenrichtlinie dafuer steht in der .ui-Datei. compact_combo
         # ergaenzt den Tooltip mit dem vollstaendigen Text - ausser dort, wo im
@@ -120,86 +291,15 @@ class VacuumTab(TabHost):
                       self.ui.leakage_box, self.ui.grip_box):
             compact_combo(combo)
 
-    def _configure_fields(self) -> None:
-        """Wertebereiche, Einheiten und Erklaerungen der Eingabefelder.
-
-        Sie stehen hier und nicht in der XML-Datei: dass ein Vakuum in Millibar
-        angegeben wird, hoechstens 1000 betragen kann und die Datenblattkraefte
-        keinen Sicherheitsfaktor enthalten, ist Fachwissen und keine Gestaltung.
-        """
-        self.ui.plate_length.configure("mm", minimum=10.0, maximum=3000.0, decimals=0, step=10.0)
-        self.ui.plate_width.configure("mm", minimum=10.0, maximum=3000.0, decimals=0, step=10.0)
-        self.ui.edge_margin.configure("mm", minimum=0.0, maximum=500.0, decimals=0, step=5.0)
-        self.ui.min_spacing.configure(
-            "mm", minimum=0.0, maximum=500.0, decimals=0, step=1.0,
-            tooltip="Lichter Abstand zwischen den Aussenmassen zweier Sauger.\n"
-                    "0 bedeutet: die Sauger stossen aneinander.",
-        )
-
-        self.ui.cup_count.configure(
-            "Stueck", minimum=0, maximum=20000, value=0,
-            special_zero_text="automatisch (maximal)",
-        )
-        self.ui.package_count.configure("Stueck", minimum=1, maximum=200, value=1)
-
-        self.ui.vacuum.configure(
-            "mbar", minimum=10.0, maximum=1000.0, decimals=0, step=25.0,
-            tooltip="Unterdruck gegenueber der Umgebung. Datenblattwerte gelten bei 600 mbar.",
-        )
-        self.ui.flow.configure(
-            "m3/h", minimum=0.0, maximum=1000.0, decimals=2, step=1.0,
-            tooltip="Nennvolumenstrom des Erzeugers bei geringem Unterdruck.",
-        )
-        self.ui.permeability.configure("", minimum=0.0, maximum=100.0, decimals=3, step=0.05)
-        self.ui.safety.configure(
-            "", minimum=1.0, maximum=20.0, decimals=1, step=0.5,
-            tooltip="Die Datenblattkraefte enthalten ausdruecklich KEINEN Sicherheitsfaktor.\n"
-                    "Er wird hier gesondert angesetzt.",
-        )
-        self.ui.acceleration.configure(
-            "m/s2", minimum=0.0, maximum=200.0, decimals=2, step=0.5,
-            tooltip="Zusaetzliche Beschleunigung der Handhabung. 0 ergibt die rein statische Rechnung.",
-        )
-        self.ui.friction.configure(
-            "", minimum=0.01, maximum=2.0, decimals=2, step=0.05,
-            tooltip="Reibbeiwert Sauger gegen Karton. Benutzerangabe, keine Datenblattgroesse.",
-        )
-
     def _build_result_rows(self) -> None:
-        """Die Zeilen beider Ergebnisraster.
-
-        Sie stehen hier und nicht in der Layoutdatei: es sind Daten, keine
-        Anordnung. Die Aufteilung in zwei Spalten ist dagegen Gestaltung und
-        steht in der .ui-Datei - untereinander waeren es ueber zwanzig Zeilen,
-        und man wuerde beim Vergleichen scrollen.
-        """
-        grid = self.ui.results
-        grid.add_row("status", "Bewertung")
-        grid.add_row("max_mass", "Max. Paketgewicht")
-        grid.add_row("actual_mass", "Tatsaechliches Gewicht")
-        grid.add_row("needed_cups", "Benoetigte wirksame Sauger")
-        grid.add_separator()
-        grid.add_row("arrangement", "Saugermuster")
-        grid.add_row("cups_total", "Sauger gesamt")
-        grid.add_row("cups_sealed", "Wirksame Sauger")
-        grid.add_row("cups_partial", "Teilweise aufliegend")
-        grid.add_row("cups_open", "Offene Sauger")
-        grid.add_row("area", "Effektive Saugflaeche")
-        grid.add_separator()
-        grid.add_row("packages", "Pakete unter der Platte")
-
-        flows = self.ui.flow_results
-        flows.add_row("vacuum", "Vakuum (Soll / erreicht)")
-        flows.add_row("force", "Haltekraft")
-        flows.add_row("per_cup", "davon je Sauger")
-        flows.add_separator()
-        flows.add_row("flow_required", "Volumenstrom benoetigt")
-        flows.add_row("flow_available", "Volumenstrom verfuegbar")
-        flows.add_row("flow_open", "davon offene Sauger")
-        flows.add_row("flow_workpiece", "davon Karton")
-        flows.add_row("flow_left", "Verbleibend")
-        flows.add_separator()
-        flows.add_row("safety", "Sicherheitsfaktor")
+        """Die Zeilen beider Ergebnisanzeigen, aus den Listen oben."""
+        for raster, zeilen in ((self.ui.results, ERGEBNISZEILEN),
+                               (self.ui.flow_results, STROMZEILEN)):
+            for eintrag in zeilen:
+                if eintrag is None:
+                    raster.add_separator()
+                else:
+                    raster.add_row(*eintrag)
 
     def _connect(self) -> None:
         self.ui.calculate_button.clicked.connect(self.calculate)

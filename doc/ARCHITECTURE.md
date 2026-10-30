@@ -22,8 +22,8 @@ Bedienung —, liegt in einem Ordner beieinander.
 │ stapel.py         │                              │ physik.py         │
 │ zeichnung.py      │                              │ anordnung.py      │
 │ szene3d.py        │                              │ saugermuster.py   │
-│ tab.py + tab.ui   │                              │ zeichnung.py      │
-│ formular.py       │                              │ tab.py + tab.ui   │
+│ tab.py            │                              │ zeichnung.py      │
+│ formular.py       │                              │ tab.py            │
 │ dienst.py         │                              │ dienst.py         │
 └────────┬──────────┘                              └─────────┬─────────┘
          │                                                   │
@@ -82,7 +82,7 @@ und Auswahlknöpfe — und die zusammengesetzten Teile `NumberField`,
 `IntField`, `ResultGrid` und `StaleBanner`, die vorher hier zuhause waren.
 
 Durchgereicht werden sie über `app/bedienelemente.py` und nicht direkt
-importiert. Der Grund steht dort: die `.ui`-Dateien tragen den Modulpfad in die
+importiert. Der Grund steht dort: die Beschreibungen und die Tabs greifen auf diesen Modulpfad zu statt auf den
 XML ein, und der soll nicht an einem Bibliotheksnamen hängen, der sich ändern
 kann.
 
@@ -172,82 +172,43 @@ heran und lässt den Ring die Aussage tragen.
 
 ## Die Oberfläche ist noch einmal geteilt
 
-Innerhalb jeder Scheibe verläuft eine zweite Grenze — zwischen **Anordnung**
+Innerhalb jeder Scheibe verläuft eine zweite Grenze — zwischen **Beschreibung**
 und **Verhalten**:
 
 ```
-tab.ui                 Anordnung, Gruppen, Beschriftungen, Größenrichtlinien
-   │                   im Qt Designer bearbeitet
-   │ pyuic6  (tools/build_ui.py)
+BEDIENSPALTE = [...]   eine Liste von Zeilen, im Quelltext des Tabs
+   │                   Beschriftung, Einheit, Grenzen, Vorgaben
+   │ app/formularbau.py: baue()
    ▼
-Ui_VacuumTab           erzeugt, nicht von Hand geändert
+self.ui.<name>         die gebauten Bedienelemente, ansprechbar über ihren Namen
    │
    ▼
-VacuumTab              ├── Events        Signale der Bedienelemente
-                       ├── Berechnung    Eingaben → DTO → Service
-                       ├── State         AppState lesen und schreiben
-                       ├── Service       calculate_async, Ergebnis-Signale
+VacuumTab              ├── Ereignisse     Signale der Bedienelemente
+                       ├── Berechnung     Eingaben → DTO → Dienst
+                       ├── Zustand        vorgang.py lesen und schreiben
                        └── Ergebnisanzeige
 ```
 
-**Nicht jede Layoutdatei ist ein Tab.** Die Paketdaten sind die gemeinsame
+Bis Oktober 2026 lag die Beschreibung als XML in `.ui`-Dateien, aus denen
+`pyuic6` Python erzeugte. Der Abschnitt „Woher das kommt" im README nennt die
+Gründe für den Wechsel; der wichtigste: jede Formularzeile war über zwei
+Dateien verteilt, die Beschriftung in der XML, die Einheit im Quelltext.
+
+**Die Umgebung bleibt Quelltext.** Teiler, Rollfläche, Zeichenfläche und
+3D-Szene stehen weiterhin in `_build_layout()` des jeweiligen Tabs. Das sind
+Einzelstücke und keine Formularzeilen — `formularbau.py` baut Formulare, keine
+Fenster.
+
+**Nicht jede Beschreibung ist ein Tab.** Die Paketdaten sind die gemeinsame
 Eingabe beider Module und kein Berechnungsprogramm; ihr Formular
-(`app/palette/formular.ui` und `.py`) sitzt am Kopf der Palettierung und
-unterliegt derselben Trennung. Der Tab hängt es ein und reicht ihm die drei
-Lebenszeichen weiter, die er selbst von außen bekommt — Zustandsänderung,
-Übernahme, Ende. Eingehängt wird im Quelltext und nicht als hochgestufte Klasse
-im Designer, weil das Formular den `AppContext` braucht; die Layoutdatei hält
-nur den Platz frei (`package_host`), so wie sie es für die 3D-Szene tut.
+(`app/palette/formular.py`) sitzt am Kopf der Palettierung und folgt derselben
+Trennung. Der Tab hängt es ein und reicht ihm die drei Lebenszeichen weiter,
+die er selbst von außen bekommt — Zustandsänderung, Übernahme, Ende.
 
-Dass die Bedienspalte der Palettierung seither in einer Rollfläche steckt, ist
-die Folge davon: Formular und Spalte zusammen sind höher als ein Fenster von
-860 Bildpunkten. Ohne sie wäre die Mindesthöhe des Fensters auf über 1000
-Bildpunkte gestiegen, und auf einem 768er Bildschirm ließe sich die Anwendung
-nicht mehr benutzen.
-
-**Zusammensetzung, nicht Mehrfachvererbung.** Der Tab hält seine erzeugte
-Klasse als `self.ui`, statt von ihr zu erben. Beide Wege sind üblich; die
-Zusammensetzung gewinnt hier, weil die erzeugten Namen dann bündig
-beieinanderliegen: sie können weder mit denen von `QWidget` noch mit eigenen
-kollidieren, und beim Lesen ist sofort erkennbar, was aus dem Designer stammt.
-`tests/test_ui_files.py` prüft beides.
-
-**Kompiliert, nicht zur Laufzeit geladen.** Die erzeugte Datei nennt jedes
-Widget als Attribut: der Editor vervollständigt sie, ein Tippfehler im
-Objektnamen fällt beim Schreiben auf statt beim Öffnen des Tabs, und das Paket
-braucht die XML-Dateien nicht mitzunehmen. Der Preis ist der Zwischenschritt —
-`AUTOBUILD.py` führt ihn vor dem Paketieren aus, und `tests/test_ui_files.py`
-übersetzt bei jedem Testlauf neu und vergleicht mit der eingecheckten Datei.
-Ein Vergleich über Zeitmarken wäre wertlos: nach einem frischen Auschecken
-tragen alle Dateien dieselbe Zeit.
-
-**Was in der Layoutdatei nichts verloren hat.** Wertebereiche, Einheiten und
-Schrittweiten stehen im Quelltext (`_configure_fields`), die Zeilen der
-Ergebnisanzeige ebenfalls (`_build_result_rows`). Dass eine Länge in
-Millimetern angegeben wird und höchstens 5000 betragen darf, ist Fachwissen und
-keine Gestaltung — in der XML-Datei läge es als namenlose Eigenschaft ohne jede
-Prüfung. Farben ebenso: die Layoutdatei setzt `role="note"`, das Aussehen steht
-einmal im Stylesheet in `app/darstellung.py`.
-
-**Was der Designer nicht speichern kann,** steht in `_configure_layout()`: die
-Aufteilung eines Splitters, die Streckung des Wurzellayouts und die
-`QButtonGroup` mit stabilen Nummern für die Ansichtswahl.
-
-**Zwei Fallstricke, die maschinell abgefangen werden,** weil sie erst im
-fertigen Fenster auffallen:
-
-* Die Eigenschaft **`stretch`** an einem Layout. Der Designer bietet sie an,
-  pyuic6 erzeugt daraus `setStretch("0,1")`, und das scheitert zur Laufzeit —
-  beim Öffnen des Tabs, weit weg von der Ursache. `tools/build_ui.py` weist die
-  Datei mit einer Erklärung zurück; dasselbe Ergebnis erreicht man mit
-  Größenrichtlinien.
-* Ein umbrechender Hinweistext **ohne Mindestbreite**. Qt schätzt seine Höhe
-  für genau die gesetzte Breite; bei 1 bricht der Text rechnerisch nach jedem
-  Wort um und meldet mehrere hundert Bildpunkte Höhe. Das Formular reserviert
-  sie brav, und zwischen den Eingabefeldern klafft eine handbreite Lücke,
-  während der Text darin in drei Zeilen steht.
-
----
+`tests/test_formularbau.py` vergleicht beide Seiten: jeder Name, den ein Tab
+unter `self.ui` anspricht, muss von seiner Beschreibung gebaut werden. Das ist
+der Ersatz für die frühere Prüfung „die erzeugte Datei ist aktuell" — und es
+fängt dieselbe Fehlerart, nämlich einen Namen, der auf einer Seite fehlt.
 
 ## Einheitenkonvention
 

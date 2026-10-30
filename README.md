@@ -50,62 +50,76 @@ Fehlt eine optionale Abhängigkeit, läuft die Anwendung vollständig weiter: di
 ```bash
 python -m pytest              # alle 550 Tests, rund 13 Sekunden
 python -m pytest tests/test_architecture.py   # nur die Schichtregeln
-python -m pytest tests/test_ui_files.py       # nur die Layoutdateien
+python -m pytest tests/test_formularbau.py    # nur den Formularbau
 ```
 
 ---
 
-## Oberfläche bearbeiten (.ui-Dateien)
+## Oberfläche bearbeiten (Beschreibungen)
 
-Die Anordnung jedes Tabs steht in einer eigenen Layoutdatei und lässt sich im
-**Qt Designer** grafisch bearbeiten. Dasselbe gilt für das Paketformular
-(`app/palette/formular.ui`), das kein Tab ist, aber denselben Weg geht:
+Die Anordnung jedes Tabs steht als **Beschreibung im Quelltext** — eine Liste
+von Zeilen, aus der `app/formularbau.py` die Bedienelemente baut:
 
-```
-app/vakuum/tab.ui        Anordnung, Gruppen, Beschriftungen
-   │   python tools/build_ui.py     (pyuic6)
-   ▼
-app/vakuum/ui_tab.py     erzeugt — nicht von Hand ändern
-   │
-   ▼
-app/vakuum/tab.py        Ereignisse, Berechnung, Zustand,
-                                    Service, Ergebnisanzeige
-```
-
-```bash
-pyqt6-tools designer app/vakuum/tab.ui   # bearbeiten
-python tools/build_ui.py                            # übersetzen
-python tools/build_ui.py --check                    # nur prüfen
+```python
+BEDIENSPALTE = [
+    Gruppe("Platte und Sauger", [
+        [Wahl("cup_box", "Sauger-Typ")],
+        [Hinweis("", name="cup_info")],
+        [Zahl("plate_length", "Plattenlaenge", "mm",
+              dict(min=10.0, max=3000.0, stellen=0, schritt=10.0))],
+    ], name="plate_box"),
+]
 ```
 
-`AUTOBUILD.py` übersetzt vor dem Paketieren selbst — im Paket liegen nur die
-erzeugten Python-Dateien. `tests/test_ui_files.py` übersetzt bei jedem Testlauf
-neu und vergleicht mit der eingecheckten Datei; eine vergessene Übersetzung
-fällt damit sofort auf und nicht erst am alten Layout im laufenden Programm.
+Eine Zeile hier ist eine Zeile auf dem Schirm; vier Felder nebeneinander sind
+vier Einträge in einer Liste. Die Namen liegen danach unter `self.ui` —
+`self.ui.plate_length` — wie zuvor.
+
+**Warum nicht mehr der Qt Designer.** Bis Oktober 2026 lag die Anordnung in
+`.ui`-Dateien, aus denen `pyuic6` Python erzeugte: 1054 Zeilen XML und 687
+Zeilen erzeugter Quelltext. Der Designer konnte davon nichts zeigen, was
+zählt — eigene Bedienelemente erscheinen dort als leere graue Kästen, weil er
+hochgestufte Widgets als ihre Basisklasse zeichnet. Dazu war jede Formularzeile
+geteilt: die Beschriftung in der XML, die Einheit und die Grenzen im Quelltext.
+Wer die Einheit änderte, musste zwei Dateien anfassen.
+
+### Die Bausteine
+
+| Baustein | wird zu | wofür |
+|---|---|---|
+| `Zahl` | `NumberField` | Maß mit Einheit und Platz für eine Meldung |
+| `Ganzzahl` | `IntField` | Stückzahl mit Einheit |
+| `Wahl` | `KompaktDropdown` | Auswahlfeld; gefüllt wird es vom Tab |
+| `Text` | `KompaktLineEdit` | einzeilige Eingabe |
+| `Schalter` | `KompaktCheckBox` | Kästchen, mit `angehakt` und `hinweis` |
+| `Auswahlknopf` | `KompaktRadioButton` | genau einer von mehreren |
+| `Knopf` | `KompaktButton` | mit `vorgabe`, `aktiv`, `sichtbar` |
+| `Hinweis` | `QLabel` (`role="note"`) | Erklärung unter einer Zeile |
+| `Raster` | `ResultGrid` | Ergebniswerte; Zeilen trägt der Tab nach |
+| `Platz` | `QWidget` | Platzhalter für Zeichenfläche oder 3D-Szene |
+| `Gruppe` | `KompaktGroupBox` | Rahmen mit Überschrift und Zeilen darin |
+| `Zeile` | `QHBoxLayout` | mehrere Elemente nebeneinander, ohne Rahmen |
 
 ### Was gehört wohin
 
-| | Layoutdatei (`.ui`) | Quelltext (`.py`) |
+| | Beschreibung | Quelltext des Tabs |
 |---|---|---|
 | Anordnung, Gruppen, Reihenfolge | ✔ | |
-| Beschriftungen, Tooltips, Größenrichtlinien | ✔ | |
-| Wertebereiche, Einheiten, Schrittweiten | | ✔ |
-| Zeilen der Ergebnisanzeige | | ✔ |
+| Beschriftungen, Einheiten, Tooltips | ✔ | |
+| Wertebereiche, Schrittweiten, Vorgaben | ✔ | |
+| Zeilen der Ergebnisanzeige | ✔ (als Liste) | |
+| Teiler, Rollflächen, Zeichenfläche | | ✔ |
 | Ereignisse, Berechnung, Zustand | | ✔ |
-| Farben (über `role`-Eigenschaft) | Rolle | Farbe (`app/darstellung.py`) |
+| Farben | Rolle (`role="note"`) | `app/darstellung.py` |
 
-Dass eine Länge in Millimetern angegeben wird und höchstens 5000 betragen darf,
-ist Fachwissen und keine Gestaltung — in der XML-Datei läge es als namenlose
-Eigenschaft ohne jede Prüfung. Umgekehrt hat eine Farbangabe im Designer nichts
-verloren: die Layoutdatei setzt nur `role="note"`, das Aussehen steht einmal im
-Stylesheet.
+Die Umgebung eines Tabs — Teiler, Rollfläche, Zeichenfläche, 3D-Szene — steht
+weiterhin im Quelltext. Das sind Einzelstücke und keine Formularzeilen;
+`app/formularbau.py` baut Formulare, keine Fenster.
 
-Zwei Fallstricke, die `tools/build_ui.py` und `tests/test_ui_files.py`
-abfangen, weil sie erst im fertigen Fenster auffallen: die Eigenschaft
-`stretch` an einem Layout (pyuic6 erzeugt daraus einen ungültigen Aufruf —
-stattdessen Größenrichtlinien verwenden) und ein umbrechender Hinweistext ohne
-Mindestbreite (Qt schätzt die Höhe dann für eine Breite von einem Bildpunkt und
-reißt fingerbreite Lücken ins Formular).
+`tests/test_formularbau.py` vergleicht Beschreibung und Benutzung: jeder Name,
+den ein Tab unter `self.ui` anspricht, muss auch gebaut werden. Ohne diese
+Prüfung fällt ein vergessener Eintrag erst beim Öffnen des Tabs auf, weit weg
+von der Ursache.
 
 ---
 
@@ -186,13 +200,19 @@ freier Kern die Definition des Musters ist.
 Drei Schritte, ohne Eingriff in Hauptfenster oder Kernarchitektur:
 
 ```python
-# 1. Layout anlegen (app/<scheibe>/tab.ui) und übersetzen,
-#    dann das Widget bauen (app/<scheibe>/tab.py)
+# 1. Bedienspalte beschreiben und den Tab bauen (app/<scheibe>/tab.py)
+BEDIENSPALTE = [
+    Gruppe("Eingaben", [
+        [Zahl("breite", "Breite", "mm", dict(min=0.0, max=5000.0))],
+    ]),
+    Raster("results", "Ergebnis"),
+]
+
 class MeinTab(TabHost):
     def __init__(self, context: AppContext, parent=None):
         super().__init__(parent)
-        self.ui = Ui_MeinTab()
-        self.ui.setupUi(self)
+        self.ui = Oberflaeche()
+        felder, self.ui = baue(BEDIENSPALTE, self.ui)
         ...  # context.state, context.settings, context.reporter, ...
 
 # 2. Modulvertrag erfüllen
@@ -211,9 +231,9 @@ def default_modules():
 
 `tests/test_architecture.py` prüft, dass jedes registrierte Modul den Vertrag
 erfüllt und dass das Hauptfenster kein Modul beim Namen nennt.
-`tests/test_ui_files.py` prüft, dass zu jedem `*_tab.py` eine `*_tab.ui` gehört,
-dass der Tab seine erzeugte Klasse als `self.ui` hält und dass er keine
-Anordnung mehr im Quelltext baut.
+`tests/test_formularbau.py` prüft, dass jeder Name, den der Tab unter
+`self.ui` anspricht, von seiner Beschreibung auch gebaut wird — und dass kein
+Name zweimal vergeben ist.
 
 ---
 
