@@ -32,7 +32,13 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from app.darstellung import MONO_FAMILY, PALETTE
-from qt_controls_pyrs import IntField, NumberField, ResultGrid, StaleBanner
+from qt_controls_pyrs import (
+    HaloButton, HaloCheckBox, HaloDoubleSpinBox, HaloDropdown, HaloGroupBox,
+    HaloLineEdit, HaloRadioButton, HaloSpinBox, StaleBanner
+)
+from qt_controls_pyrs import IntField as _IntField
+from qt_controls_pyrs import NumberField as _NumberField
+from qt_controls_pyrs import ResultGrid as _ResultGrid
 from typing import Sequence
 from PyQt6.QtCore import QByteArray, QSettings
 from app import APP_SLUG
@@ -56,9 +62,158 @@ jedem Formular noch einmal.
 #: Durchgereicht aus der Bibliothek - siehe Dateikopf. Die Namen stehen
 #: hier, damit die .ui-Dateien und die Tabs sie unveraendert finden.
 __all__ = [
-    "Debouncer", "IntField", "NumberField", "ResultGrid", "StaleBanner",
-    "compact_combo", "mono_font", "restore_splitter", "save_splitter", "store",
+    "Debouncer", "IntField", "KompaktButton", "KompaktCheckBox",
+    "KompaktDoubleSpinBox", "KompaktDropdown", "KompaktGroupBox",
+    "KompaktLineEdit", "KompaktRadioButton", "KompaktSpinBox", "NumberField",
+    "ResultGrid", "StaleBanner", "compact_combo", "mono_font",
+    "restore_splitter", "save_splitter", "store",
 ]
+
+# ---------------------------------------------------------------------------
+# Kompakte Fassungen der Bedienelemente
+# ---------------------------------------------------------------------------
+"""Dichter als die Vorgaben der Bibliothek.
+
+Die Bibliothek ist auf einzelne, grosszuegig gesetzte Bedienelemente
+ausgelegt - 45 Pixel hohe Leisten mit 16 Pixel Luft ringsum. Ein
+Berechnungsformular hat aber dreissig davon untereinander, und dann ist aus
+Grosszuegigkeit Verschwendung geworden: die Bedienspalte laeuft nach unten aus
+dem Fenster, und zwischen zwei Zeilen steht mehr Luft als Inhalt.
+
+Geaendert werden deshalb nur Zahlen, nicht das Verhalten. Jede Klasse hier ist
+ihr Vorbild aus der Bibliothek mit engeren Konstanten - der Halo-Schein bleibt,
+er braucht nur weniger Platz.
+
+    Hoehe einer Leiste    45 -> 26 Pixel
+    Luftrand je Element   16 ->  2
+    Textabstand innen     16 ->  8
+    Abstand im Layout     18 ->  4
+
+Die .ui-Dateien verweisen auf DIESE Klassen und nicht auf die der Bibliothek:
+so steht die Dichte an einer Stelle und nicht in drei XML-Dateien.
+"""
+
+#: Hoehe einer Eingabeleiste. Die Schrift braucht rund 15 Pixel, der Rest ist
+#: Luft ueber und unter ihr - weniger als 26 wirkt gedrueckt.
+KOMPAKT_HOEHE = 26
+KOMPAKT_RAND = 2          # Luft je Seite, in die der Schein hinauslaeuft
+KOMPAKT_PAD = 8           # Abstand der Schrift zum Rahmen
+KOMPAKT_ABSTAND = 4       # Abstand zwischen zwei Zeilen im Layout
+
+
+class KompaktDropdown(HaloDropdown):
+    """Auswahlfeld, eng gesetzt."""
+
+    HEIGHT = KOMPAKT_HOEHE
+    ROOM = KOMPAKT_RAND
+    ROOM_Y = 1
+    PAD = KOMPAKT_PAD
+
+
+class KompaktLineEdit(HaloLineEdit):
+    """Eingabefeld, eng gesetzt."""
+
+    HEIGHT = KOMPAKT_HOEHE
+    ROOM = KOMPAKT_RAND
+    ROOM_Y = 1
+    PAD = KOMPAKT_PAD
+
+
+class _KompaktSpin:
+    """Die engeren Masse beider Zahlenfelder, einmal aufgeschrieben.
+
+    Auch die Pfeilspalte schrumpft mit: 26 Pixel waren auf eine 45 Pixel hohe
+    Leiste gerechnet und saehen auf einer 26 Pixel hohen aus wie zwei Klötze.
+    """
+
+    HEIGHT = KOMPAKT_HOEHE
+    ROOM = KOMPAKT_RAND
+    ROOM_Y = 1
+    PAD = KOMPAKT_PAD
+    ARROW_ZONE = 16
+    ARROW_W = 4
+    ARROW_H = 3.0
+    MIN_CHARS = 5
+
+
+class KompaktSpinBox(_KompaktSpin, HaloSpinBox):
+    """Ganzzahlfeld, eng gesetzt."""
+
+
+class KompaktDoubleSpinBox(_KompaktSpin, HaloDoubleSpinBox):
+    """Zahlenfeld mit Nachkommastellen, eng gesetzt."""
+
+
+class KompaktGroupBox(HaloGroupBox):
+    """Gruppenrahmen, eng gesetzt."""
+
+    PAD_X = KOMPAKT_PAD
+    PAD_TOP = 4
+    PAD_BOTTOM = 8
+    TITLE_LEFT = 10
+    TITLE_PAD = 6
+
+
+class KompaktButton(HaloButton):
+    """Knopf, eng gesetzt."""
+
+    HEIGHT = KOMPAKT_HOEHE
+    PAD = 14
+
+
+class KompaktCheckBox(HaloCheckBox):
+    """Kaestchen, eng gesetzt."""
+
+    BOX = 13
+    ROOM = 4
+    GAP = 6
+
+
+class KompaktRadioButton(HaloRadioButton):
+    """Auswahlknopf, eng gesetzt."""
+
+    RING = 13
+    ROOM = 4
+    GAP = 6
+    CORE_PAD = 3.5
+
+
+class NumberField(_NumberField):
+    """Zahlenfeld mit Einheit, eng gesetzt."""
+
+    SPIN = KompaktDoubleSpinBox
+    MIN_WIDTH = 72
+    UNIT_WIDTH = 28
+    GAP = 4
+    NOTE_HEIGHT = 12
+
+
+class IntField(_IntField):
+    """Stueckzahlfeld mit Einheit, eng gesetzt."""
+
+    SPIN = KompaktSpinBox
+    MIN_WIDTH = 72
+    UNIT_WIDTH = 28
+    GAP = 4
+
+
+class ResultGrid(_ResultGrid):
+    """Ergebniswerte, zweispaltig und eng gesetzt.
+
+    Zweispaltig, weil der Block sonst nach unten aus der Spalte laeuft: die
+    Palettierung zeigt zehn Werte, die Vakuumplatte sechzehn.
+    """
+
+    COLUMNS = 2
+    SPACING_X = 10
+    SPACING_Y = 2
+    PAIR_GAP = 18
+    PAD_X = KOMPAKT_PAD
+    PAD_TOP = 4
+    PAD_BOTTOM = 8
+    TITLE_LEFT = 10
+    TITLE_PAD = 6
+
 
 NOTE_WRAP_WIDTH = 240
 

@@ -432,42 +432,51 @@ def darkstyle_dir() -> Path:
 
 #: Ausnahmen fuer die Bedienelemente aus qt_controls_pyrs.
 #:
-#: darkstyle.qss ist eine Fremddatei und bleibt unangetastet - sie wird mit
-#: dem Projekt Qt-Frameless-Window-DarkStyle gepflegt, und eigene Aenderungen
-#: darin gingen beim naechsten Abgleich verloren. Sie bringt aber Regeln fuer
-#: QLineEdit, QAbstractSpinBox, QComboBox, QGroupBox und die Reiter mit, und
-#: die treffen auch deren Halo-Nachfahren.
+#: darkstyle.qss ist eine Fremddatei und bleibt unangetastet - sie wird mit dem
+#: Projekt Qt-Frameless-Window-DarkStyle gepflegt. Sie setzt aber Regeln fuer
+#: QGroupBox, QCheckBox::indicator, QRadioButton::indicator und die Reiter, und
+#: die treffen auch deren Halo-Nachfahren. Die zeichnen sich selbst, und eine
+#: Regel daneben legt ihre Fuellung UEBER das Gezeichnete.
 #:
-#: Das ist nicht nur ueberfluessig, sondern schaedlich: die Regel legt ihre
-#: Fuellung UEBER die gezeichnete Leiste, und von der Halo-Leiste bleibt ein
-#: graues Rechteck mit einem zweiten Rahmen darum. Diese Ausnahmen stehen
-#: deshalb HINTER der Fremddatei und raeumen fuer die neuen Klassen ab.
+#: GENAU so breit wie noetig und keinen Selektor weiter. Der erste Versuch war
+#: zu grob und hat zwei Fehler eingebaut, die wie Bibliotheksfehler aussahen:
 #:
-#: Die Namen sind die Klassennamen: ein Qt-Stylesheet trifft immer die
-#: abgeleiteteste Klasse, HaloLineEdit also und nicht QLineEdit.
+#:   background: transparent  setzt die Palettenfarbe `Base` des Widgets auf
+#:       Alpha 0. Das Auswahlfeld hat das ueberlebt - seine aufgeklappte Liste
+#:       nicht, denn die faerbt ihren Grund mit genau dieser Farbe. Ergebnis:
+#:       weisse Schrift auf durchsichtigem Grund.
+#:
+#:   padding: 0px  hebt setContentsMargins() auf. Die Werte im Ergebnisraster
+#:       klebten dadurch am Rahmen.
+#:
+#: Beides steht hier deshalb NICHT mehr. Gebraucht wird nur: Rahmen und
+#: Fuellung der Gruppenrahmen weg, Qts eigene Anzeiger auf Null, und der
+#: Reiterbereich ohne Strich.
 HALO_OVERRIDES = """
-HaloLineEdit, HaloSpinBox, HaloDoubleSpinBox, HaloDropdown, HaloGroupBox,
-HaloButton, HaloCheckBox, HaloRadioButton, HaloTabWidget {
-    background: transparent;
+KompaktGroupBox, ResultGrid {
+    background: none;
+    border: none;
+    margin-top: 0px;
+}
+KompaktGroupBox::title, ResultGrid::title {
+    background: none;
     border: none;
     padding: 0px;
+    margin: 0px;
 }
-HaloDropdown::drop-down, HaloDropdown::down-arrow,
-HaloSpinBox::up-button, HaloSpinBox::down-button,
-HaloDoubleSpinBox::up-button, HaloDoubleSpinBox::down-button {
+KompaktCheckBox::indicator, KompaktRadioButton::indicator,
+KompaktGroupBox::indicator, ResultGrid::indicator {
     width: 0px;
     height: 0px;
+    image: none;
     border: none;
-    image: none;
-}
-HaloCheckBox::indicator, HaloRadioButton::indicator {
-    width: 0px;
-    height: 0px;
-    image: none;
 }
 HaloTabWidget::pane {
+    background: none;
     border: none;
-    background: transparent;
+}
+HaloTabWidget > QTabBar {
+    border: none;
 }
 """
 

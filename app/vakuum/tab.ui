@@ -6,11 +6,16 @@
    <string>Vakuumplatte</string>
   </property>
   <layout class="QVBoxLayout" name="root">
-   <property name="leftMargin"><number>12</number></property>
-   <property name="topMargin"><number>10</number></property>
-   <property name="rightMargin"><number>12</number></property>
-   <property name="bottomMargin"><number>10</number></property>
-   <property name="spacing"><number>8</number></property>
+   <property name="leftMargin">
+     <number>6</number></property>
+   <property name="topMargin">
+     <number>6</number></property>
+   <property name="rightMargin">
+     <number>6</number></property>
+   <property name="bottomMargin">
+     <number>6</number></property>
+   <property name="spacing">
+     <number>4</number></property>
    <item>
     <widget class="StaleBanner" name="banner"/>
    </item>
@@ -25,14 +30,19 @@
       </property>
       <widget class="QWidget" name="controls">
        <layout class="QVBoxLayout" name="controls_layout">
-        <property name="leftMargin"><number>0</number></property>
-        <property name="topMargin"><number>0</number></property>
-        <property name="rightMargin"><number>8</number></property>
-        <property name="bottomMargin"><number>0</number></property>
-        <property name="spacing"><number>8</number></property>
+        <property name="leftMargin">
+     <number>0</number></property>
+        <property name="topMargin">
+     <number>0</number></property>
+        <property name="rightMargin">
+     <number>6</number></property>
+        <property name="bottomMargin">
+     <number>0</number></property>
+        <property name="spacing">
+     <number>4</number></property>
 
         <item>
-         <widget class="HaloGroupBox" name="plate_box">
+         <widget class="KompaktGroupBox" name="plate_box">
           <property name="title"><string>Platte und Sauger</string></property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
@@ -40,17 +50,21 @@
            </sizepolicy>
           </property>
           <layout class="QFormLayout" name="plate_form">
-           <property name="leftMargin"><number>10</number></property>
-           <property name="topMargin"><number>16</number></property>
-           <property name="rightMargin"><number>10</number></property>
-           <property name="bottomMargin"><number>10</number></property>
+           <property name="leftMargin">
+     <number>6</number></property>
+           <property name="topMargin">
+     <number>6</number></property>
+           <property name="rightMargin">
+     <number>6</number></property>
+           <property name="bottomMargin">
+     <number>6</number></property>
            <item row="0" column="0">
             <widget class="QLabel" name="cup_caption">
              <property name="text"><string>Sauger-Typ</string></property>
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="HaloDropdown" name="cup_box">
+            <widget class="KompaktDropdown" name="cup_box">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                <horstretch>0</horstretch><verstretch>0</verstretch>
@@ -118,7 +132,7 @@
             </widget>
            </item>
            <item row="7" column="1">
-            <widget class="HaloDropdown" name="arrangement_box">
+            <widget class="KompaktDropdown" name="arrangement_box">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                <horstretch>0</horstretch><verstretch>0</verstretch>
@@ -161,7 +175,7 @@
         </item>
 
         <item>
-         <widget class="HaloGroupBox" name="package_box">
+         <widget class="KompaktGroupBox" name="package_box">
           <property name="title"><string>Pakete</string></property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
@@ -169,10 +183,14 @@
            </sizepolicy>
           </property>
           <layout class="QFormLayout" name="package_form">
-           <property name="leftMargin"><number>10</number></property>
-           <property name="topMargin"><number>16</number></property>
-           <property name="rightMargin"><number>10</number></property>
-           <property name="bottomMargin"><number>10</number></property>
+           <property name="leftMargin">
+     <number>6</number></property>
+           <property name="topMargin">
+     <number>6</number></property>
+           <property name="rightMargin">
+     <number>6</number></property>
+           <property name="bottomMargin">
+     <number>6</number></property>
            <item row="0" column="0">
             <widget class="QLabel" name="package_count_caption">
              <property name="text"><string>Anzahl Pakete</string></property>
@@ -182,7 +200,7 @@
             <widget class="IntField" name="package_count"/>
            </item>
            <item row="1" column="1">
-            <widget class="HaloCheckBox" name="use_pallet_pattern">
+            <widget class="KompaktCheckBox" name="use_pallet_pattern">
              <property name="text">
               <string>Muster aus der Palettierung uebernehmen</string>
              </property>
@@ -207,7 +225,7 @@ Aus: gleichmaessiges Raster.</string>
         </item>
 
         <item>
-         <widget class="HaloGroupBox" name="physics_box">
+         <widget class="KompaktGroupBox" name="physics_box">
           <property name="title"><string>Vakuum und Sicherheit</string></property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
@@ -215,10 +233,14 @@ Aus: gleichmaessiges Raster.</string>
            </sizepolicy>
           </property>
           <layout class="QFormLayout" name="physics_form">
-           <property name="leftMargin"><number>10</number></property>
-           <property name="topMargin"><number>16</number></property>
-           <property name="rightMargin"><number>10</number></property>
-           <property name="bottomMargin"><number>10</number></property>
+           <property name="leftMargin">
+     <number>6</number></property>
+           <property name="topMargin">
+     <number>6</number></property>
+           <property name="rightMargin">
+     <number>6</number></property>
+           <property name="bottomMargin">
+     <number>6</number></property>
            <item row="0" column="0">
             <widget class="QLabel" name="vacuum_caption">
              <property name="text"><string>Vakuum [mbar]</string></property>
@@ -241,7 +263,7 @@ Aus: gleichmaessiges Raster.</string>
             </widget>
            </item>
            <item row="2" column="1">
-            <widget class="HaloDropdown" name="restrictor_box">
+            <widget class="KompaktDropdown" name="restrictor_box">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                <horstretch>0</horstretch><verstretch>0</verstretch>
@@ -263,7 +285,7 @@ das Vakuum der ganzen Platte ein. Keine Datenblattangabe.</string>
             </widget>
            </item>
            <item row="3" column="1">
-            <widget class="HaloDropdown" name="leakage_box">
+            <widget class="KompaktDropdown" name="leakage_box">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                <horstretch>0</horstretch><verstretch>0</verstretch>
@@ -305,7 +327,7 @@ das Vakuum der ganzen Platte ein. Keine Datenblattangabe.</string>
             </widget>
            </item>
            <item row="7" column="1">
-            <widget class="HaloDropdown" name="grip_box">
+            <widget class="KompaktDropdown" name="grip_box">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                <horstretch>0</horstretch><verstretch>0</verstretch>
@@ -326,7 +348,7 @@ das Vakuum der ganzen Platte ein. Keine Datenblattangabe.</string>
             <widget class="NumberField" name="friction"/>
            </item>
            <item row="9" column="1">
-            <widget class="HaloCheckBox" name="partial_counts">
+            <widget class="KompaktCheckBox" name="partial_counts">
              <property name="text">
               <string>Teilweise aufliegende Sauger als tragend zaehlen</string>
              </property>
@@ -337,7 +359,7 @@ Ein: optimistische Annahme, nur bei sehr nachgiebiger Dichtlippe vertretbar.</st
             </widget>
            </item>
            <item row="10" column="1">
-            <widget class="HaloCheckBox" name="solve_point">
+            <widget class="KompaktCheckBox" name="solve_point">
              <property name="text">
               <string>Arbeitspunkt loesen statt Sollvakuum annehmen</string>
              </property>
@@ -353,7 +375,7 @@ Aus: rechnet mit dem eingestellten Sollvakuum und warnt nur bei Ueberlast.</stri
         </item>
 
         <item>
-         <widget class="HaloButton" name="calculate_button">
+         <widget class="KompaktButton" name="calculate_button">
           <property name="text"><string>Berechnen</string></property>
           <property name="default"><bool>true</bool></property>
          </widget>
@@ -372,11 +394,16 @@ Aus: rechnet mit dem eingestellten Sollvakuum und warnt nur bei Ueberlast.</stri
 
      <widget class="QWidget" name="view_panel">
       <layout class="QVBoxLayout" name="view_layout">
-       <property name="leftMargin"><number>0</number></property>
-       <property name="topMargin"><number>0</number></property>
-       <property name="rightMargin"><number>0</number></property>
-       <property name="bottomMargin"><number>0</number></property>
-       <property name="spacing"><number>6</number></property>
+       <property name="leftMargin">
+     <number>0</number></property>
+       <property name="topMargin">
+     <number>0</number></property>
+       <property name="rightMargin">
+     <number>0</number></property>
+       <property name="bottomMargin">
+     <number>0</number></property>
+       <property name="spacing">
+     <number>4</number></property>
        <item>
         <widget class="Vacuum2DView" name="view">
          <property name="sizePolicy">
@@ -418,24 +445,24 @@ Aus: rechnet mit dem eingestellten Sollvakuum und warnt nur bei Ueberlast.</stri
  </widget>
  <customwidgets>
   <customwidget>
-   <class>HaloDropdown</class>
+   <class>KompaktDropdown</class>
    <extends>QComboBox</extends>
-   <header>qt_controls_pyrs</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
-   <class>HaloGroupBox</class>
+   <class>KompaktGroupBox</class>
    <extends>QGroupBox</extends>
-   <header>qt_controls_pyrs</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
-   <class>HaloCheckBox</class>
+   <class>KompaktCheckBox</class>
    <extends>QCheckBox</extends>
-   <header>qt_controls_pyrs</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
-   <class>HaloButton</class>
+   <class>KompaktButton</class>
    <extends>QPushButton</extends>
-   <header>qt_controls_pyrs</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
    <class>NumberField</class>

@@ -71,6 +71,13 @@ OUTLINE_PEN_STYLE = Qt.PenStyle.DashLine
 #: macht ihn nur unscharf.
 MIN_OUTLINE_GAP_PX = 1.0
 
+#: Ab wieviel Bildpunkten lichter Weite das Saugerabstandsmass gezeichnet wird.
+#: Darunter waere der Pfeil breiter als die Luecke, die er bemasst.
+MIN_SPACING_MARK_PX = 4.0
+
+#: Wie weit die Beschriftung des Masses ueber den Saugern steht.
+SPACING_LABEL_LIFT_PX = 16.0
+
 
 class Vacuum2DView(QWidget):
     """Draufsicht der Saugerplatte mit den Paketen darunter."""
@@ -142,6 +149,7 @@ class Vacuum2DView(QWidget):
         painter.drawRect(plate_rect)
 
         self._draw_cups(painter, result, origin_x, origin_y, height_px, scale)
+        self._draw_spacing_mark(painter, result, origin_x, origin_y, height_px, scale)
         painter.setOpacity(1.0)
         self._draw_dimensions(painter, result, origin_x, origin_y, width_px, height_px)
         self._draw_legend(painter, result)
@@ -269,6 +277,67 @@ class Vacuum2DView(QWidget):
             QRectF(-h / 2.0, -16, h, 16), Qt.AlignmentFlag.AlignCenter,
             format(result.plate.width_mm, ".0f") + " mm",
         )
+        painter.restore()
+
+    def _draw_spacing_mark(
+        self, painter: QPainter, result, origin_x: float,
+        origin_y: float, height_px: float, scale: float,
+    ) -> None:
+        """Bemasst die Luecke zwischen zwei benachbarten Saugern.
+
+        Ohne dieses Mass liest sich das Bild falsch: die Sauger stossen nicht
+        aneinander, und das sieht aus, als waere noch Platz verschenkt worden.
+        Verschenkt ist nichts - die Luecke ist genau der eingestellte
+        Saugerabstand, und bei 0 mm liegen die Sauger wirklich an. Das Mass
+        sagt das, statt es den Betrachter raten zu lassen.
+
+        Bemasst wird das ERSTE Paar der untersten Reihe. Eine feste Wahl, damit
+        das Mass bei jeder Neuberechnung an derselben Stelle steht und nicht
+        ueber das Bild wandert.
+        """
+        paare = {}
+        for placement in result.placements:
+            paare.setdefault(placement.row_index, []).append(placement)
+        if not paare:
+            return
+        reihe = sorted(paare[min(paare)], key=lambda p: p.center_x_mm)
+        if len(reihe) < 2:
+            return
+
+        links, rechts = reihe[0], reihe[1]
+        aussen = result.cup.outer_diameter_mm
+        luft_mm = (rechts.center_x_mm - links.center_x_mm) - aussen
+        luft_px = luft_mm * scale
+        if luft_px < MIN_SPACING_MARK_PX:
+            return
+
+        y = origin_y + height_px - links.center_y_mm * scale
+        x1 = origin_x + (links.center_x_mm + aussen / 2.0) * scale
+        x2 = origin_x + (rechts.center_x_mm - aussen / 2.0) * scale
+
+        painter.save()
+        # Dieselbe Farbe wie die uebrige Bemassung am Plattenrand.
+        stift = QPen(QColor(PALETTE.text_muted), 1.0)
+        painter.setPen(stift)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+
+        # Der Strich in der Luecke, an beiden Enden ein kurzer Anschlag.
+        painter.drawLine(QPointF(x1, y), QPointF(x2, y))
+        for x in (x1, x2):
+            painter.drawLine(QPointF(x, y - 4.0), QPointF(x, y + 4.0))
+
+        # Die Beschriftung steht darueber: in der Luecke selbst waere kein
+        # Platz, sie ist ja gerade das, was bemasst wird.
+        text = format(luft_mm, ".1f").replace(".", ",") + " mm"
+        schrift = QFont(MONO_FAMILY.split(",")[0].strip())
+        schrift.setStyleHint(QFont.StyleHint.Monospace)
+        schrift.setPointSize(8)
+        painter.setFont(schrift)
+        breite = painter.fontMetrics().horizontalAdvance(text)
+        mitte = (x1 + x2) / 2.0
+        oben = y - SPACING_LABEL_LIFT_PX
+        painter.drawLine(QPointF(mitte, y - 4.0), QPointF(mitte, oben + 2.0))
+        painter.drawText(QPointF(mitte - breite / 2.0, oben), text)
         painter.restore()
 
     def _draw_legend(self, painter: QPainter, result: VacuumResult) -> None:

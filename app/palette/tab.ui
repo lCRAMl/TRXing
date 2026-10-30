@@ -6,11 +6,16 @@
    <string>Palettierung</string>
   </property>
   <layout class="QVBoxLayout" name="root">
-   <property name="leftMargin"><number>12</number></property>
-   <property name="topMargin"><number>10</number></property>
-   <property name="rightMargin"><number>12</number></property>
-   <property name="bottomMargin"><number>10</number></property>
-   <property name="spacing"><number>8</number></property>
+   <property name="leftMargin">
+     <number>6</number></property>
+   <property name="topMargin">
+     <number>6</number></property>
+   <property name="rightMargin">
+     <number>6</number></property>
+   <property name="bottomMargin">
+     <number>6</number></property>
+   <property name="spacing">
+     <number>4</number></property>
    <item>
     <widget class="QWidget" name="package_host">
      <property name="sizePolicy">
@@ -19,10 +24,14 @@
       </sizepolicy>
      </property>
      <layout class="QVBoxLayout" name="package_layout">
-      <property name="leftMargin"><number>0</number></property>
-      <property name="topMargin"><number>0</number></property>
-      <property name="rightMargin"><number>0</number></property>
-      <property name="bottomMargin"><number>0</number></property>
+      <property name="leftMargin">
+     <number>0</number></property>
+      <property name="topMargin">
+     <number>0</number></property>
+      <property name="rightMargin">
+     <number>0</number></property>
+      <property name="bottomMargin">
+     <number>0</number></property>
      </layout>
     </widget>
    </item>
@@ -49,13 +58,18 @@
       </property>
      <widget class="QWidget" name="controls">
       <layout class="QVBoxLayout" name="controls_layout">
-       <property name="leftMargin"><number>0</number></property>
-       <property name="topMargin"><number>0</number></property>
-       <property name="rightMargin"><number>6</number></property>
-       <property name="bottomMargin"><number>0</number></property>
-       <property name="spacing"><number>8</number></property>
+       <property name="leftMargin">
+     <number>0</number></property>
+       <property name="topMargin">
+     <number>0</number></property>
+       <property name="rightMargin">
+     <number>6</number></property>
+       <property name="bottomMargin">
+     <number>0</number></property>
+       <property name="spacing">
+     <number>4</number></property>
        <item>
-        <widget class="HaloGroupBox" name="selection_box">
+        <widget class="KompaktGroupBox" name="selection_box">
          <property name="title"><string>Palettenauswahl</string></property>
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
@@ -63,17 +77,21 @@
           </sizepolicy>
          </property>
          <layout class="QFormLayout" name="selection_form">
-          <property name="leftMargin"><number>10</number></property>
-          <property name="topMargin"><number>16</number></property>
-          <property name="rightMargin"><number>10</number></property>
-          <property name="bottomMargin"><number>10</number></property>
+          <property name="leftMargin">
+     <number>6</number></property>
+          <property name="topMargin">
+     <number>6</number></property>
+          <property name="rightMargin">
+     <number>6</number></property>
+          <property name="bottomMargin">
+     <number>6</number></property>
           <item row="0" column="0">
            <widget class="QLabel" name="pallet_caption">
             <property name="text"><string>Palettentyp</string></property>
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="HaloDropdown" name="pallet_box">
+           <widget class="KompaktDropdown" name="pallet_box">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
               <horstretch>0</horstretch><verstretch>0</verstretch>
@@ -91,7 +109,7 @@
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="HaloDropdown" name="pattern_box">
+           <widget class="KompaktDropdown" name="pattern_box">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
               <horstretch>0</horstretch><verstretch>0</verstretch>
@@ -120,7 +138,7 @@
         </widget>
        </item>
        <item>
-        <widget class="HaloGroupBox" name="limits_box">
+        <widget class="KompaktGroupBox" name="limits_box">
          <property name="title"><string>Grenzwerte</string></property>
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
@@ -128,10 +146,14 @@
           </sizepolicy>
          </property>
          <layout class="QFormLayout" name="limits_form">
-          <property name="leftMargin"><number>10</number></property>
-          <property name="topMargin"><number>16</number></property>
-          <property name="rightMargin"><number>10</number></property>
-          <property name="bottomMargin"><number>10</number></property>
+          <property name="leftMargin">
+     <number>6</number></property>
+          <property name="topMargin">
+     <number>6</number></property>
+          <property name="rightMargin">
+     <number>6</number></property>
+          <property name="bottomMargin">
+     <number>6</number></property>
           <item row="0" column="0">
            <widget class="QLabel" name="max_height_caption">
             <property name="text"><string>max. Hoehe [mm]</string></property>
@@ -165,7 +187,7 @@
            <widget class="IntField" name="desired"/>
           </item>
           <item row="4" column="1">
-           <widget class="HaloCheckBox" name="use_solver">
+           <widget class="KompaktCheckBox" name="use_solver">
             <property name="text">
              <string>Zusaetzlichen Loeser verwenden (langsamer, oft dichter)</string>
             </property>
@@ -177,13 +199,13 @@
        <item>
         <layout class="QHBoxLayout" name="button_row">
          <item>
-          <widget class="HaloButton" name="calculate_button">
+          <widget class="KompaktButton" name="calculate_button">
            <property name="text"><string>Berechnen</string></property>
            <property name="default"><bool>true</bool></property>
           </widget>
          </item>
          <item>
-          <widget class="HaloButton" name="cancel_button">
+          <widget class="KompaktButton" name="cancel_button">
            <property name="text"><string>Abbrechen</string></property>
            <property name="enabled"><bool>false</bool></property>
           </widget>
@@ -213,21 +235,26 @@
      </widget>
      <widget class="QWidget" name="view_panel">
       <layout class="QVBoxLayout" name="view_layout">
-       <property name="leftMargin"><number>0</number></property>
-       <property name="topMargin"><number>0</number></property>
-       <property name="rightMargin"><number>0</number></property>
-       <property name="bottomMargin"><number>0</number></property>
-       <property name="spacing"><number>6</number></property>
+       <property name="leftMargin">
+     <number>0</number></property>
+       <property name="topMargin">
+     <number>0</number></property>
+       <property name="rightMargin">
+     <number>0</number></property>
+       <property name="bottomMargin">
+     <number>0</number></property>
+       <property name="spacing">
+     <number>4</number></property>
        <item>
         <layout class="QHBoxLayout" name="view_bar">
          <item>
-          <widget class="HaloRadioButton" name="button_2d">
+          <widget class="KompaktRadioButton" name="button_2d">
            <property name="text"><string>2D Draufsicht</string></property>
            <property name="checked"><bool>true</bool></property>
           </widget>
          </item>
          <item>
-          <widget class="HaloRadioButton" name="button_3d">
+          <widget class="KompaktRadioButton" name="button_3d">
            <property name="text"><string>3D Ansicht</string></property>
           </widget>
          </item>
@@ -246,14 +273,14 @@
           </widget>
          </item>
          <item>
-          <widget class="HaloDropdown" name="layer_box">
+          <widget class="KompaktDropdown" name="layer_box">
            <property name="minimumSize">
             <size><width>110</width><height>0</height></size>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="HaloButton" name="reset_camera">
+          <widget class="KompaktButton" name="reset_camera">
            <property name="text"><string>Ansicht zuruecksetzen</string></property>
            <property name="visible"><bool>false</bool></property>
           </widget>
@@ -274,10 +301,14 @@
          <widget class="Pallet2DView" name="view_2d"/>
          <widget class="QWidget" name="scene_host">
           <layout class="QVBoxLayout" name="scene_layout">
-           <property name="leftMargin"><number>0</number></property>
-           <property name="topMargin"><number>0</number></property>
-           <property name="rightMargin"><number>0</number></property>
-           <property name="bottomMargin"><number>0</number></property>
+           <property name="leftMargin">
+     <number>0</number></property>
+           <property name="topMargin">
+     <number>0</number></property>
+           <property name="rightMargin">
+     <number>0</number></property>
+           <property name="bottomMargin">
+     <number>0</number></property>
           </layout>
          </widget>
         </widget>
@@ -290,29 +321,29 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>HaloDropdown</class>
+   <class>KompaktDropdown</class>
    <extends>QComboBox</extends>
-   <header>qt_controls_pyrs</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
-   <class>HaloGroupBox</class>
+   <class>KompaktGroupBox</class>
    <extends>QGroupBox</extends>
-   <header>qt_controls_pyrs</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
-   <class>HaloCheckBox</class>
+   <class>KompaktCheckBox</class>
    <extends>QCheckBox</extends>
-   <header>qt_controls_pyrs</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
-   <class>HaloRadioButton</class>
+   <class>KompaktRadioButton</class>
    <extends>QRadioButton</extends>
-   <header>qt_controls_pyrs</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
-   <class>HaloButton</class>
+   <class>KompaktButton</class>
    <extends>QPushButton</extends>
-   <header>qt_controls_pyrs</header>
+   <header>app.bedienelemente</header>
   </customwidget>
   <customwidget>
    <class>NumberField</class>
