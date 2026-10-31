@@ -38,7 +38,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout, QScrollArea, QSplitter, QVBoxLayout, QWidget
 )
 
-from app.fach.ergebnis import Status
+from app.fach.ergebnis import Status, classify
 from app.fach.einheiten import m3s_to_m3h, mbar_to_pa, pa_to_mbar
 from app.vakuum.daten import RestrictorMode, RestrictorSpec
 from app.vakuum.daten import GripDirection, LeakageSpec, VacuumInput, VacuumPlateSpec, VacuumResult
@@ -76,6 +76,32 @@ _STATUS_COLORS = {
     Status.MARGINAL: PALETTE.warning,
     Status.INSUFFICIENT: PALETTE.error,
 }
+
+
+def _ampel(vorhanden: float, noetig: float) -> str:
+    """Farbe fuer ein Wertepaar "das haben wir / das brauchen wir".
+
+    Geholt aus classify() und nicht hier entschieden - das ist dieselbe Regel,
+    aus der auch die Zeile "Bewertung" entsteht (app/vakuum/rechnung.py ruft
+    classify(max_mass, actual_mass)). Damit KANN eine Zahl der Bewertung nicht
+    widersprechen.
+
+    Genau das war vorher der Fall: "Wirksame Sauger" wurde gruen gefaerbt,
+    sobald die Zahl ungleich null war. Bei 104 wirksamen und 109 benoetigten
+    stand also gruen neben einem roten "Nicht ausreichend".
+
+    Mitgenommen ist das gelbe Band: classify() nennt es MARGINAL, wenn es
+    reicht, aber mit weniger als zehn Prozent Luft. Eine Ja/Nein-Faerbung
+    kann das nicht zeigen.
+
+    SAFE bleibt ABSICHTLICH farblos. Farbe heisst hier "sieh hin", und wo
+    nichts ist, soll sie nicht hinweisen: gefaerbt waeren sonst im guten Fall
+    sieben von elf Zeilen, und wer Gruen gewohnt ist, sieht Rot nicht mehr.
+    Dass alles passt, sagt die Zeile "Bewertung" - die ist gruen, und sie ist
+    die einzige, die es sein muss.
+    """
+    status = classify(vorhanden, noetig)
+    return "" if status is Status.SAFE else _STATUS_COLORS.get(status, "")
 
 
 #: Die Bedienspalte als Beschreibung.
@@ -262,11 +288,20 @@ class VacuumTab(TabHost):
         self.ui.view = Vacuum2DView()
         self.ui.view_layout.addWidget(self.ui.view, 1)
 
-        # Die beiden Ergebnisraster nebeneinander unter der Zeichnung.
+        # Die beiden Ergebnisraster nebeneinander unter der Zeichnung, jedes
+        # aber EINSPALTIG: Beschriftung links, Wert rechts, eine Zeile je Wert.
+        #
+        # Zweispaltig passte zwar mehr auf weniger Hoehe, kostete aber genau
+        # das, wofuer die Trennlinien da sind: eine Gruppe endete mitten in
+        # einer Rasterzeile und die naechste lief daneben weiter. "Benoetigte
+        # wirksame Sauger" stand neben "Tatsaechliches Gewicht", obwohl das
+        # eine zur ersten und das andere zur zweiten Gruppe gehoert. Vier
+        # Wertepaare in einer Reihe liest niemand von links nach rechts.
         self.ui.result_row = QHBoxLayout()
         self.ui.result_row.setSpacing(6)
-        self.ui.results = CompactResultGrid("Ergebnis")
-        self.ui.flow_results = CompactResultGrid("Vakuum, Kraft und Volumenstrom")
+        self.ui.results = CompactResultGrid("Ergebnis", columns=1)
+        self.ui.flow_results = CompactResultGrid(
+            "Vakuum, Kraft und Volumenstrom", columns=1)
         self.ui.result_row.addWidget(self.ui.results)
         self.ui.result_row.addWidget(self.ui.flow_results)
         self.ui.view_layout.addLayout(self.ui.result_row)
@@ -638,16 +673,22 @@ class VacuumTab(TabHost):
         grid = self.ui.results
         grid.set_value("status", result.status.label, _STATUS_COLORS.get(result.status, ""))
         grid.set_value("max_mass", format(result.max_package_mass_kg, ".2f") + " kg")
-        grid.set_value("actual_mass", format(result.actual_mass_kg, ".2f") + " kg")
+        # Die Last traegt die Farbe, nicht die Grenze: rot ist das Gewicht, das
+        # zu schwer ist, und nicht die Platte, die nicht mehr kann.
+        grid.set_value(
+            "actual_mass", format(result.actual_mass_kg, ".2f") + " kg",
+            _ampel(result.max_package_mass_kg, result.actual_mass_kg),
+        )
         grid.set_value(
             "needed_cups",
             str(result.required_cup_count) + " von " + str(result.sealed_count) + " wirksamen",
-            PALETTE.error if result.required_cup_count > result.sealed_count else "",
+            _ampel(result.sealed_count, result.required_cup_count),
         )
 
         grid.set_value("arrangement", self.ui.arrangement_box.currentText())
         grid.set_value("cups_total", str(result.total_cup_count) + " von max. " + str(result.max_cup_count))
-        grid.set_value("cups_sealed", str(result.sealed_count), PALETTE.ok if result.sealed_count else PALETTE.error)
+        grid.set_value("cups_sealed", str(result.sealed_count),
+                       _ampel(result.sealed_count, result.required_cup_count))
         grid.set_value("cups_partial", str(result.partial_count),
                        PALETTE.warning if result.partial_count else "")
         grid.set_value("cups_open", str(result.open_count), PALETTE.error if result.open_count else "")

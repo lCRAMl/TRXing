@@ -817,3 +817,93 @@ def test_der_abbruch_in_der_leiste_stoppt_die_rechnung(window, application, qt_a
     _settle(qt_app, application)
 
     assert application.jobs.active_count == 0
+
+
+# Ergebnisanzeige der Vakuumplatte ----------------------------------------------
+
+def _vakuum_mit_paket(window, application, qt_app, gewicht_kg: float):
+    """Rechnet die Vakuumplatte fuer ein Paket dieses Gewichts durch."""
+    from app.fach.paket import PackageSpec
+
+    application.context.packages.update_package(PackageSpec(
+        length_mm=400.0, width_mm=300.0, height_mm=200.0,
+        weight_kg=gewicht_kg, max_stack_load_kg=200.0,
+    ))
+    tab = window._tab_manager.widget_for("vacuum")
+    tab.calculate()
+    _settle(qt_app, application)
+    assert tab._result is not None, "die Vakuumplatte hat nicht gerechnet"
+    return tab
+
+
+def _farbe(raster, key: str) -> str:
+    from PyQt6.QtGui import QPalette
+
+    label = raster._rows[key]
+    return label.palette().color(QPalette.ColorRole.WindowText).name()
+
+
+def test_die_ergebnisse_der_vakuumplatte_stehen_untereinander(window):
+    """Zweispaltig gruppierten die Trennlinien nicht mehr.
+
+    Eine Gruppe endete mitten in einer Rasterzeile und die naechste lief
+    daneben weiter: "Benoetigte wirksame Sauger" stand neben "Tatsaechliches
+    Gewicht", obwohl das eine zur ersten und das andere zur zweiten Gruppe
+    gehoert.
+    """
+    tab = window._tab_manager.widget_for("vacuum")
+    assert tab.ui.results.columns == 1
+    assert tab.ui.flow_results.columns == 1
+
+
+def test_ein_zu_schweres_paket_faerbt_sein_gewicht(window, application, qt_app):
+    """Die Last traegt die Farbe, nicht die Grenze."""
+    from app.oberflaeche.darstellung import PALETTE
+
+    tab = _vakuum_mit_paket(window, application, qt_app, 400.0)
+    assert tab._result.actual_mass_kg > tab._result.max_package_mass_kg, (
+        "der Test braucht ein Paket, das die Platte NICHT traegt"
+    )
+    assert _farbe(tab.ui.results, "actual_mass") == PALETTE.error
+    # Die Grenze bleibt farblos - sie ist nicht das Problem.
+    assert _farbe(tab.ui.results, "max_mass") != PALETTE.error
+
+
+def test_zu_wenige_wirksame_sauger_werden_rot_und_nicht_gruen(window, application, qt_app):
+    """Der Widerspruch, den es vorher gab.
+
+    "Wirksame Sauger" wurde gruen gefaerbt, sobald die Zahl ungleich null war.
+    Bei 104 wirksamen und 109 benoetigten stand damit gruen neben einem roten
+    "Nicht ausreichend" - und zwar in derselben Anzeige.
+    """
+    from app.oberflaeche.darstellung import PALETTE
+
+    tab = _vakuum_mit_paket(window, application, qt_app, 400.0)
+    assert tab._result.required_cup_count > tab._result.sealed_count
+    assert tab._result.sealed_count > 0, (
+        "der Test braucht Sauger, die aufliegen - sonst greift die alte Regel "
+        "zufaellig das Richtige"
+    )
+
+    assert _farbe(tab.ui.results, "cups_sealed") == PALETTE.error
+    assert _farbe(tab.ui.results, "needed_cups") == PALETTE.error
+    assert _farbe(tab.ui.results, "status") == PALETTE.error
+
+
+def test_ein_gutes_ergebnis_faerbt_nur_die_bewertung(window, application, qt_app):
+    """Farbe heisst "sieh hin" - und wo nichts ist, soll sie nicht hinweisen.
+
+    Gefaerbt waeren sonst im guten Fall sieben von elf Zeilen, und wer Gruen
+    gewohnt ist, sieht Rot nicht mehr.
+    """
+    from app.fach.ergebnis import Status
+    from app.oberflaeche.darstellung import PALETTE
+
+    tab = _vakuum_mit_paket(window, application, qt_app, 5.0)
+    assert tab._result.status is Status.SAFE, "der Test braucht ein gutes Ergebnis"
+
+    assert _farbe(tab.ui.results, "status") == PALETTE.ok
+    for key in ("actual_mass", "needed_cups", "cups_sealed"):
+        assert _farbe(tab.ui.results, key) not in (PALETTE.ok, PALETTE.error), (
+            key + " ist gefaerbt, obwohl nichts zu melden ist"
+        )

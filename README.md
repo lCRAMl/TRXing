@@ -197,7 +197,13 @@ Von der Absicht zur Datei. Jede Zeile hat **genau eine** Stelle:
 | Welche Zeilen die Ergebnisanzeige hat | dieselben Dateien | `ERGEBNISZEILEN`, `STROMZEILEN`, `ABGELEITET`; `None` ist eine Trennlinie |
 | Einen neuen Feldtyp (es gibt noch keinen Baustein dafür) | `qt_controls_pyrs/formbuilder.py` | eine Datenklasse und ein Zweig in `_zelle()` |
 | Teiler, Rollfläche, Zeichenfläche, 3D-Szene, Ansichtsleiste | `app/palette/tab.py`, `app/vakuum/tab.py` | `_build_layout()` |
-| **Höhe, Innenabstand, Zeilenabstand aller Bedienelemente** | `qt_controls_pyrs/compact.py` | `COMPACT_HEIGHT`, `COMPACT_ROOM`, `COMPACT_PAD`, `COMPACT_SPACING` |
+| **Größe der Bedienelemente** — Höhe einer Leiste, Luftrand, Textabstand innen | `qt_controls_pyrs/compact.py` | `COMPACT_HEIGHT`, `COMPACT_ROOM`, `COMPACT_PAD` |
+| **Abstand zweier Formularzeilen** (senkrecht) | `qt_controls_pyrs/compact.py` | `COMPACT_SPACING` |
+| **Abstand Beschriftung ↔ Feld** und zwischen zwei Feldern einer Zeile | `qt_controls_pyrs/compact.py` | `COMPACT_SPACING_X` |
+| **Abstand zweier Gruppenrahmen** | `qt_controls_pyrs/compact.py` | `COMPACT_GROUP_SPACING` |
+| Rand und Abstand um die gesamte Tabfläche | `app/vakuum/tab.py`, `app/palette/tab.py` | `_build_layout()` — `root.setContentsMargins(6,6,6,6)`, `root.setSpacing(4)` |
+| Breite der Bedienspalte beim ersten Start | `app/vakuum/tab.py`, `app/palette/tab.py` | `SPLITTER_SIZES` — danach gilt, wohin der Benutzer den Griff zieht |
+| Wie schmal sich die Bedienspalte ziehen lässt | `app/vakuum/tab.py`, `app/palette/tab.py` | `_configure_layout()` — ergibt sich aus dem breitesten Inhalt |
 | Maße eines einzelnen Elementtyps (Pfeilspalte, Kästchengröße, Spaltenzahl des Ergebnisrasters) | `qt_controls_pyrs/compact.py` | die Konstanten der jeweiligen `Compact…`-Klasse |
 | Höhe der Statusleiste | `qt_controls_pyrs/compact.py` | `StatusBarButton` — eine Statusleiste ist so hoch wie ihr höchstes Element |
 | Einen Satz in der Hilfe, eine Formel, einen Quelltextverweis | `app/oberflaeche/hilfetexte/*.html` | eine Datei je Kapitel; `<<formel …>>` und `<<quelle …>>` sind die einzigen zwei Marken |
@@ -206,9 +212,16 @@ Von der Absicht zur Datei. Jede Zeile hat **genau eine** Stelle:
 | Wie ein Element **gezeichnet** wird (Halo, Animation, Pfeile) | `QtControlsPyRS` | die Klasse dort; `Compact…` erbt und ändert nur Zahlen |
 
 Die Faustregel dahinter: **was ein Feld bedeutet**, steht in der Beschreibung;
-**wie dicht** die Oberfläche gesetzt ist, in der Bibliothek; **wie sie
-aussieht**, in `app/oberflaeche/darstellung.py` und in der Bibliothek; **was
-ein Tab tut**, im Tab.
+**wie groß und wie dicht** die Oberfläche gesetzt ist, in
+`qt_controls_pyrs/compact.py`; **wie sie aussieht**, in
+`app/oberflaeche/darstellung.py` und in der Bibliothek; **was ein Tab tut**,
+im Tab.
+
+Ein Knopf dazwischen, der alles auf einmal verstellt: `FONT_SIZE_OFFSET_PT` in
+`app/oberflaeche/darstellung.py`. Die Schrift bestimmt Zeilenhöhen,
+Feldgrößen und Rahmen gleich mit — ein Punkt weniger macht die ganze
+Oberfläche spürbar kompakter, ohne dass eine einzige Zahl von Hand nachgezogen
+werden muss.
 
 > **Die Bibliothek ist geteilt.** `QtControlsPyRS` bedient mehrere Anwendungen,
 > und sie sollen alle gleich aussehen — deshalb liegen `compact.py` und
