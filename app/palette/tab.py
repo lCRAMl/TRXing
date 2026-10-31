@@ -58,8 +58,7 @@ from app.kontext import AppContext
 from app.palette.szene3d import create_scene
 from app.palette.zeichnung import Pallet2DView
 from app.formularbau import (
-    Ganzzahl, Gruppe, Hinweis, Knopf, Oberflaeche, Schalter, Wahl, Zahl,
-    Zeile, baue
+    Ganzzahl, Gruppe, Hinweis, Oberflaeche, Schalter, Wahl, Zahl, baue
 )
 
 MODULE_ID = "pallet"
@@ -117,8 +116,13 @@ BEDIENSPALTE = [
         [Schalter("use_solver", "Zusaetzlichen Loeser verwenden (langsamer, oft dichter)")],
     ], name="limits_box", oben=True),
 
-    Zeile([Knopf("calculate_button", "Berechnen", vorgabe=True),
-           Knopf("cancel_button", "Abbrechen", aktiv=False)]),
+#: Keine Knopfzeile mehr.
+#:
+#: Gerechnet wird nach jeder Eingabe von selbst, entprellt. Ein Knopf
+#: "Berechnen" war damit ein zweiter Weg zum gleichen Ergebnis - und einer,
+#: der beim Hinsehen das Gegenteil behauptet: wer ihn sieht, haelt die Anzeige
+#: fuer veraltet, bis er geklickt hat. Der Abbruch steht in der Statusleiste,
+#: neben dem Fortschritt, den er abbricht (siehe app/meldungen.py).
 ]
 
 #: Das Ergebnisraster steht NICHT in der Bedienspalte.
@@ -315,9 +319,6 @@ class PalletTab(TabHost):
                 grid.add_row(*eintrag)
 
     def _connect(self) -> None:
-        self.ui.calculate_button.clicked.connect(self.calculate)
-        self.ui.cancel_button.clicked.connect(self._service.cancel)
-
         self.ui.pallet_box.currentIndexChanged.connect(self._on_pallet_changed)
         self.ui.pattern_box.currentIndexChanged.connect(self._on_pattern_changed)
         for field in (self.ui.max_height, self.ui.max_load, self.ui.gap, self.ui.desired):
@@ -417,8 +418,6 @@ class PalletTab(TabHost):
         self._service.calculate_async(package, pallet, pattern, constraints, snapshot.revision)
 
     def _on_started(self, ticket) -> None:
-        self.ui.cancel_button.setEnabled(True)
-        self.ui.calculate_button.setEnabled(False)
         # Waehrend gerechnet wird, wird das bisherige Ergebnis blass gezeichnet -
         # es steht noch da, gilt aber schon nicht mehr.
         self.ui.view_2d.set_stale(True)
@@ -426,8 +425,6 @@ class PalletTab(TabHost):
             self._scene.set_stale(True)
 
     def _on_result(self, result: PalletResult) -> None:
-        self.ui.cancel_button.setEnabled(False)
-        self.ui.calculate_button.setEnabled(True)
         self._result = result
         self._result_revision = result.meta.state_revision
         self._needs_recalculation = False
@@ -435,8 +432,6 @@ class PalletTab(TabHost):
         self._show_result(result)
 
     def _on_failed(self, message: str) -> None:
-        self.ui.cancel_button.setEnabled(False)
-        self.ui.calculate_button.setEnabled(True)
         self.ui.results.clear_values()
         self.ui.banner.show_message(message)
 
@@ -541,9 +536,13 @@ class PalletTab(TabHost):
             self._scene.reset_camera()
 
     def _update_enabled(self) -> None:
-        has_package = self._context.state.snapshot().package is not None
-        self.ui.calculate_button.setEnabled(has_package)
-        if not has_package:
+        """Ohne Paketdaten gibt es nichts zu rechnen - das muss dastehen.
+
+        Frueher wurde zusaetzlich der Knopf "Berechnen" gesperrt. Den gibt es
+        nicht mehr, und das Band sagt deutlicher, WARUM nichts passiert, als
+        ein grauer Knopf es konnte.
+        """
+        if self._context.state.snapshot().package is None:
             self.ui.banner.show_message(MISSING_PACKAGE)
 
     def _is_stale(self) -> bool:
@@ -582,8 +581,8 @@ class PalletTab(TabHost):
     def on_activated(self) -> None:
         """Beim Aufschlagen rechnen, wenn das Angezeigte nicht mehr stimmt.
 
-        Auch beim allerersten Aufschlagen: ein leerer Tab, der erst auf einen
-        Klick auf "Berechnen" wartet, obwohl alle Eingaben vorliegen, ist eine
+        Auch beim allerersten Aufschlagen: ein leerer Tab, der auf eine
+        Handlung wartet, obwohl alle Eingaben vorliegen, ist eine
         ueberfluessige Huerde.
         """
         if self._result is None or self._needs_recalculation or self._is_stale():

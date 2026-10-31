@@ -68,7 +68,7 @@ class Pallet2DView(QWidget):
 
         result = self._result
         if result is None or not result.layers:
-            self._draw_placeholder(painter, "Noch kein Ergebnis - auf 'Berechnen' klicken.")
+            self._draw_placeholder(painter, "Noch kein Ergebnis - Paketdaten eingeben.")
             painter.end()
             return
 

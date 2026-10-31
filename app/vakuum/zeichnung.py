@@ -110,7 +110,7 @@ class Vacuum2DView(QWidget):
         if result is None:
             painter.setPen(QColor(PALETTE.text_muted))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter,
-                             "Noch kein Ergebnis - Werte eingeben oder auf 'Berechnen' klicken.")
+                             "Noch kein Ergebnis - Werte eingeben.")
             painter.end()
             return
 

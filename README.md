@@ -48,7 +48,7 @@ Fehlt eine optionale Abhängigkeit, läuft die Anwendung vollständig weiter: di
 ## Tests
 
 ```bash
-python -m pytest              # alle 550 Tests, rund 13 Sekunden
+python -m pytest              # alle 554 Tests, rund 15 Sekunden
 python -m pytest tests/test_architecture.py   # nur die Schichtregeln
 python -m pytest tests/test_formularbau.py    # nur den Formularbau
 ```
@@ -93,7 +93,7 @@ Wer die Einheit änderte, musste zwei Dateien anfassen.
 | `Text` | `KompaktLineEdit` | einzeilige Eingabe |
 | `Schalter` | `KompaktCheckBox` | Kästchen, mit `angehakt` und `hinweis` |
 | `Auswahlknopf` | `KompaktRadioButton` | genau einer von mehreren |
-| `Knopf` | `KompaktButton` | mit `vorgabe`, `aktiv`, `sichtbar` |
+| `Knopf` | `KompaktButton` | mit `vorgabe`, `aktiv`, `sichtbar`; in den Tabs zurzeit nicht benutzt — gerechnet wird nach jeder Eingabe |
 | `Hinweis` | `QLabel` (`role="note"`) | Erklärung unter einer Zeile |
 | `Raster` | `ResultGrid` | Ergebniswerte; Zeilen trägt der Tab nach |
 | `Platz` | `QWidget` | Platzhalter für Zeichenfläche oder 3D-Szene |
@@ -111,7 +111,16 @@ Beide Tabs sind gleich gebaut:
    links   Eingaben      scrollt, wenn es eng wird
    rechts  Zeichnung     bekommt allen Platz, der übrig ist
            Ergebnis      steht fest darunter
+[Statusleiste]           Meldung · Tätigkeit · Fortschritt · Abbruch · Probleme
 ```
+
+**Keine Knöpfe „Berechnen" und „Abbrechen" mehr.** Gerechnet wird nach jeder
+Eingabe von selbst, entprellt; ein Knopf „Berechnen" war damit ein zweiter Weg
+zum selben Ergebnis — und einer, der beim Hinsehen das Gegenteil behauptet: wer
+ihn sieht, hält die Anzeige für veraltet, bis er geklickt hat. Der Abbruch
+blieb nötig (ein Lauf mit dem zusätzlichen Löser kann lange dauern) und steht
+jetzt in der Statusleiste, neben dem Fortschritt, den er abbricht — sichtbar
+nur, solange etwas läuft.
 
 Das Ergebnis steht **außerhalb** der Rollfläche. In der Bedienspalte rollte es
 mit und war bei kleinem Fenster weggescrollt — ausgerechnet das, worauf man
@@ -144,6 +153,37 @@ weiterhin im Quelltext. Das sind Einzelstücke und keine Formularzeilen;
 den ein Tab unter `self.ui` anspricht, muss auch gebaut werden. Ohne diese
 Prüfung fällt ein vergessener Eintrag erst beim Öffnen des Tabs auf, weit weg
 von der Ursache.
+
+### Wo stelle ich was ein
+
+Von der Absicht zur Datei. Jede Zeile hat **genau eine** Stelle:
+
+| Ich will ändern … | Datei | Wo darin |
+|---|---|---|
+| Beschriftung, Einheit, Grenzen, Schrittweite, Vorgabewert, Tooltip eines Feldes | `app/palette/tab.py`, `app/vakuum/tab.py`, `app/palette/formular.py` | in `BEDIENSPALTE` / `FORMULAR` — alles steht in einer Zeile beieinander |
+| Reihenfolge der Felder, was nebeneinander steht, Gruppenaufteilung | dieselben Dateien | die Listenstruktur; eine innere Liste ist eine Zeile auf dem Schirm |
+| Beschriftung über statt neben dem Feld | dieselben Dateien | `Gruppe(…, oben=True)` |
+| Welche Zeilen die Ergebnisanzeige hat | dieselben Dateien | `ERGEBNISZEILEN`, `STROMZEILEN`, `ABGELEITET`; `None` ist eine Trennlinie |
+| Einen neuen Feldtyp (es gibt noch keinen Baustein dafür) | `app/formularbau.py` | eine Datenklasse und ein Zweig in `_zelle()` |
+| Teiler, Rollfläche, Zeichenfläche, 3D-Szene, Ansichtsleiste | `app/palette/tab.py`, `app/vakuum/tab.py` | `_build_layout()` |
+| **Höhe, Innenabstand, Zeilenabstand aller Bedienelemente** | `app/bedienelemente.py` | `KOMPAKT_HOEHE`, `KOMPAKT_RAND`, `KOMPAKT_PAD`, `KOMPAKT_ABSTAND` |
+| Maße eines einzelnen Elementtyps (Pfeilspalte, Kästchengröße, Spaltenzahl des Ergebnisrasters) | `app/bedienelemente.py` | die Konstanten der jeweiligen `Kompakt…`-Klasse |
+| Höhe der Statusleiste | `app/bedienelemente.py` | `LeistenKnopf` — eine Statusleiste ist so hoch wie ihr höchstes Element |
+| Farben, Schriftgröße, Stylesheet | `app/darstellung.py` | `PALETTE`, `FONT_SIZE_OFFSET_PT`, `stylesheet()`, `HALO_OVERRIDES` |
+| Wie ein Element **gezeichnet** wird (Halo, Animation, Pfeile) | `QtControlsPyRS` | die Klasse dort; `Kompakt…` erbt und ändert nur Zahlen |
+
+Die Faustregel dahinter: **was ein Feld bedeutet**, steht in der Beschreibung;
+**wie dicht** die Oberfläche gesetzt ist, in `app/bedienelemente.py`; **wie sie
+aussieht**, in `app/darstellung.py` und in der Bibliothek; **was ein Tab tut**,
+im Tab.
+
+> **Eine Falle, die zweimal zugeschlagen hat.** `setMinimumWidth()` und jede
+> Kastenangabe im Stylesheet (`margin`, `padding`, auch mit Wert `0`) sind
+> **ausdrückliche Vorgaben** und schlagen das, was ein Widget selbst ausrechnet.
+> So verdeckte in jedem Rahmen die Überschrift die erste Zeile, und so stand in
+> einem Stückzahlfeld `:glich` statt `so viele wie moeglich`. Wer eine solche
+> Vorgabe setzt, meint fast immer eine Untergrenze — dann gehört ein `max(…)`
+> dazu.
 
 ---
 

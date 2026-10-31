@@ -725,3 +725,95 @@ def test_changing_the_package_withdraws_the_published_layer(window, package_form
     assert application.context.pallets.published_layer() is None, (
         "die Lage zum alten Paket wird weiter angeboten"
     )
+
+
+# Masse der Oberflaeche --------------------------------------------------------
+
+def test_kein_rahmen_verdeckt_seine_ueberschrift(window, qt_app):
+    """Die Ueberschrift sitzt in einer Luecke im oberen Strich des Rahmens.
+
+    Der Inhalt muss darunter beginnen. Dass er es tat, haing an Raendern, die
+    der Rahmen sich selbst setzt - und die loescht jede Kastenangabe im
+    Stylesheet, `margin`, `padding`, auch mit Wert 0. HALO_OVERRIDES braucht
+    eine: nur so verschwindet das `margin-top: 27px`, das darkstyle.qss jeder
+    QGroupBox gibt. Das Ergebnis war, dass in JEDEM Rahmen beider Tabs die
+    erste Zeile in der Ueberschrift lag.
+
+    Geprueft wird am Bildpunkt und nicht am Rand: wo der Rahmen seine Raender
+    hinterlegt, ist eine Eigenheit von Qt, aber wo die erste Zeile steht,
+    sieht man.
+    """
+    from PyQt6.QtWidgets import QGroupBox
+
+    # Jeder Tab muss einmal sichtbar gewesen sein - ungezeigte Widgets haben
+    # noch keine Geometrie, und dann messen wir Nullen.
+    for stelle in (TAB_PALLET, TAB_VACUUM):
+        window.centralWidget().setCurrentIndex(stelle)
+        qt_app.processEvents()
+    qt_app.processEvents()
+
+    geprueft = 0
+    for rahmen in window.findChildren(QGroupBox):
+        layout = rahmen.layout()
+        if layout is None or layout.count() == 0 or not hasattr(rahmen, "_title_rect"):
+            continue
+        erstes = layout.itemAt(0).widget()
+        if erstes is None:
+            continue
+        geprueft += 1
+        assert erstes.y() >= rahmen._title_rect().bottom(), (
+            "'" + rahmen.title() + "': die erste Zeile liegt in der Ueberschrift"
+        )
+
+    assert geprueft >= 8, "zu wenige Rahmen gefunden - der Test greift ins Leere"
+
+
+def test_die_statusleiste_bleibt_flach(window, qt_app):
+    """Sie war 82 Bildpunkte hoch, gut anderthalb Zentimeter.
+
+    Eine QStatusBar ist so hoch wie ihr hoechstes Element, und das war ein
+    HaloButton mit seinen Vorgabemassen: 45 Pixel Hoehe plus 16 Pixel Luft je
+    Seite, zusammen 77. Die beiden Textanzeigen daneben brauchen 16 und wurden
+    auf 77 mitgezogen.
+
+    Die Grenze ist grosszuegig gewaehlt: geprueft wird nicht ein Mass, sondern
+    dass keine Vorgabe der Bibliothek die Leiste wieder aufblaest.
+    """
+    hoehe = window.statusBar().height()
+    assert hoehe <= 40, "die Statusleiste ist " + str(hoehe) + " Bildpunkte hoch"
+
+
+def test_der_abbruch_zeigt_sich_nur_waehrend_einer_rechnung(window, qt_app):
+    """Ein dauerhaft sichtbarer, gesperrter Abbruch beantwortet die Frage
+    'laeuft gerade was?' falsch - er sieht aus wie ein Bedienelement und ist
+    meistens keines."""
+    leiste = window.statusBar()
+    assert not leiste._cancel.isVisible()
+
+    leiste.set_activity(1, "Palettierung")
+    qt_app.processEvents()
+    assert leiste._cancel.isVisible()
+
+    leiste.set_activity(0, "")
+    qt_app.processEvents()
+    assert not leiste._cancel.isVisible()
+
+
+def test_der_abbruch_in_der_leiste_stoppt_die_rechnung(window, application, qt_app):
+    """Der Knopf "Abbrechen" stand in der Bedienspalte der Palettierung.
+
+    Gerechnet wird nach jeder Eingabe von selbst; ein Knopf "Berechnen" war
+    damit ueberfluessig, der Abbruch aber nicht - ein Lauf mit dem
+    zusaetzlichen Loeser kann lange dauern. Er sitzt jetzt neben dem
+    Fortschritt, den er abbricht, und bricht beide Kanaele ab: die Leiste
+    sieht, DASS gerechnet wird, nicht von wem.
+    """
+    pallet = window._tab_manager.widget_for("pallet")
+    pallet.calculate()
+    qt_app.processEvents()
+
+    window.statusBar()._cancel.click()
+    qt_app.processEvents()
+    _settle(qt_app, application)
+
+    assert application.jobs.active_count == 0

@@ -64,8 +64,8 @@ jedem Formular noch einmal.
 __all__ = [
     "Debouncer", "IntField", "KompaktButton", "KompaktCheckBox",
     "KompaktDoubleSpinBox", "KompaktDropdown", "KompaktGroupBox",
-    "KompaktLineEdit", "KompaktRadioButton", "KompaktSpinBox", "NumberField",
-    "ResultGrid", "StaleBanner", "compact_combo", "mono_font",
+    "KompaktLineEdit", "KompaktRadioButton", "KompaktSpinBox", "LeistenKnopf",
+    "NumberField", "ResultGrid", "StaleBanner", "compact_combo", "mono_font",
     "restore_splitter", "save_splitter", "store",
 ]
 
@@ -155,10 +155,41 @@ class KompaktGroupBox(HaloGroupBox):
 
 
 class KompaktButton(HaloButton):
-    """Knopf, eng gesetzt."""
+    """Knopf, eng gesetzt.
+
+    ROOM ist der Platz, in den der Strich unter der Maus nach AUSSEN wandert -
+    bei HaloButton 16 Bildpunkte je Seite. Auf einer 45 Pixel hohen Leiste ist
+    das ein Drittel, auf einer 26 Pixel hohen mehr als die Leiste selbst: der
+    Knopf belegte 58 Bildpunkte, um 26 zu zeigen.
+
+    Vier und nicht zwei wie bei den Eingabefeldern. Deren Schein ist ein
+    Rahmen, der an Ort und Stelle aufglimmt; hier ist der wandernde Strich die
+    ganze Wirkung, und bei zwei Bildpunkten waere von der Bewegung nichts
+    uebrig.
+    """
 
     HEIGHT = KOMPAKT_HOEHE
+    ROOM = 4
     PAD = 14
+
+
+class LeistenKnopf(HaloButton):
+    """Knopf fuer die Statusleiste.
+
+    Die Leiste war 82 Bildpunkte hoch - gut anderthalb Zentimeter - und 77
+    davon gingen auf diesen einen Knopf: HaloButton setzt 45 Pixel Hoehe und
+    16 Pixel Luft je Seite an, und die Statusleiste richtet sich nach ihrem
+    hoechsten Element. Die beiden Textanzeigen daneben wurden auf dieselben 77
+    Pixel mitgezogen, obwohl sie 16 brauchen.
+
+    Hier zeigt eine Statusleiste kein Bedienelement, sondern eine Zahl, die
+    man anklicken kann. 18 Pixel reichen fuer die Schrift, 3 fuer den Schein -
+    die Leiste ist damit 26 Pixel hoch, etwa ein halber Zentimeter.
+    """
+
+    HEIGHT = 18
+    ROOM = 3
+    PAD = 10
 
 
 class KompaktCheckBox(HaloCheckBox):

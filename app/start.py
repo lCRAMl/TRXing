@@ -235,6 +235,11 @@ class MainWindow(QMainWindow):
 
         self._status = StatusBar(self)
         self._status.problems_clicked.connect(self.show_problems)
+        # Die Leiste sieht, DASS gerechnet wird, aber nicht, von wem. Abgebrochen
+        # wird deshalb alles Laufende - zwei Kanaele hat die Anwendung, und wer
+        # auf den Abbruch neben dem Fortschrittsbalken drueckt, meint den
+        # Fortschritt, den er sieht.
+        self._status.cancel_requested.connect(context.jobs.cancel_all)
         self.setStatusBar(self._status)
 
         self._bridge = ErrorBridge(context.reporter, self)

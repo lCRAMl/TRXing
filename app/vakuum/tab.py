@@ -52,8 +52,7 @@ from app.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
 from app.vakuum.zeichnung import Vacuum2DView
 from app.formularbau import (
-    Ganzzahl, Gruppe, Hinweis, Knopf, Oberflaeche, Schalter, Wahl, Zahl,
-    Zeile, baue
+    Ganzzahl, Gruppe, Hinweis, Oberflaeche, Schalter, Wahl, Zahl, baue
 )
 
 MODULE_ID = "vacuum"
@@ -159,7 +158,13 @@ BEDIENSPALTE = [
                           "Aus: rechnet mit dem eingestellten Sollvakuum und warnt nur bei Ueberlast.")],
     ], name="physics_box", oben=True),
 
-    Zeile([Knopf("calculate_button", "Berechnen", vorgabe=True)]),
+#: Keine Knopfzeile mehr.
+#:
+#: Gerechnet wird nach jeder Eingabe von selbst, entprellt. Ein Knopf
+#: "Berechnen" war damit ein zweiter Weg zum gleichen Ergebnis - und einer,
+#: der beim Hinsehen das Gegenteil behauptet: wer ihn sieht, haelt die Anzeige
+#: fuer veraltet, bis er geklickt hat. Der Abbruch steht in der Statusleiste,
+#: neben dem Fortschritt, den er abbricht (siehe app/meldungen.py).
 ]
 
 #: Die Zeilen der beiden Ergebnisanzeigen. None ist eine Trennlinie.
@@ -309,7 +314,6 @@ class VacuumTab(TabHost):
                     raster.add_row(*eintrag)
 
     def _connect(self) -> None:
-        self.ui.calculate_button.clicked.connect(self.calculate)
 
         self.ui.cup_box.currentIndexChanged.connect(self._on_cup_changed)
         self.ui.arrangement_box.currentIndexChanged.connect(self._on_arrangement_changed)
@@ -611,13 +615,11 @@ class VacuumTab(TabHost):
         self._service.calculate_async(request, snapshot.revision)
 
     def _on_started(self, _ticket) -> None:
-        self.ui.calculate_button.setEnabled(False)
         # Das bisherige Ergebnis bleibt stehen, wird aber blass gezeichnet:
         # es gilt schon nicht mehr, ist aber besser als eine leere Flaeche.
         self.ui.view.set_stale(True)
 
     def _on_result(self, result: VacuumResult) -> None:
-        self.ui.calculate_button.setEnabled(True)
         self._result = result
         self._result_revision = result.meta.state_revision
         self._needs_recalculation = False
@@ -626,7 +628,6 @@ class VacuumTab(TabHost):
         self._show_result(result)
 
     def _on_failed(self, message: str) -> None:
-        self.ui.calculate_button.setEnabled(True)
         self.ui.results.clear_values()
         self.ui.flow_results.clear_values()
         self.ui.banner.show_message(message)
@@ -719,7 +720,7 @@ class VacuumTab(TabHost):
         """Beim Aufschlagen rechnen, wenn das Angezeigte nicht mehr stimmt.
 
         Auch beim allerersten Aufschlagen: ein leerer Tab, der erst auf einen
-        Klick auf "Berechnen" wartet, obwohl alle Eingaben vorliegen, ist eine
+        Handlung wartet, obwohl alle Eingaben vorliegen, ist eine
         ueberfluessige Huerde.
         """
         if self._result is None or self._needs_recalculation or self._is_stale():

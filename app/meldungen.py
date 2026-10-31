@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from app.fehler import AppError, ErrorReporter, Severity
-from app.bedienelemente import mono_font
+from app.bedienelemente import LeistenKnopf, mono_font
 from PyQt6.QtCore import QObject, pyqtSignal
 from app.fehler import AppError, ErrorReporter
 from qt_controls_pyrs import HaloButton
@@ -53,6 +53,16 @@ oeffnet, plus eine Fortschrittsanzeige fuer laufende Berechnungen.
 Feste Breiten sind hier keine Kosmetik. Die Tatigkeitsanzeige nennt den Namen
 der laufenden Berechnung, und die Namen sind unterschiedlich lang. Ohne feste
 Breite verschiebt jeder Wechsel die Anzeigen daneben - die Leiste zappelt.
+
+Die Hoehe der Leiste ist die Hoehe ihres hoechsten Elements. Jeder Knopf darin
+ist deshalb ein LeistenKnopf und kein gewoehnlicher - siehe dort, warum das
+einmal anderthalb Zentimeter gekostet hat.
+
+Hier steht auch der Abbruch. Gerechnet wird nach jeder Eingabe von selbst, ein
+Knopf "Berechnen" waere also nur noch ein zweiter Weg zum selben Ergebnis; der
+Abbruch dagegen bleibt noetig, weil ein Lauf mit dem zusaetzlichen Loeser lange
+dauern kann. Er gehoert dorthin, wo auch steht, DASS gerechnet wird - und
+zeigt sich nur dann.
 """
 
 ACTIVITY_WIDTH = 260
@@ -73,9 +83,15 @@ def elide(label: QLabel, text: str, width: int) -> None:
 
 
 class StatusBar(QStatusBar):
-    """problems_clicked() - der Benutzer moechte die Problemliste sehen."""
+    """problems_clicked() - der Benutzer moechte die Problemliste sehen.
+
+    cancel_requested() - der Benutzer moechte die laufende Berechnung stoppen.
+    Die Leiste weiss nicht, welche das ist und bricht deshalb nichts selbst
+    ab; sie meldet nur den Wunsch. Was daraus wird, entscheidet das Fenster.
+    """
 
     problems_clicked = pyqtSignal()
+    cancel_requested = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -92,15 +108,26 @@ class StatusBar(QStatusBar):
 
         self._progress = QProgressBar()
         self._progress.setFixedWidth(130)
+        self._progress.setFixedHeight(14)
         self._progress.setTextVisible(False)
         self._progress.setVisible(False)
         self.addPermanentWidget(self._progress)
+
+        # Nur sichtbar, solange etwas laeuft. Ein dauerhaft sichtbarer, aber
+        # gesperrter Abbruch beantwortet die Frage "laeuft gerade was?" falsch:
+        # er sieht aus wie ein Bedienelement und ist meistens keines.
+        self._cancel = LeistenKnopf("Abbrechen")
+        self._cancel.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._cancel.setToolTip("Bricht die laufende Berechnung ab")
+        self._cancel.setVisible(False)
+        self._cancel.clicked.connect(self.cancel_requested.emit)
+        self.addPermanentWidget(self._cancel)
 
         self._config = QLabel("")
         self._config.setStyleSheet("color: " + PALETTE.text_muted + ";")
         self.addPermanentWidget(self._config)
 
-        self._problems = HaloButton("Keine Probleme")
+        self._problems = LeistenKnopf("Keine Probleme")
         self._problems.setFlat(True)
         self._problems.setCursor(Qt.CursorShape.PointingHandCursor)
         self._problems.clicked.connect(self.problems_clicked.emit)
@@ -140,10 +167,12 @@ class StatusBar(QStatusBar):
         if count <= 0:
             elide(self._activity, "", ACTIVITY_WIDTH)
             self._progress.setVisible(False)
+            self._cancel.setVisible(False)
             return
         elide(self._activity, text or "Berechnung laeuft", ACTIVITY_WIDTH)
         self._progress.setVisible(True)
         self._progress.setRange(0, 0)  # unbestimmt, bis Fortschritt kommt
+        self._cancel.setVisible(True)
 
     def set_progress(self, current: int, total: int, text: str = "") -> None:
         if total <= 0:
