@@ -13,16 +13,16 @@ from dataclasses import replace
 
 import pytest
 
-from app.fach.ergebnis import Status
-from app.fach.einheiten import lpm_to_m3s, m3s_to_m3h, mbar_to_pa
-from app.fach.geometrie import Footprint
-from app.fach.paket import PackageSpec
-from app.vakuum.daten import ContactClass, RestrictorMode, RestrictorSpec, SuctionPlacement
-from app.vakuum.daten import GripDirection, LeakageModel, LeakageSpec, PumpSpec, VacuumInput, VacuumPlateSpec
-from app.fach.geometrie import circle_rect_overlap_area_mm2
-from app.vakuum import anordnung, physik
-from app.vakuum.rechnung import VacuumCalculator, VacuumError
-from app.vakuum.physik import workpiece_flow_m3s
+from app.domain.results import Status
+from app.domain.units import lpm_to_m3s, m3s_to_m3h, mbar_to_pa
+from app.domain.geometry import Footprint
+from app.domain.package import PackageSpec
+from app.vacuum.models import ContactClass, RestrictorMode, RestrictorSpec, SuctionPlacement
+from app.vacuum.models import GripDirection, LeakageModel, LeakageSpec, PumpSpec, VacuumInput, VacuumPlateSpec
+from app.domain.geometry import circle_rect_overlap_area_mm2
+from app.vacuum import layout, physics
+from app.vacuum.calculator import VacuumCalculator, VacuumError
+from app.vacuum.physics import workpiece_flow_m3s
 
 
 @pytest.fixture
@@ -54,13 +54,13 @@ def base_request(package, plate, cup_spb2_30, settings):
 def test_force_at_600mbar_matches_the_datasheet(settings, cup_id, force_n):
     """Spezifikation 25: bei -0,6 bar muss exakt der Herstellerwert herauskommen."""
     cup = settings.get_suction_cup(cup_id)
-    assert physik.holding_force_per_cup_n(cup, mbar_to_pa(600)) == pytest.approx(force_n, abs=0.01)
+    assert physics.holding_force_per_cup_n(cup, mbar_to_pa(600)) == pytest.approx(force_n, abs=0.01)
 
 
 def test_force_scales_with_pressure(settings):
     cup = settings.get_suction_cup("spb2_40")
-    at_600 = physik.holding_force_per_cup_n(cup, mbar_to_pa(600))
-    at_300 = physik.holding_force_per_cup_n(cup, mbar_to_pa(300))
+    at_600 = physics.holding_force_per_cup_n(cup, mbar_to_pa(600))
+    at_300 = physics.holding_force_per_cup_n(cup, mbar_to_pa(300))
     assert at_300 == pytest.approx(at_600 / 2.0, rel=1e-6)
 
 
@@ -75,8 +75,8 @@ def test_force_is_capped_by_the_pull_off_limit(settings):
     Vakuumgrenze.
     """
     cup = settings.get_suction_cup("spb2_40")  # Abreisskraft 40,5 N
-    assert physik.holding_force_per_cup_n(cup, mbar_to_pa(1000)) == pytest.approx(40.5)
-    assert physik.holding_force_per_cup_n(cup, mbar_to_pa(600)) == pytest.approx(24.8, abs=0.01)
+    assert physics.holding_force_per_cup_n(cup, mbar_to_pa(1000)) == pytest.approx(40.5)
+    assert physics.holding_force_per_cup_n(cup, mbar_to_pa(600)) == pytest.approx(24.8, abs=0.01)
 
 
 def test_lateral_limit_binds_for_side_grip(settings):
@@ -86,61 +86,61 @@ def test_lateral_limit_binds_for_side_grip(settings):
     Wer seitlich greift, rechnet also mit dem kleineren Wert.
     """
     cup = settings.get_suction_cup("spb2_30")
-    assert physik.cup_force_limit_n(cup, GripDirection.VERTICAL) == pytest.approx(12.8)
-    assert physik.cup_force_limit_n(cup, GripDirection.HORIZONTAL) == pytest.approx(28.4)
+    assert physics.cup_force_limit_n(cup, GripDirection.VERTICAL) == pytest.approx(12.8)
+    assert physics.cup_force_limit_n(cup, GripDirection.HORIZONTAL) == pytest.approx(28.4)
 
-    result = physik.evaluate(cup, sealed_count=1, vacuum_pa=mbar_to_pa(600), mass_kg=1.0,
+    result = physics.evaluate(cup, sealed_count=1, vacuum_pa=mbar_to_pa(600), mass_kg=1.0,
                             safety_factor=1.0, grip=GripDirection.VERTICAL)
     assert result.limited_by_cup_strength is True
     assert result.per_cup_n == pytest.approx(12.8)
 
 
 def test_no_vacuum_no_force(settings):
-    assert physik.holding_force_per_cup_n(settings.get_suction_cup("spb2_30"), 0.0) == 0.0
+    assert physics.holding_force_per_cup_n(settings.get_suction_cup("spb2_30"), 0.0) == 0.0
 
 
 def test_safety_factor_reduces_the_liftable_mass():
-    plain = physik.max_mass_kg(100.0, safety_factor=1.0)
-    safe = physik.max_mass_kg(100.0, safety_factor=2.0)
+    plain = physics.max_mass_kg(100.0, safety_factor=1.0)
+    safe = physics.max_mass_kg(100.0, safety_factor=2.0)
     assert safe == pytest.approx(plain / 2.0)
     assert plain == pytest.approx(100.0 / 9.80665)
 
 
 def test_acceleration_reduces_the_liftable_mass():
-    static = physik.max_mass_kg(100.0, safety_factor=1.0, acceleration_ms2=0.0)
-    moving = physik.max_mass_kg(100.0, safety_factor=1.0, acceleration_ms2=9.80665)
+    static = physics.max_mass_kg(100.0, safety_factor=1.0, acceleration_ms2=0.0)
+    moving = physics.max_mass_kg(100.0, safety_factor=1.0, acceleration_ms2=9.80665)
     assert moving == pytest.approx(static / 2.0)
 
 
 def test_side_grip_needs_more_force_than_top_grip():
     """Seitlich haengt die Last an der Reibung - die Normalkraft muss groesser sein."""
-    top = physik.required_force_n(10.0, 2.0, grip=GripDirection.HORIZONTAL)
-    side = physik.required_force_n(10.0, 2.0, grip=GripDirection.VERTICAL, friction_factor=0.5)
+    top = physics.required_force_n(10.0, 2.0, grip=GripDirection.HORIZONTAL)
+    side = physics.required_force_n(10.0, 2.0, grip=GripDirection.VERTICAL, friction_factor=0.5)
     assert side == pytest.approx(top / 0.5)
 
 
 def test_required_cup_count_rounds_up(settings):
     cup = settings.get_suction_cup("spb2_30")  # 14,4 N bei -0,6 bar
     # 10 kg mal 9,80665 mal 1,0 = 98,07 N -> 98,07 / 14,4 = 6,81 -> 7 Sauger
-    assert physik.required_cup_count(10.0, cup, mbar_to_pa(600), safety_factor=1.0) == 7
+    assert physics.required_cup_count(10.0, cup, mbar_to_pa(600), safety_factor=1.0) == 7
 
 
 def test_bigger_cup_lifts_more(settings):
-    small = physik.holding_force_per_cup_n(settings.get_suction_cup("spb2_20"), mbar_to_pa(600))
-    large = physik.holding_force_per_cup_n(settings.get_suction_cup("spb2_50"), mbar_to_pa(600))
+    small = physics.holding_force_per_cup_n(settings.get_suction_cup("spb2_20"), mbar_to_pa(600))
+    large = physics.holding_force_per_cup_n(settings.get_suction_cup("spb2_50"), mbar_to_pa(600))
     assert large > small * 4
 
 
 # Saugerverteilung -------------------------------------------------------------
 
 def test_automatic_layout_fills_the_plate(plate, cup_spb2_30):
-    result = anordnung.SuctionLayoutEngine().distribute(cup_spb2_30, plate)
+    result = layout.SuctionLayoutEngine().distribute(cup_spb2_30, plate)
     assert result.count == result.max_count > 0
     assert result.columns > 1 and result.rows > 1
 
 
 def test_cups_stay_on_the_plate(plate, cup_spb2_30):
-    result = anordnung.SuctionLayoutEngine().distribute(cup_spb2_30, plate)
+    result = layout.SuctionLayoutEngine().distribute(cup_spb2_30, plate)
     radius = cup_spb2_30.outer_diameter_mm / 2.0
     for placement in result.placements:
         assert placement.center_x_mm - radius >= -1e-6
@@ -150,21 +150,21 @@ def test_cups_stay_on_the_plate(plate, cup_spb2_30):
 
 
 def test_minimum_spacing_is_respected(plate, cup_spb2_30):
-    result = anordnung.SuctionLayoutEngine().distribute(cup_spb2_30, plate)
+    result = layout.SuctionLayoutEngine().distribute(cup_spb2_30, plate)
     minimum = cup_spb2_30.outer_diameter_mm + plate.min_spacing_mm
     assert result.pitch_x_mm >= minimum - 1e-6
     assert result.pitch_y_mm >= minimum - 1e-6
 
 
 def test_bigger_cup_means_fewer_positions(plate, settings):
-    engine = anordnung.SuctionLayoutEngine()
+    engine = layout.SuctionLayoutEngine()
     small = engine.distribute(settings.get_suction_cup("spb2_20"), plate)
     large = engine.distribute(settings.get_suction_cup("spb2_50"), plate)
     assert large.count < small.count
 
 
 def test_bigger_plate_means_more_positions(cup_spb2_30):
-    engine = anordnung.SuctionLayoutEngine()
+    engine = layout.SuctionLayoutEngine()
     small = engine.distribute(cup_spb2_30, VacuumPlateSpec(400.0, 300.0))
     large = engine.distribute(cup_spb2_30, VacuumPlateSpec(1200.0, 900.0))
     assert large.count > small.count
@@ -172,14 +172,14 @@ def test_bigger_plate_means_more_positions(cup_spb2_30):
 
 def test_requested_count_is_honoured_when_it_fits(plate, cup_spb2_30):
     """Spezifikation 16: weniger Sauger muessen gleichmaessig verteilt werden."""
-    result = anordnung.SuctionLayoutEngine().distribute(cup_spb2_30, plate, wanted_count=24)
+    result = layout.SuctionLayoutEngine().distribute(cup_spb2_30, plate, wanted_count=24)
     assert result.count == 24
     assert result.columns * result.rows == 24
     assert result.count < result.max_count
 
 
 def test_reduced_count_stays_evenly_spread(plate, cup_spb2_30):
-    result = anordnung.SuctionLayoutEngine().distribute(cup_spb2_30, plate, wanted_count=24)
+    result = layout.SuctionLayoutEngine().distribute(cup_spb2_30, plate, wanted_count=24)
     spacings = sorted({round(p.center_x_mm, 3) for p in result.placements})
     steps = [round(b - a, 3) for a, b in zip(spacings, spacings[1:])]
     assert len(set(steps)) == 1, "Die Spalten muessen gleichen Abstand haben"
@@ -192,32 +192,32 @@ def test_awkward_count_does_not_become_a_single_line(plate, cup_spb2_30):
     ab. Stattdessen wird ein ausgewogenes Raster gewaehlt und der ueberzaehlige
     Platz entfernt.
     """
-    result = anordnung.SuctionLayoutEngine().distribute(cup_spb2_30, plate, wanted_count=7)
+    result = layout.SuctionLayoutEngine().distribute(cup_spb2_30, plate, wanted_count=7)
     assert result.count == 7
     assert result.columns > 1 and result.rows > 1
 
 
 @pytest.mark.parametrize("wanted", [1, 2, 3, 5, 7, 11, 13, 17, 23, 24, 31, 48])
 def test_any_requested_count_is_delivered_exactly(plate, cup_spb2_30, wanted):
-    result = anordnung.SuctionLayoutEngine().distribute(cup_spb2_30, plate, wanted_count=wanted)
+    result = layout.SuctionLayoutEngine().distribute(cup_spb2_30, plate, wanted_count=wanted)
     assert result.count == wanted, "Angeforderte Saugerzahl muss genau getroffen werden"
 
 
 def test_more_cups_than_possible_is_reported(plate, cup_spb2_30):
-    result = anordnung.SuctionLayoutEngine().distribute(cup_spb2_30, plate, wanted_count=100000)
+    result = layout.SuctionLayoutEngine().distribute(cup_spb2_30, plate, wanted_count=100000)
     assert result.count == result.max_count
     assert result.notes, "Eine Abweichung von der Vorgabe muss gemeldet werden"
 
 
 def test_plate_too_small_for_the_cup_reports_clearly(settings):
     tiny = VacuumPlateSpec(length_mm=20.0, width_mm=20.0, edge_margin_mm=25.0)
-    result = anordnung.SuctionLayoutEngine().distribute(settings.get_suction_cup("spb2_50"), tiny)
+    result = layout.SuctionLayoutEngine().distribute(settings.get_suction_cup("spb2_50"), tiny)
     assert result.count == 0
     assert "zu klein" in result.notes[0]
 
 
 def test_layout_is_reproducible(plate, cup_spb2_30):
-    engine = anordnung.SuctionLayoutEngine()
+    engine = layout.SuctionLayoutEngine()
     first = engine.distribute(cup_spb2_30, plate, 24)
     second = engine.distribute(cup_spb2_30, plate, 24)
     assert [(p.center_x_mm, p.center_y_mm) for p in first.placements] == \
@@ -232,7 +232,7 @@ def _cup_at(x: float, y: float, index: int = 0) -> SuctionPlacement:
 
 def test_cup_fully_on_the_package_is_sealed(cup_spb2_30):
     package = Footprint(0.0, 0.0, 400.0, 300.0)
-    summary = physik.classify((_cup_at(200.0, 150.0),), (package,), cup_spb2_30)
+    summary = physics.classify((_cup_at(200.0, 150.0),), (package,), cup_spb2_30)
     assert summary.sealed_count == 1
     assert summary.contacts[0].contact is ContactClass.SEALED
     assert summary.contacts[0].coverage_ratio == pytest.approx(1.0)
@@ -240,7 +240,7 @@ def test_cup_fully_on_the_package_is_sealed(cup_spb2_30):
 
 def test_cup_far_away_is_open(cup_spb2_30):
     package = Footprint(0.0, 0.0, 400.0, 300.0)
-    summary = physik.classify((_cup_at(700.0, 500.0),), (package,), cup_spb2_30)
+    summary = physics.classify((_cup_at(700.0, 500.0),), (package,), cup_spb2_30)
     assert summary.open_count == 1
     assert summary.contacts[0].contact is ContactClass.OPEN
     assert summary.contacts[0].covered_area_mm2 == 0.0
@@ -254,7 +254,7 @@ def test_cup_on_the_edge_is_partial_not_sealed(cup_spb2_30):
     """
     package = Footprint(0.0, 0.0, 400.0, 300.0)
     just_inside = cup_spb2_30.sealing_lip_diameter_mm / 2.0 - 2.0
-    summary = physik.classify((_cup_at(just_inside, 150.0),), (package,), cup_spb2_30)
+    summary = physics.classify((_cup_at(just_inside, 150.0),), (package,), cup_spb2_30)
 
     assert summary.partial_count == 1
     assert summary.sealed_count == 0
@@ -264,24 +264,24 @@ def test_cup_on_the_edge_is_partial_not_sealed(cup_spb2_30):
 def test_partial_cup_carries_nothing_by_default(cup_spb2_30):
     package = Footprint(0.0, 0.0, 400.0, 300.0)
     edge = cup_spb2_30.sealing_lip_diameter_mm / 2.0 - 2.0
-    summary = physik.classify((_cup_at(edge, 150.0),), (package,), cup_spb2_30)
+    summary = physics.classify((_cup_at(edge, 150.0),), (package,), cup_spb2_30)
     assert summary.effective_area_mm2 == 0.0
-    assert physik.bearing_count(summary) == 0
+    assert physics.bearing_count(summary) == 0
 
 
 def test_partial_cup_can_be_counted_on_request(cup_spb2_30):
     package = Footprint(0.0, 0.0, 400.0, 300.0)
     edge = cup_spb2_30.sealing_lip_diameter_mm / 2.0 - 2.0
-    summary = physik.classify((_cup_at(edge, 150.0),), (package,), cup_spb2_30, count_partial_as_sealed=True)
+    summary = physics.classify((_cup_at(edge, 150.0),), (package,), cup_spb2_30, count_partial_as_sealed=True)
     assert summary.effective_area_mm2 > 0.0
-    assert physik.bearing_count(summary, True) == 1
+    assert physics.bearing_count(summary, True) == 1
 
 
 def test_cup_spanning_two_packages_does_not_seal(cup_spb2_30):
     """Zwischen zwei Kartons liegt eine Fuge - dort dichtet nichts."""
     left = Footprint(0.0, 0.0, 200.0, 300.0)
     right = Footprint(200.0, 0.0, 200.0, 300.0)
-    summary = physik.classify((_cup_at(200.0, 150.0),), (left, right), cup_spb2_30)
+    summary = physics.classify((_cup_at(200.0, 150.0),), (left, right), cup_spb2_30)
     assert summary.partial_count == 1
     assert summary.sealed_count == 0
 
@@ -290,7 +290,7 @@ def test_covered_area_is_exact(cup_spb2_30):
     """Die Ueberdeckung wird gerechnet, nicht geschaetzt."""
     package = Footprint(0.0, 0.0, 400.0, 300.0)
     radius = cup_spb2_30.sealing_lip_diameter_mm / 2.0
-    summary = physik.classify((_cup_at(0.0, 150.0),), (package,), cup_spb2_30)
+    summary = physics.classify((_cup_at(0.0, 150.0),), (package,), cup_spb2_30)
     expected = circle_rect_overlap_area_mm2(0.0, 150.0, radius, 0.0, 0.0, 400.0, 300.0)
 
     assert summary.contacts[0].covered_area_mm2 == pytest.approx(expected)
@@ -299,8 +299,8 @@ def test_covered_area_is_exact(cup_spb2_30):
 
 def test_effective_area_grows_with_sealed_cups(cup_spb2_30):
     package = Footprint(0.0, 0.0, 400.0, 300.0)
-    one = physik.classify((_cup_at(200.0, 150.0),), (package,), cup_spb2_30)
-    two = physik.classify((_cup_at(150.0, 150.0), _cup_at(250.0, 150.0, 1)), (package,), cup_spb2_30)
+    one = physics.classify((_cup_at(200.0, 150.0),), (package,), cup_spb2_30)
+    two = physics.classify((_cup_at(150.0, 150.0), _cup_at(250.0, 150.0, 1)), (package,), cup_spb2_30)
     assert two.effective_area_mm2 == pytest.approx(2 * one.effective_area_mm2)
 
 
@@ -348,30 +348,30 @@ def test_every_leakage_model_is_implemented():
 def test_open_cup_flow_is_in_the_expected_order_of_magnitude(settings):
     """dn 4,0 mm bei -0,6 bar liegt bei rund 7 m3/h, dn 6,1 mm bei rund 17."""
     ambient = 101325.0
-    small = physik.open_cup_flow_m3s(settings.get_suction_cup("spb2_30"), RestrictorSpec(), 60000.0, ambient)
-    large = physik.open_cup_flow_m3s(settings.get_suction_cup("spb2_50"), RestrictorSpec(), 60000.0, ambient)
+    small = physics.open_cup_flow_m3s(settings.get_suction_cup("spb2_30"), RestrictorSpec(), 60000.0, ambient)
+    large = physics.open_cup_flow_m3s(settings.get_suction_cup("spb2_50"), RestrictorSpec(), 60000.0, ambient)
 
     assert 5.0 < m3s_to_m3h(small) < 9.0
     assert 14.0 < m3s_to_m3h(large) < 20.0
 
 
 def test_no_pressure_difference_no_flow(settings):
-    assert physik.open_cup_flow_m3s(settings.get_suction_cup("spb2_30"), RestrictorSpec(), 0.0, 101325.0) == 0.0
+    assert physics.open_cup_flow_m3s(settings.get_suction_cup("spb2_30"), RestrictorSpec(), 0.0, 101325.0) == 0.0
 
 
 def test_flow_is_choked_above_the_critical_ratio(settings):
     """Ueber dem kritischen Druckverhaeltnis waechst der Strom nicht weiter."""
     cup = settings.get_suction_cup("spb2_30")
-    at_600 = physik.open_cup_flow_m3s(cup, RestrictorSpec(), 60000.0, 101325.0)
-    at_800 = physik.open_cup_flow_m3s(cup, RestrictorSpec(), 80000.0, 101325.0)
+    at_600 = physics.open_cup_flow_m3s(cup, RestrictorSpec(), 60000.0, 101325.0)
+    at_800 = physics.open_cup_flow_m3s(cup, RestrictorSpec(), 80000.0, 101325.0)
     assert at_800 == pytest.approx(at_600, rel=1e-9)
 
 
 def test_restrictor_reduces_the_flow(settings):
     cup = settings.get_suction_cup("spb2_50")
-    without = physik.open_cup_flow_m3s(cup, RestrictorSpec(RestrictorMode.NONE), 60000.0, 101325.0)
-    throttled = physik.open_cup_flow_m3s(cup, RestrictorSpec(RestrictorMode.ORIFICE, diameter_mm=1.0), 60000.0, 101325.0)
-    valved = physik.open_cup_flow_m3s(
+    without = physics.open_cup_flow_m3s(cup, RestrictorSpec(RestrictorMode.NONE), 60000.0, 101325.0)
+    throttled = physics.open_cup_flow_m3s(cup, RestrictorSpec(RestrictorMode.ORIFICE, diameter_mm=1.0), 60000.0, 101325.0)
+    valved = physics.open_cup_flow_m3s(
         cup, RestrictorSpec(RestrictorMode.CHECK_VALVE, check_valve_leak_ratio=0.005), 60000.0, 101325.0
     )
     assert throttled < without
@@ -380,17 +380,17 @@ def test_restrictor_reduces_the_flow(settings):
 
 def test_pump_curve_falls_with_vacuum():
     pump = PumpSpec(nominal_flow_m3s=0.01, max_vacuum_pa=80000.0)
-    assert physik.pump_flow_m3s(pump, 0.0) == pytest.approx(0.01)
-    assert physik.pump_flow_m3s(pump, 40000.0) == pytest.approx(0.005)
-    assert physik.pump_flow_m3s(pump, 80000.0) == 0.0
+    assert physics.pump_flow_m3s(pump, 0.0) == pytest.approx(0.01)
+    assert physics.pump_flow_m3s(pump, 40000.0) == pytest.approx(0.005)
+    assert physics.pump_flow_m3s(pump, 80000.0) == 0.0
 
 
 def test_pump_curve_points_are_interpolated():
     pump = PumpSpec(nominal_flow_m3s=0.01, max_vacuum_pa=80000.0,
                     curve_points=((0.0, 0.02), (40000.0, 0.010), (80000.0, 0.0)))
-    assert physik.pump_flow_m3s(pump, 20000.0) == pytest.approx(0.015)
-    assert physik.pump_flow_m3s(pump, 60000.0) == pytest.approx(0.005)
-    assert physik.pump_flow_m3s(pump, 999999.0) == 0.0
+    assert physics.pump_flow_m3s(pump, 20000.0) == pytest.approx(0.015)
+    assert physics.pump_flow_m3s(pump, 60000.0) == pytest.approx(0.005)
+    assert physics.pump_flow_m3s(pump, 999999.0) == 0.0
 
 
 # Gesamtrechnung ---------------------------------------------------------------
@@ -480,7 +480,7 @@ def test_more_packages_mean_more_sealed_cups(calculator, base_request):
 def test_reverse_calculation_gives_the_maximum_mass(calculator, base_request):
     """Spezifikation 24: die zentrale Rueckwaertsfrage."""
     result = calculator.calculate(replace(base_request, package_count=4))
-    expected = physik.max_mass_kg(
+    expected = physics.max_mass_kg(
         result.force.total_holding_n, base_request.safety_factor,
         base_request.acceleration_ms2, base_request.gravity_ms2,
         base_request.grip, base_request.friction_factor,
@@ -565,7 +565,7 @@ def test_result_is_reproducible(calculator, base_request):
 
 
 def test_cancellation_stops_the_run(calculator, base_request):
-    from app.technik.nebenlaeufig import CancellationToken, CancelledError
+    from app.infra.jobs import CancellationToken, CancelledError
 
     token = CancellationToken()
     token.cancel()
@@ -616,8 +616,8 @@ def test_package_layout_grows_from_the_inside_outwards(strategy):
     package = PackageSpec(200.0, 150.0, 120.0, 2.0)
 
     for count in range(1, 13):
-        before, _ = anordnung.package_layout(package, plate, count, strategy=strategy)
-        after, _ = anordnung.package_layout(package, plate, count + 1, strategy=strategy)
+        before, _ = layout.package_layout(package, plate, count, strategy=strategy)
+        after, _ = layout.package_layout(package, plate, count + 1, strategy=strategy)
         assert len(after) == count + 1
 
         old_positions = _grouped(before)
@@ -649,7 +649,7 @@ def test_package_group_is_centred_by_its_centre_of_mass(count):
     """
     plate = VacuumPlateSpec(800.0, 600.0)
     package = PackageSpec(200.0, 150.0, 120.0, 2.0)
-    rects, _notes = anordnung.package_layout(package, plate, count)
+    rects, _notes = layout.package_layout(package, plate, count)
 
     centre_x = sum(f.x_mm + f.length_mm / 2.0 for f in rects) / len(rects)
     centre_y = sum(f.y_mm + f.width_mm / 2.0 for f in rects) / len(rects)
@@ -663,8 +663,8 @@ def test_package_layout_uses_the_pattern_from_tab_two():
     plate = VacuumPlateSpec(800.0, 600.0)
     package = PackageSpec(200.0, 150.0, 120.0, 2.0)
 
-    grid, _ = anordnung.package_layout(package, plate, 9, strategy="uniform_grid")
-    bond, _ = anordnung.package_layout(package, plate, 9, strategy="running_bond")
+    grid, _ = layout.package_layout(package, plate, 9, strategy="uniform_grid")
+    bond, _ = layout.package_layout(package, plate, 9, strategy="running_bond")
 
     assert _grouped(grid) != _grouped(bond)
 
@@ -679,8 +679,8 @@ def test_package_layout_uses_the_pattern_from_tab_two():
 def test_package_layout_is_reproducible():
     plate = VacuumPlateSpec(800.0, 600.0)
     package = PackageSpec(200.0, 150.0, 120.0, 2.0)
-    first, _ = anordnung.package_layout(package, plate, 6, strategy="checkerboard")
-    second, _ = anordnung.package_layout(package, plate, 6, strategy="checkerboard")
+    first, _ = layout.package_layout(package, plate, 6, strategy="checkerboard")
+    second, _ = layout.package_layout(package, plate, 6, strategy="checkerboard")
     assert first == second
 
 
@@ -705,13 +705,13 @@ def test_the_plate_area_is_filled_before_packages_hang_over():
 
     # 4 x 4 Pakete passen kantenbuendig unter die Platte.
     for count in (1, 4, 12, 16):
-        rects, _ = anordnung.package_layout(package, plate, count)
+        rects, _ = layout.package_layout(package, plate, count)
         assert under_plate(rects) == count, (
             str(count) + " Pakete muessten vollstaendig unter die Platte passen"
         )
 
     # Darueber hinaus haengt ueber, was nicht mehr hineinpasst.
-    rects, notes = anordnung.package_layout(package, plate, 20)
+    rects, notes = layout.package_layout(package, plate, 20)
     assert under_plate(rects) == 16
     assert any("ragen ueber die Platte hinaus" in note for note in notes)
 
@@ -736,7 +736,7 @@ def test_the_package_group_grows_sideways_not_upwards():
 
     previous_width = 0.0
     for count in (4, 5, 6, 7, 8):
-        rects, _ = anordnung.package_layout(package, plate, count)
+        rects, _ = layout.package_layout(package, plate, count)
         width, height = extent(rects)
         assert height == pytest.approx(plate.width_mm), (
             str(count) + " Pakete bauen sich in die Hoehe auf"
@@ -752,7 +752,7 @@ def test_two_packages_lie_next_to_each_other():
     plate = VacuumPlateSpec(800.0, 600.0)
     package = PackageSpec(400.0, 300.0, 200.0, 5.0)
 
-    rects, _ = anordnung.package_layout(package, plate, 2)
+    rects, _ = layout.package_layout(package, plate, 2)
 
     assert len({round(f.y_mm, 3) for f in rects}) == 1
     assert len({round(f.x_mm, 3) for f in rects}) == 2
@@ -767,7 +767,7 @@ def test_growth_direction_does_not_depend_on_the_package_shape():
     plate = VacuumPlateSpec(600.0, 800.0)
     package = PackageSpec(300.0, 400.0, 200.0, 5.0)
 
-    rects, _ = anordnung.package_layout(package, plate, 6)
+    rects, _ = layout.package_layout(package, plate, 6)
     columns = len({round(f.x_mm, 3) for f in rects})
     rows = len({round(f.y_mm, 3) for f in rects})
 
@@ -862,9 +862,9 @@ def test_no_cup_lies_partially_on_a_package_it_does_not_reach(cup_spb2_30):
     """
     plate = VacuumPlateSpec(length_mm=800.0, width_mm=600.0, edge_margin_mm=25.0, min_spacing_mm=10.0)
     package = Footprint(200.0, 160.0, 400.0, 280.0, False)
-    placements = anordnung.SuctionLayoutEngine().distribute(cup_spb2_30, plate, 0).placements
+    placements = layout.SuctionLayoutEngine().distribute(cup_spb2_30, plate, 0).placements
 
-    summary = physik.classify(placements, (package,), cup_spb2_30)
+    summary = physics.classify(placements, (package,), cup_spb2_30)
     by_index = {c.placement_index: c for c in summary.contacts}
     radius = cup_spb2_30.sealing_lip_diameter_mm / 2.0
 
@@ -921,7 +921,7 @@ def test_the_pallet_layer_reaches_the_plate_unchanged():
     package = PackageSpec(360.0, 230.0, 200.0, 5.0)
     layer_rects = _pallet_layer()
 
-    adopted, _notes = anordnung.package_layout(
+    adopted, _notes = layout.package_layout(
         package, plate, len(layer_rects), strategy="uniform_grid", layer=layer_rects
     )
 
@@ -930,7 +930,7 @@ def test_the_pallet_layer_reaches_the_plate_unchanged():
 
     # Und die Gegenprobe: ohne die Lage kommt etwas anderes heraus. Faellt
     # diese Zusicherung, prueft der Test oben nichts mehr.
-    generated, _ = anordnung.package_layout(package, plate, len(layer_rects), strategy="uniform_grid")
+    generated, _ = layout.package_layout(package, plate, len(layer_rects), strategy="uniform_grid")
     assert _relative(generated) != _relative(layer_rects)
 
 
@@ -951,7 +951,7 @@ def test_fewer_packages_take_a_subset_of_the_same_layer():
     package = PackageSpec(360.0, 230.0, 200.0, 5.0)
     layer_rects = _pallet_layer()
 
-    complete, _ = anordnung.package_layout(
+    complete, _ = layout.package_layout(
         package, plate, len(layer_rects), strategy="uniform_grid", layer=layer_rects
     )
     places = {(round(f.x_mm, 3), round(f.y_mm, 3)) for f in complete}
@@ -960,7 +960,7 @@ def test_fewer_packages_take_a_subset_of_the_same_layer():
     # test_a_single_package_always_sits_in_the_middle.
     previous: set[tuple[float, float]] = set()
     for count in range(2, len(layer_rects) + 1):
-        selected, _ = anordnung.package_layout(
+        selected, _ = layout.package_layout(
             package, plate, count, strategy="uniform_grid", layer=layer_rects
         )
         assert len(selected) == count
@@ -997,7 +997,7 @@ def test_a_single_package_always_sits_in_the_middle():
     for length, width in ((1200.0, 800.0), (800.0, 600.0), (500.0, 400.0)):
         plate = VacuumPlateSpec(length, width, edge_margin_mm=25.0, min_spacing_mm=10.0)
         for adopted in (layer_rects, ()):
-            selected, _ = anordnung.package_layout(
+            selected, _ = layout.package_layout(
                 package, plate, 1, strategy="uniform_grid", layer=adopted
             )
             assert len(selected) == 1
@@ -1022,7 +1022,7 @@ def test_more_packages_than_the_layer_fall_back_to_the_pattern():
     package = PackageSpec(360.0, 230.0, 200.0, 5.0)
     layer_rects = _pallet_layer()
 
-    selected, notes = anordnung.package_layout(
+    selected, notes = layout.package_layout(
         package, plate, len(layer_rects) + 3, strategy="uniform_grid", layer=layer_rects
     )
 

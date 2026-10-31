@@ -17,7 +17,7 @@ from dataclasses import replace
 
 import pytest
 
-from app.fach.vorgang import StateChange
+from app.domain.state import StateChange
 
 pytestmark = pytest.mark.usefixtures("qt_app")
 
@@ -35,7 +35,7 @@ def package_form(window):
 
 @pytest.fixture
 def window(qt_app, application):
-    from app.start import MainWindow
+    from app.application import MainWindow
 
     win = MainWindow(application.context, application.registry)
     # Der zuletzt benutzte Tab wird aus den Benutzereinstellungen
@@ -83,8 +83,8 @@ def test_both_tabs_appear(window):
 
 def test_no_tab_failed_to_build(window, application):
     """Ein gescheiterter Tab bekommt einen Platzhalter - der darf hier nicht auftauchen."""
-    from app.palette.tab import PalletTab
-    from app.vakuum.tab import VacuumTab
+    from app.pallet.tab import PalletTab
+    from app.vacuum.tab import VacuumTab
 
     manager = window._tab_manager
     assert isinstance(manager.widget_for("pallet"), PalletTab)
@@ -94,7 +94,7 @@ def test_no_tab_failed_to_build(window, application):
 def test_the_package_form_sits_at_the_top_of_the_pallet_tab(window, package_form):
     """Die Paketdaten sind kein eigener Tab mehr, sondern das erste Formular
     der Palettierung - noch ueber der Palettenauswahl."""
-    from app.palette.formular import PackageForm
+    from app.pallet.form import PackageForm
 
     tab = window._tab_manager.widget_for("pallet")
     assert isinstance(package_form, PackageForm)
@@ -120,7 +120,7 @@ def test_a_new_module_needs_only_one_line(application):
     """Spezifikation 06: ein weiteres Modul aendert nichts an der Architektur."""
     from PyQt6.QtWidgets import QLabel
 
-    from app.start import ModuleRegistry
+    from app.application import ModuleRegistry
 
     class DemoModule:
         module_id = "demo"
@@ -453,7 +453,7 @@ def test_pattern_from_the_pallet_tab_reaches_the_vacuum_tab(window, application,
 
 def test_invalidation_map_covers_every_change(application):
     """Jede Zustandsaenderung muss wissen, welche Anzeige sie entwertet."""
-    from app.fach.vorgang import AppState
+    from app.domain.state import AppState
 
     for change in StateChange:
         assert AppState.invalidated_channels(change), (
@@ -580,9 +580,9 @@ def test_the_application_icon_is_there(qt_app):
     die passende. Bleibt nur eine uebrig, sieht sie in der anderen Groesse
     ausgefranst aus.
     """
-    from app.oberflaeche.icons import app_icon, app_icon_path
+    from app.gui.icons import app_icon, app_icon_path
 
-    assert app_icon_path().is_file(), "pallet.ico fehlt neben app/oberflaeche/icons/__init__.py"
+    assert app_icon_path().is_file(), "pallet.ico fehlt neben app/gui/icons/__init__.py"
 
     icon = app_icon()
     assert not icon.isNull()
@@ -599,7 +599,7 @@ def test_the_icon_travels_with_the_package():
     """
     import AUTOBUILD
 
-    from app.oberflaeche.icons import app_icon_path
+    from app.gui.icons import app_icon_path
 
     assert AUTOBUILD.ICON_FILE == app_icon_path(), (
         "Bauskript und Anwendung meinen verschiedene Dateien"
@@ -607,7 +607,7 @@ def test_the_icon_travels_with_the_package():
     assert AUTOBUILD.ICON_FILE.is_file()
 
     bundled = {target for _source, target in AUTOBUILD.DATA_FILES}
-    assert "app/oberflaeche/icons" in bundled, "Der Symbolordner fehlt in DATA_FILES"
+    assert "app/gui/icons" in bundled, "Der Symbolordner fehlt in DATA_FILES"
 
 
 def test_the_spacing_field_says_what_it_costs(window, qt_app):
@@ -643,7 +643,7 @@ def test_a_single_value_can_be_coloured(window, qt_app):
     """
     from PyQt6.QtGui import QColor
 
-    from app.oberflaeche.darstellung import PALETTE
+    from app.gui.theme import PALETTE
 
     grid = window._tab_manager.widget_for("vacuum").ui.results
     soll = QColor(PALETTE.error)
@@ -684,8 +684,8 @@ def test_the_help_styles_follow_the_palette():
     Fest verdrahtete helle Untergruende ergaben in der dunklen Fassung weisse
     Schrift auf weisser Tabelle.
     """
-    from app.oberflaeche.hilfe import STYLE
-    from app.oberflaeche.darstellung import PALETTE
+    from app.gui.help_dialog import STYLE
+    from app.gui.theme import PALETTE
 
     assert PALETTE.surface_alt in STYLE
     assert PALETTE.border in STYLE
@@ -872,7 +872,7 @@ def test_der_abbruch_in_der_leiste_stoppt_die_rechnung(window, application, qt_a
 
 def _vakuum_mit_paket(window, application, qt_app, gewicht_kg: float):
     """Rechnet die Vakuumplatte fuer ein Paket dieses Gewichts durch."""
-    from app.fach.paket import PackageSpec
+    from app.domain.package import PackageSpec
 
     application.context.packages.update_package(PackageSpec(
         length_mm=400.0, width_mm=300.0, height_mm=200.0,
@@ -920,7 +920,7 @@ def test_die_ergebnisse_der_vakuumplatte_stehen_untereinander(window):
 
 def test_ein_zu_schweres_paket_faerbt_sein_gewicht(window, application, qt_app):
     """Die Last traegt die Farbe, nicht die Grenze."""
-    from app.oberflaeche.darstellung import PALETTE
+    from app.gui.theme import PALETTE
 
     tab = _vakuum_mit_paket(window, application, qt_app, 400.0)
     assert tab._result.actual_mass_kg > tab._result.max_package_mass_kg, (
@@ -938,7 +938,7 @@ def test_zu_wenige_wirksame_sauger_werden_rot_und_nicht_gruen(window, applicatio
     Bei 104 wirksamen und 109 benoetigten stand damit gruen neben einem roten
     "Nicht ausreichend" - und zwar in derselben Anzeige.
     """
-    from app.oberflaeche.darstellung import PALETTE
+    from app.gui.theme import PALETTE
 
     tab = _vakuum_mit_paket(window, application, qt_app, 400.0)
     assert tab._result.required_cup_count > tab._result.sealed_count
@@ -958,8 +958,8 @@ def test_ein_gutes_ergebnis_faerbt_nur_die_bewertung(window, application, qt_app
     Gefaerbt waeren sonst im guten Fall sieben von elf Zeilen, und wer Gruen
     gewohnt ist, sieht Rot nicht mehr.
     """
-    from app.fach.ergebnis import Status
-    from app.oberflaeche.darstellung import PALETTE
+    from app.domain.results import Status
+    from app.gui.theme import PALETTE
 
     tab = _vakuum_mit_paket(window, application, qt_app, 5.0)
     assert tab._result.status is Status.SAFE, "der Test braucht ein gutes Ergebnis"

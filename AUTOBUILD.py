@@ -12,7 +12,7 @@ Ein Aufruf, drei Schritte:
   3. Die Konfigurationsdateien danebenlegen und den Bauplatz aufraeumen.
 
 Seit Oktober 2026 gibt es keinen Zwischenschritt fuer Layoutdateien mehr: die
-Oberflaeche wird in app/oberflaeche/formularbau.py aus Beschreibungen gebaut, nicht aus
+Oberflaeche wird in app/gui/form_builder.py aus Beschreibungen gebaut, nicht aus
 .ui-Dateien erzeugt.
 
 **Die Falle dieses Rechners:** PyQt6 und PySide6 liegen in derselben
@@ -65,7 +65,7 @@ CONFIG_DIR = ROOT / "config"
 #: pyvistaqt zwar im Paket, der Import von QtInteractor stirbt aber mit
 #: "No module named qtpy" - und der Palettentab zeigt statt der Szene den
 #: Hinweis aus MissingBackendScene. Welche Anbindung qtpy waehlt, legt
-#: app/palette/szene3d.py ueber QT_API fest.
+#: app/pallet/scene_3d.py ueber QT_API fest.
 EXCLUDED = ("PySide6", "shiboken6", "PyQt5", "pytest", "_pytest", "pytestqt")
 
 #: Pakete, deren Daten PyInstaller nicht von allein findet. VTK und PyVista
@@ -90,19 +90,19 @@ ALWAYS_COLLECT = ("qt_controls_pyrs",)
 #: die Bildchen daneben findet es nicht von allein.
 #:
 #: Das Ziel ist derselbe relative Pfad wie in der Quelle. Nur so findet
-#: app/oberflaeche/darstellung.py den Ordner in beiden Betriebsarten ueber
+#: app/gui/theme.py den Ordner in beiden Betriebsarten ueber
 #: __file__ - im Quelltextbaum wie im entpackten Paket. Beide Ordner liegen
-#: deshalb NEBEN darstellung.py und sind beim Gruppieren der Wurzel mit ihr
+#: deshalb NEBEN theme.py und sind beim Gruppieren der Wurzel mit ihr
 #: umgezogen.
 DATA_FILES = (
-    ("app/oberflaeche/darkstyle", "app/oberflaeche/darkstyle"),
-    ("app/oberflaeche/icons", "app/oberflaeche/icons"),
-    ("app/oberflaeche/hilfetexte", "app/oberflaeche/hilfetexte"),
+    ("app/gui/darkstyle", "app/gui/darkstyle"),
+    ("app/gui/icons", "app/gui/icons"),
+    ("app/gui/help_texts", "app/gui/help_texts"),
 )
 
 #: Symbol der fertigen Programmdatei. Dieselbe Datei, die die Anwendung zur
-#: Laufzeit als Fenstersymbol setzt - siehe app/oberflaeche/icons/__init__.py.
-ICON_FILE = ROOT / "app" / "oberflaeche" / "icons" / "pallet.ico"
+#: Laufzeit als Fenstersymbol setzt - siehe app/gui/icons/__init__.py.
+ICON_FILE = ROOT / "app" / "gui" / "icons" / "pallet.ico"
 
 
 # =========================

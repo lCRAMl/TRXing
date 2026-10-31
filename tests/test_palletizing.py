@@ -10,12 +10,12 @@ from __future__ import annotations
 
 import pytest
 
-from app.fach.paket import Orientation, PackageSpec
-from app.palette.daten import LimitingFactor, PatternSpec, ZMode
-from app.fach.geometrie import any_overlap
-from app.palette import stapel
-from app.palette.rechnung import PalletOptimizer, PalletizingError, build_constraints
-from app.fach.legemuster import PatternRequest, available_strategies, generate
+from app.domain.package import Orientation, PackageSpec
+from app.pallet.models import LimitingFactor, PatternSpec, ZMode
+from app.domain.geometry import any_overlap
+from app.pallet import stacking
+from app.pallet.calculator import PalletOptimizer, PalletizingError, build_constraints
+from app.domain.layer_patterns import PatternRequest, available_strategies, generate
 
 ALL_PATTERNS = [
     "auto", "aligned", "column", "rotated", "brick", "cross", "alternating",
@@ -413,7 +413,7 @@ def test_trace_records_the_path(optimizer, settings, euro_pallet, package):
 
 
 def test_cancellation_stops_the_run(optimizer, settings, euro_pallet, package):
-    from app.technik.nebenlaeufig import CancellationToken, CancelledError
+    from app.infra.jobs import CancellationToken, CancelledError
 
     token = CancellationToken()
     token.cancel()
@@ -444,9 +444,9 @@ def test_column_stack_loads_match_the_simple_rule(optimizer, settings, euro_pall
 
 
 def test_max_layers_by_stack_load_is_the_column_rule():
-    assert stapel.max_layers_by_stack_load(5.0, 15.0) == 4
-    assert stapel.max_layers_by_stack_load(5.0, 0.0) == 0    # keine Begrenzung
-    assert stapel.max_layers_by_stack_load(0.0, 15.0) == 0
+    assert stacking.max_layers_by_stack_load(5.0, 15.0) == 4
+    assert stacking.max_layers_by_stack_load(5.0, 0.0) == 0    # keine Begrenzung
+    assert stacking.max_layers_by_stack_load(0.0, 15.0) == 0
 
 
 def test_load_exactly_at_the_limit_is_not_critical(optimizer, settings, euro_pallet):

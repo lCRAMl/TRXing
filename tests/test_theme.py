@@ -22,9 +22,9 @@ import pytest
 from PyQt6.QtGui import QColor, QFont, QPalette
 from PyQt6.QtWidgets import QStyleFactory
 
-from app.oberflaeche import darstellung as theme
-from app.oberflaeche import darstellung as colors
-from app.oberflaeche.darstellung import DARK, LIGHT, Palette
+from app.gui import theme as theme
+from app.gui import theme as colors
+from app.gui.theme import DARK, LIGHT, Palette
 
 pytestmark = pytest.mark.usefixtures("qt_app")
 
@@ -96,7 +96,7 @@ def test_the_outline_is_drawn_wherever_it_differs_from_the_sealing_ring():
     Der Wirkungsbereich verschwindet frueher - drei Kreise dicht beieinander
     werden zu einem Fleck. Die Kontur ist der aeusserste und bleibt.
     """
-    from app.vakuum import zeichnung as vacuum_2d
+    from app.vacuum import renderer as vacuum_2d
 
     assert vacuum_2d.MIN_OUTLINE_GAP_PX <= 1.0
     assert vacuum_2d.OUTLINE_PEN_WIDTH >= 1.0
@@ -122,7 +122,7 @@ def test_pale_fill_moves_towards_the_background(monkeypatch):
 
 def test_the_darkstyle_folder_travels_with_the_gui():
     directory = theme.darkstyle_dir()
-    assert directory.is_dir(), "darkstyle/ fehlt neben app/oberflaeche/darstellung.py"
+    assert directory.is_dir(), "darkstyle/ fehlt neben app/gui/theme.py"
     assert (directory / "darkstyle.qss").is_file()
 
 

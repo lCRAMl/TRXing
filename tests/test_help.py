@@ -13,7 +13,7 @@ import re
 
 import pytest
 
-from app.oberflaeche.hilfe import full_document, sections
+from app.gui.help_dialog import full_document, sections
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -83,12 +83,12 @@ def test_the_important_engines_are_referenced():
     """Jede Engine muss in der Dokumentation auftauchen."""
     document = full_document()
     for path in (
-        "app/palette/stapel.py",
-        "app/vakuum/physik.py",
-        "app/vakuum/physik.py",
-        "app/vakuum/physik.py",
-        "app/vakuum/rechnung.py",
-        "app/fach/geometrie.py",
+        "app/pallet/stacking.py",
+        "app/vacuum/physics.py",
+        "app/vacuum/physics.py",
+        "app/vacuum/physics.py",
+        "app/vacuum/calculator.py",
+        "app/domain/geometry.py",
     ):
         assert path in document, path + " wird nicht erwaehnt"
 
@@ -116,7 +116,7 @@ def test_assumptions_are_declared_as_such():
 # Fenster -----------------------------------------------------------------------
 
 def test_dialog_opens_and_lists_every_section(qt_app):
-    from app.oberflaeche.hilfe import FormulaHelpDialog
+    from app.gui.help_dialog import FormulaHelpDialog
 
     dialog = FormulaHelpDialog()
     try:
@@ -127,7 +127,7 @@ def test_dialog_opens_and_lists_every_section(qt_app):
 
 
 def test_dialog_search_finds_a_formula(qt_app):
-    from app.oberflaeche.hilfe import FormulaHelpDialog
+    from app.gui.help_dialog import FormulaHelpDialog
 
     dialog = FormulaHelpDialog()
     try:
@@ -138,7 +138,7 @@ def test_dialog_search_finds_a_formula(qt_app):
 
 
 def test_dialog_jumps_to_a_section(qt_app):
-    from app.oberflaeche.hilfe import FormulaHelpDialog
+    from app.gui.help_dialog import FormulaHelpDialog
 
     dialog = FormulaHelpDialog()
     try:
@@ -152,8 +152,8 @@ def test_help_is_reachable_from_the_menu(qt_app, tmp_path):
     """Der vom Benutzer geforderte Weg: Menue Hilfe."""
     from pathlib import Path
 
-    from app.start import Application
-    from app.start import MainWindow
+    from app.application import Application
+    from app.application import MainWindow
 
     application = Application(
         config_directory=Path(__file__).resolve().parent.parent / "config",
@@ -193,9 +193,9 @@ def test_every_chapter_file_is_well_formed():
     Titelzeile wuerde sonst erst beim Oeffnen der Hilfe auffallen, und die
     Meldung stuende dann weit von der Ursache.
     """
-    from app.oberflaeche.hilfe import hilfetexte_dir
+    from app.gui.help_dialog import help_texts_dir
 
-    dateien = sorted(hilfetexte_dir().glob("*.html"))
+    dateien = sorted(help_texts_dir().glob("*.html"))
     assert len(dateien) >= 7, "Es fehlen Kapiteldateien: " + str(dateien)
 
     for datei in dateien:
@@ -210,10 +210,10 @@ def test_every_chapter_file_is_well_formed():
 
 def test_the_chapter_order_comes_from_the_file_names():
     """01- bis 07-: die Reihenfolge steht an einer Stelle, nicht an zwei."""
-    from app.oberflaeche.hilfe import hilfetexte_dir, sections
+    from app.gui.help_dialog import help_texts_dir, sections
 
     aus_dateien = [d.stem.partition("-")[2]
-                   for d in sorted(hilfetexte_dir().glob("*.html"))]
+                   for d in sorted(help_texts_dir().glob("*.html"))]
     assert [s.anchor for s in sections()] == aus_dateien
 
 
@@ -227,10 +227,10 @@ def test_formulas_stay_escaped():
     haette man das leicht verlieren koennen, indem man die Formeln als
     fertiges HTML hinschreibt.
     """
-    from app.oberflaeche.hilfe import full_document, hilfetexte_dir
+    from app.gui.help_dialog import full_document, help_texts_dir
 
     roh = "\n".join(d.read_text(encoding="utf-8")
-                    for d in hilfetexte_dir().glob("*.html"))
+                    for d in help_texts_dir().glob("*.html"))
     assert "<=" in roh, "In den Quelldateien steht kein unmaskierter Vergleich"
 
     dokument = full_document()
@@ -245,7 +245,7 @@ def test_a_chapter_without_a_title_line_says_so():
     """Eine klare Meldung statt eines Kapitels mit HTML als Ueberschrift."""
     import pathlib as _pathlib
 
-    from app.oberflaeche.hilfe import _lies_kapitel
+    from app.gui.help_dialog import _lies_kapitel
 
     import tempfile
     with tempfile.TemporaryDirectory() as ordner:
@@ -264,10 +264,10 @@ def test_the_help_texts_travel_with_the_package():
     """
     import AUTOBUILD
 
-    from app.oberflaeche.hilfe import HILFETEXTE_DIRNAME
+    from app.gui.help_dialog import HELP_TEXTS_DIRNAME
 
     ziele = [ziel for _quelle, ziel in AUTOBUILD.DATA_FILES]
-    assert any(z.endswith(HILFETEXTE_DIRNAME) for z in ziele), (
-        "AUTOBUILD.DATA_FILES nimmt " + HILFETEXTE_DIRNAME
+    assert any(z.endswith(HELP_TEXTS_DIRNAME) for z in ziele), (
+        "AUTOBUILD.DATA_FILES nimmt " + HELP_TEXTS_DIRNAME
         + " nicht mit: " + str(ziele)
     )

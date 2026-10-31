@@ -17,15 +17,15 @@ from dataclasses import replace
 
 import pytest
 
-from app.fach.katalog import SettingsService
-from app.technik.nebenlaeufig import CancellationToken
-from app.technik.fehler import ErrorReporter, Severity
-from app.fach.paket import PackageSpec, validate_package
-from app.vakuum.daten import VacuumInput, VacuumPlateSpec
-from app.palette.rechnung import PalletOptimizer, PalletizingError, build_constraints
-from app.fach.legemuster import PatternRequest, available_strategies, generate
-from app.vakuum.rechnung import VacuumCalculator, VacuumError
-from app.vakuum.anordnung import SuctionLayoutEngine
+from app.domain.catalog import SettingsService
+from app.infra.jobs import CancellationToken
+from app.infra.errors import ErrorReporter, Severity
+from app.domain.package import PackageSpec, validate_package
+from app.vacuum.models import VacuumInput, VacuumPlateSpec
+from app.pallet.calculator import PalletOptimizer, PalletizingError, build_constraints
+from app.domain.layer_patterns import PatternRequest, available_strategies, generate
+from app.vacuum.calculator import VacuumCalculator, VacuumError
+from app.vacuum.layout import SuctionLayoutEngine
 
 
 # Extreme Masse ----------------------------------------------------------------
@@ -172,7 +172,7 @@ def test_every_strategy_survives_a_large_instance():
 
 def test_many_suction_cups(settings):
     """Eine grosse Platte mit kleinen Saugern: mehrere tausend Positionen."""
-    from app.vakuum.anordnung import MAX_CUP_POSITIONS
+    from app.vacuum.layout import MAX_CUP_POSITIONS
 
     plate = VacuumPlateSpec(length_mm=2000.0, width_mm=1500.0, edge_margin_mm=10.0, min_spacing_mm=2.0)
     cup = settings.get_suction_cup("spb2_20")
@@ -192,7 +192,7 @@ def test_automatic_layout_is_capped_and_says_so(settings):
     Begrenzt statt abgewiesen: das Ergebnis bleibt brauchbar, und die Meldung
     sagt, wie man mehr bekommt.
     """
-    from app.vakuum.anordnung import MAX_CUP_POSITIONS
+    from app.vacuum.layout import MAX_CUP_POSITIONS
 
     plate = VacuumPlateSpec(length_mm=3000.0, width_mm=2500.0, edge_margin_mm=5.0, min_spacing_mm=1.0)
     layout = SuctionLayoutEngine().distribute(settings.get_suction_cup("spb2_20"), plate)
@@ -257,7 +257,7 @@ def test_more_packages_than_the_plate_holds_are_arranged_anyway(settings):
 
 def test_zero_flow_pump_gives_a_clear_result(settings):
     """Ein Erzeuger ohne Leistung: kein Vakuum, keine Kraft, klare Aussage."""
-    from app.vakuum.daten import PumpSpec
+    from app.vacuum.models import PumpSpec
 
     defaults = settings.get_vacuum_defaults()
     request = VacuumInput(
@@ -276,7 +276,7 @@ def test_zero_flow_pump_gives_a_clear_result(settings):
 
 
 def test_extremely_permeable_carton(settings):
-    from app.vakuum.daten import LeakageModel, LeakageSpec
+    from app.vacuum.models import LeakageModel, LeakageSpec
 
     defaults = settings.get_vacuum_defaults()
     request = VacuumInput(
@@ -362,7 +362,7 @@ def test_all_configuration_files_broken(tmp_path):
 def test_application_starts_with_broken_configuration(tmp_path):
     """Die Anwendung muss auch mit zerlegter Konfiguration startbar bleiben -
     sonst kann man den Fehler nicht einmal ansehen."""
-    from app.start import Application
+    from app.application import Application
 
     (tmp_path / "pallets.json").write_text("[]", encoding="utf-8")
     app = Application(config_directory=tmp_path, log_directory=tmp_path / "logs")
@@ -394,7 +394,7 @@ def test_configuration_with_wrong_types(tmp_path):
 
 def test_cancellation_during_a_large_run(settings):
     """Ein Abbruch muss auch mitten in einer grossen Rechnung greifen."""
-    from app.technik.nebenlaeufig import CancelledError
+    from app.infra.jobs import CancelledError
 
     pallet = settings.get_pallet("iso_1200x1200")
     small = PackageSpec(80.0, 60.0, 50.0, 0.3)
@@ -444,7 +444,7 @@ def test_parallel_jobs_of_both_modules(qt_app, tmp_path):
     """Palettierung und Vakuum gleichzeitig - getrennte Pools, getrennte Kanaele."""
     from pathlib import Path
 
-    from app.start import Application
+    from app.application import Application
 
     root = Path(__file__).resolve().parent.parent
     app = Application(config_directory=root / "config", log_directory=tmp_path / "logs")
@@ -492,7 +492,7 @@ def test_burst_of_requests_leaves_exactly_one_result(qt_app, tmp_path):
     """Zwanzig Anfragen in Folge - genau die letzte darf ankommen."""
     from pathlib import Path
 
-    from app.start import Application
+    from app.application import Application
 
     root = Path(__file__).resolve().parent.parent
     app = Application(config_directory=root / "config", log_directory=tmp_path / "logs")

@@ -32,7 +32,7 @@ if not os.environ.get("DISPLAY") and sys.platform not in ("win32", "darwin"):
 
 @pytest.fixture
 def reporter():
-    from app.technik.fehler import ErrorReporter
+    from app.infra.errors import ErrorReporter
 
     return ErrorReporter()
 
@@ -40,7 +40,7 @@ def reporter():
 @pytest.fixture
 def settings(reporter, tmp_path):
     """SettingsService auf den mitgelieferten Konfigurationsdateien."""
-    from app.fach.katalog import SettingsService
+    from app.domain.catalog import SettingsService
 
     service = SettingsService(ROOT / "config", reporter)
     service.load()
@@ -49,7 +49,7 @@ def settings(reporter, tmp_path):
 
 @pytest.fixture
 def package():
-    from app.fach.paket import PackageSpec
+    from app.domain.package import PackageSpec
 
     return PackageSpec(length_mm=400.0, width_mm=300.0, height_mm=200.0, weight_kg=5.0, max_stack_load_kg=60.0)
 
@@ -77,12 +77,12 @@ def application(tmp_path):
     """Vollstaendig gestartete Anwendung auf der mitgelieferten Konfiguration.
 
     Steht hier und nicht in test_gui.py, weil sie seit dem Wegfall der
-    .ui-Dateien auch tests/test_formularbau.py braucht: die Tabs lassen sich
+    .ui-Dateien auch tests/test_form_builder.py braucht: die Tabs lassen sich
     nur mit einem Kontext bauen.
     """
     from pathlib import Path as _Path
 
-    from app.start import Application
+    from app.application import Application
 
     root = _Path(__file__).resolve().parent.parent
     app = Application(config_directory=root / "config", log_directory=tmp_path / "logs")

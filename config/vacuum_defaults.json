@@ -23,7 +23,7 @@
     "",
     "Zum Randabstand: 0 bedeutet nicht 0 mm bis zur Kante. Die Verteilung",
     "hebt den Wert auf den halben Saugeraussendurchmesser an",
-    "(SuctionLayoutEngine._base_request in app/vakuum/anordnung.py), sonst",
+    "(SuctionLayoutEngine._base_request in app/vacuum/layout.py), sonst",
     "haengt der aeusserste Sauger ueber die Plattenkante. Bei einem SPB2 30",
     "wirken deshalb 17 mm. An der Saugerzahl aendert dieser Wert allein",
     "nichts - die 391 kommen vom Saugerabstand."

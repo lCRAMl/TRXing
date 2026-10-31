@@ -120,13 +120,13 @@ Passung     gering (du willst sie weghaben)
 Idee        Nicht nach technischer Art gruppieren, sondern nach Fachgebiet.
             Alles zu einem Thema liegt beieinander - Daten, Rechnung, Anzeige.
 Struktur    trxing/
-                paket.py           Paketdaten
+                package.py           Paketdaten
                 palette/           Palettierung: rechnen + Tab + Zeichnung
                 vakuum/            Saugplatte: rechnen + Tab + Zeichnung
                 verlauf/           neues drittes Tab
-                katalog.py         JSON-Kataloge laden
+                catalog.py         JSON-Kataloge laden
                 gemeinsam.py       Einheiten, Zahlenfelder, Debouncer
-                start.py           Fenster zusammenbauen
+                application.py           Fenster zusammenbauen
 Hier        Aus 85 Dateien wuerden etwa 15 bis 20. Eine Aenderung am
             Vakuumteil fasst genau einen Ordner an.
 Dafuer      Kurze Wege, alles zum Thema an einem Ort, trotzdem ordentlich
@@ -135,7 +135,7 @@ Dafuer      Kurze Wege, alles zum Thema an einem Ort, trotzdem ordentlich
 Dagegen     Qt und Rechnung liegen im selben Ordner. Ohne Disziplin wandert
             Rechenlogik in den Tab, und die Tests brauchen plötzlich eine
             QApplication. Empfehlung: je Fachgebiet zwei Dateien
-            (rechnung.py ohne Qt, tab.py mit Qt).
+            (calculator.py ohne Qt, tab.py mit Qt).
 Aufwand     mittel - vor allem Verschieben und Zusammenlegen, wenig Neuschrieb
 Passung     SEHR HOCH
 
@@ -163,15 +163,15 @@ Passung     HOCH - gut als Ergaenzung zu Nr. 2 oder Nr. 4
 -------------------------------------------------------------------------------
 Idee        Ein Ordner, eine Datei je Thema, keine Unterordner.
 Struktur    trxing/
-                daten.py       Paket, Palette, Platte, Sauger (dataclasses)
+                models.py       Paket, Palette, Platte, Sauger (dataclasses)
                 palette.py     Palettierrechnung
                 muster.py      Palettier- und Saugermuster
                 vakuum.py      Kraft, Leckage, Stroemung, Kontakt
-                geometrie.py   Kreis/Rechteck, Ueberdeckung
+                geometry.py   Kreis/Rechteck, Ueberdeckung
                 zeichnen.py    2D-Darstellungen
-                szene3d.py     PyVista
+                scene_3d.py     PyVista
                 oberflaeche.py alle Tabs
-                katalog.py     JSON
+                catalog.py     JSON
                 main.py
 Hier        Etwa 10 bis 12 Dateien. Maximal kurze Wege.
 Dafuer      Am schnellsten zu lesen und zu ueberblicken. Jeder Import ist
@@ -304,7 +304,7 @@ Die Nummern sind keine Entweder-oder-Liste. Brauchbare Kombinationen:
 
     A)  Nr. 2 + Nr. 3 + Nr. 11
         Vertikale Schnitte je Fachgebiet, je Schnitt eine Qt-freie
-        rechnung.py mit einer Einstiegsfunktion und eine tab.py mit Qt.
+        calculator.py mit einer Einstiegsfunktion und eine tab.py mit Qt.
         -> Mein Vorschlag. Erfuellt alle vier Vorgaben, haelt die Testsuite
            schnell, und ein neues Tab ist ein neuer Ordner.
 

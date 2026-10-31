@@ -56,46 +56,46 @@ ZIELSTRUKTUR
 app/
     __init__.py          APP_NAME, APP_SLUG, __version__
     __main__.py          Kommandozeile und Start
-    start.py             Fenster und Tabs zusammenbauen (Composition Root)
+    application.py             Fenster und Tabs zusammenbauen (Composition Root)
 
-    einheiten.py         Einheiten, Konstanten
-    pfade.py             Wo Konfiguration und Protokoll liegen
-    fehler.py            Fehlerobjekte, Meldungssammlung, Protokoll
-    ergebnis.py          Status, Trace
-    katalog.py           JSON-Kataloge laden und pruefen
-    nebenlaeufig.py      Threadhelfer: Lauf starten, abbrechen, Fortschritt
-    vorgang.py           Gemeinsamer Zustand, Revisionszaehler
-    geometrie.py         Kreis/Rechteck, Ueberdeckung
-    paket.py             Paketdaten und Eingabeformular
+    units.py         Einheiten, Konstanten
+    paths.py             Wo Konfiguration und Protokoll liegen
+    errors.py            Fehlerobjekte, Meldungssammlung, Protokoll
+    results.py          Status, Trace
+    catalog.py           JSON-Kataloge laden und pruefen
+    jobs.py      Threadhelfer: Lauf starten, abbrechen, Fortschritt
+    state.py           Gemeinsamer Zustand, Revisionszaehler
+    geometry.py         Kreis/Rechteck, Ueberdeckung
+    package.py             Paketdaten und Eingabeformular
     bedienelemente.py    CompactNumberField, CompactIntField, CompactResultGrid, Debouncer,
                          Statuszeile, Problemliste
-    darstellung.py       Farben, Stylesheet, Hell/Dunkel
-    hilfe.py             Hilfetexte und Formeldialog
+    theme.py       Farben, Stylesheet, Hell/Dunkel
+    help_dialog.py             Hilfetexte und Formeldialog
 
     palette/
-        daten.py         PalletSpec, Placement, Layer, PalletResult
+        models.py         PalletSpec, Placement, Layer, PalletResult
         muster.py        Palettiermuster-Registry
-        rechnung.py      berechne_palette(...)  - Einstiegsfunktion
-        zeichnung.py     2D-Draufsicht
-        szene3d.py       PyVista hinter dem Adapter
+        calculator.py      berechne_palette(...)  - Einstiegsfunktion
+        renderer.py     2D-Draufsicht
+        scene_3d.py       PyVista hinter dem Adapter
         tab.py           Bedienoberflaeche
         ui_tab.py        erzeugt aus der .ui-Datei
 
     vakuum/
-        daten.py         VacuumPlateSpec, SuctionCupSpec, Ein-/Ausgabe
+        models.py         VacuumPlateSpec, SuctionCupSpec, Ein-/Ausgabe
         muster.py        Saugermuster-Registry
-        anordnung.py     Sauger verteilen, Pakete anordnen
-        physik.py        Kraft, Leckage, Stroemung, Kontakt
-        rechnung.py      berechne_vakuum(...)  - Einstiegsfunktion
-        zeichnung.py     2D-Plattenbild
+        layout.py     Sauger verteilen, Pakete anordnen
+        physics.py        Kraft, Leckage, Stroemung, Kontakt
+        calculator.py      berechne_vakuum(...)  - Einstiegsfunktion
+        renderer.py     2D-Plattenbild
         tab.py           Bedienoberflaeche
         ui_tab.py        erzeugt aus der .ui-Datei
 
 Ergibt etwa 20 statt 85 Dateien. Ordner "engines", "services", "dto",
 "jobs", "core", "config", "visualization", "gui" entfallen.
 
-REGEL, die bleibt: rechnung.py, physik.py, anordnung.py, muster.py, daten.py
-und geometrie.py importieren KEIN Qt. Nur so bleibt die Testsuite schnell.
+REGEL, die bleibt: calculator.py, physics.py, layout.py, muster.py, models.py
+und geometry.py importieren KEIN Qt. Nur so bleibt die Testsuite schnell.
 
 
 ===============================================================================
@@ -109,79 +109,79 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        - diese Datei angelegt
 
 [x] 1  Querschnitt zusammenlegen
-       core/units.py        -> app/fach/einheiten.py
-       core/paths.py        -> app/technik/pfade.py
-       core/errors.py       -> app/technik/fehler.py  (mit logging_setup.py)
-       core/result.py       -> app/fach/ergebnis.py (mit trace.py)
-       core/os_theme.py     -> app/oberflaeche/darstellung.py
-       config/*             -> app/fach/katalog.py
+       core/units.py        -> app/domain/units.py
+       core/paths.py        -> app/infra/paths.py
+       core/errors.py       -> app/infra/errors.py  (mit logging_setup.py)
+       core/result.py       -> app/domain/results.py (mit trace.py)
+       core/os_theme.py     -> app/gui/theme.py
+       config/*             -> app/domain/catalog.py
        Danach: core/ und config/ sind leer.
        ERLEDIGT. config/ entfernt. In core/ stehen nur noch cancellation.py
        und requests.py - die gehen in Schritt 2. 565 Tests gruen.
-       Hinweis: app/oberflaeche/darstellung.py enthaelt vorerst nur die Hell/Dunkel-
+       Hinweis: app/gui/theme.py enthaelt vorerst nur die Hell/Dunkel-
        Erkennung des Betriebssystems; Schritt 8 legt Farben und Stylesheet
        dazu und schreibt dann auch den Dateikopf neu.
 
 [x] 2  Nebenlaeufigkeit
-       jobs/* + core/cancellation.py + core/requests.py -> app/technik/nebenlaeufig.py
+       jobs/* + core/cancellation.py + core/requests.py -> app/infra/jobs.py
        Ziel: ein kleiner Helfer, der einen Lauf startet, abbricht und
        Fortschritt meldet. Der Abbruch langer Palettierlaeufe MUSS bleiben.
 
 [x] 3  Gemeinsamer Zustand
-       services/app_state.py -> app/fach/vorgang.py
+       services/app_state.py -> app/domain/state.py
        Die uebrigen services/* werden in Schritt 6 und 7 aufgeloest:
-       ihr Inhalt wandert in die jeweilige rechnung.py oder in den Tab.
+       ihr Inhalt wandert in die jeweilige calculator.py oder in den Tab.
        ERLEDIGT fuer app_state.py.
 
 [x] 4  Geometrie
-       engines/geometry/shapes.py -> app/fach/geometrie.py
+       engines/geometry/shapes.py -> app/domain/geometry.py
        ERLEDIGT.
 
 [x] 5  Paket
-       dto/package.py + gui/package/* -> app/fach/paket.py (+ ui_paket.py)
+       dto/package.py + gui/package/* -> app/domain/package.py (+ ui_package.py)
 
 [x] 6  Scheibe Palette
-       dto/pallet.py             -> app/palette/daten.py
-       engines/patterns/*        -> app/palette/muster.py
-       engines/palletizing/*     -> app/palette/rechnung.py
-       visualization/pallet_2d   -> app/palette/zeichnung.py
-       visualization/pallet_3d + adapters -> app/palette/szene3d.py
-       gui/pallet/*              -> app/palette/tab.py, ui_tab.py
-       services/pallet_service   -> palette/dienst.py
+       dto/pallet.py             -> app/pallet/models.py
+       engines/patterns/*        -> app/pallet/muster.py
+       engines/palletizing/*     -> app/pallet/calculator.py
+       visualization/pallet_2d   -> app/pallet/renderer.py
+       visualization/pallet_3d + adapters -> app/pallet/scene_3d.py
+       gui/pallet/*              -> app/pallet/tab.py, ui_tab.py
+       services/pallet_service   -> palette/service.py
        ERLEDIGT. Dazu vorgezogen, weil sonst Importzyklen stehenblieben:
          gui/common/*        -> bedienelemente.py
-         gui/status/*        -> meldungen.py
-         gui/theme + visualization/{theme,colors} -> darstellung.py
-         gui/tab_manager.py  -> tabs.py
-         services/context.py -> kontext.py
-         services/package_service.py -> vorgang.py
-         services/calculation_service.py -> rechenlauf.py
-         app/gui/darkstyle/ -> app/oberflaeche/darkstyle/, app/gui/icons/ -> app/oberflaeche/icons/
+         gui/status/*        -> notifications.py
+         gui/theme + visualization/{theme,colors} -> theme.py
+         gui/tab_manager.py  -> tab_registry.py
+         services/context.py -> context.py
+         services/package_service.py -> state.py
+         services/calculation_service.py -> calculation_service.py
+         app/gui/darkstyle/ -> app/gui/darkstyle/, app/gui/icons/ -> app/gui/icons/
        Die beiden Ordner mussten mit, weil sie ueber __file__ gefunden werden;
        AUTOBUILD.py und tools/build_ui.py wurden nachgezogen.
 
 [x] 7  Scheibe Vakuum
-       dto/{vacuum,suction}.py   -> app/vakuum/daten.py
-       engines/vacuum/arrangements -> app/vakuum/muster.py
-       engines/vacuum/layout     -> app/vakuum/anordnung.py
-       engines/vacuum/{force,flow,leakage,contact} -> app/vakuum/physik.py
-       engines/vacuum/calculator -> app/vakuum/rechnung.py
-       visualization/vacuum_2d   -> app/vakuum/zeichnung.py
-       gui/vakuum/*              -> app/vakuum/tab.py, ui_tab.py
-       services/vacuum_service   -> vakuum/dienst.py
+       dto/{vacuum,suction}.py   -> app/vacuum/models.py
+       engines/vacuum/arrangements -> app/vacuum/muster.py
+       engines/vacuum/layout     -> app/vacuum/layout.py
+       engines/vacuum/{force,flow,leakage,contact} -> app/vacuum/physics.py
+       engines/vacuum/calculator -> app/vacuum/calculator.py
+       visualization/vacuum_2d   -> app/vacuum/renderer.py
+       gui/vakuum/*              -> app/vacuum/tab.py, ui_tab.py
+       services/vacuum_service   -> vakuum/service.py
        ERLEDIGT. Damit sind dto/, engines/, services/ und visualization/
        verschwunden. Gemessene Eigenschaft, als Regel festgehalten: die
        beiden Scheiben importieren einander NICHT.
 
 [x] 8  Oberflaechenhuelle
        gui/common/widgets + gui/status/* -> qt_controls_pyrs/compact.py
-       gui/help/*                        -> app/oberflaeche/hilfe.py
-       gui/theme + visualization/{colors,theme} -> app/oberflaeche/darstellung.py
+       gui/help/*                        -> app/gui/help_dialog.py
+       gui/theme + visualization/{colors,theme} -> app/gui/theme.py
        gui/{main_window,tab_manager,module_registry} + application.py
-                                         -> app/start.py
-       services/context.py               -> kontext.py (in Schritt 6)
-       ERLEDIGT. gui/ ist verschwunden. Die Modulregistry steht in tabs.py
-       und nicht in start.py - sonst griffe tabs nach start und start
+                                         -> app/application.py
+       services/context.py               -> context.py (in Schritt 6)
+       ERLEDIGT. gui/ ist verschwunden. Die Modulregistry steht in tab_registry.py
+       und nicht in application.py - sonst griffe tabs nach start und start
        zurueck nach tabs.
 
 [x] 9  Einstiegsfunktionen vereinheitlichen
@@ -273,7 +273,7 @@ LAUFENDE NOTIZEN
 
 2026-10-26  Schritt 8. Der wichtigste Fund des ganzen Umbaus:
 
-            app/technik/pfade.py zaehlte von __file__ aus DREI Ebenen nach oben, weil
+            app/infra/paths.py zaehlte von __file__ aus DREI Ebenen nach oben, weil
             es frueher app/core/paths.py war. Nach dem Umzug nach app/ war das
             eine zuviel, und die Anwendung fand ihr config/ nicht mehr - sie
             startete mit Notfalldaten statt mit sechs Paletten und
@@ -340,22 +340,22 @@ dateien nicht auch der aufbau der dateistruktur gefaellt mir nicht."
 
 Befund: nicht die Scheiben waren das Problem, die Wurzel von app/ war es. 21
 Dateien und 7556 Zeilen - mehr als beide Scheiben zusammen (6785) -
-alphabetisch sortiert, also nach Buchstaben statt nach Zweck. einheiten.py
-stand zwischen darstellung.py und ergebnis.py.
+alphabetisch sortiert, also nach Buchstaben statt nach Zweck. units.py
+stand zwischen theme.py und results.py.
 
 Von fuenf vorgeschlagenen Optionen wollte der Benutzer 1, 2 und 3.
 
 
 SCHRITT 1  Die Wurzel gruppiert: 21 Dateien werden 5
 -------------------------------------------------------------------------------
-    app/oberflaeche/   Werkzeugkasten (kennt keinen Gegenstand)
-    app/fach/          Gemeinbesitz beider Scheiben, incl. katalog.py
-    app/technik/       Unterbau, einseitig unten
+    app/gui/   Werkzeugkasten (kennt keinen Gegenstand)
+    app/domain/          Gemeinbesitz beider Scheiben, incl. catalog.py
+    app/infra/       Unterbau, einseitig unten
     app/              __main__, start, tabs, kontext - das Programm
 
 Zwei Entscheidungen gegen den ersten Entwurf, beide vom Ringtest erzwungen:
 start/tabs/kontext bleiben in der Wurzel (als Unterpaket erzeugten sie zwei
-Ringe mit den Scheiben), und katalog.py ist Fach statt Technik (sonst greift
+Ringe mit den Scheiben), und catalog.py ist Fach statt Technik (sonst greift
 die unterste Lage nach oben).
 
 Der Ringtest prueft jetzt MEHR als vorher - die vier Pakete und zusaetzlich
@@ -363,13 +363,13 @@ die Wurzel. Vier Zweiwege-Abhaengigkeiten sind dabei zum Vorschein gekommen,
 die es schon gab; flach in einem Ordner konnte kein Test sie sehen. Sie stehen
 mit Grund und Heilmittel in RINGE_MIT_GRUND. Zwei Ursachen:
 
-  - katalog.py liest in die Datenobjekte beider Scheiben. Heilmittel ist
-    Option 4 aus dem Vorschlag (katalog.py dritteln) - NICHT gewaehlt.
-  - tabs.py und kontext.py sind Vertrag UND Registratur in einer Datei.
+  - catalog.py liest in die Datenobjekte beider Scheiben. Heilmittel ist
+    Option 4 aus dem Vorschlag (catalog.py dritteln) - NICHT gewaehlt.
+  - tab_registry.py und context.py sind Vertrag UND Registratur in einer Datei.
     Heilmittel waere, den Vertrag abzutrennen; kostet aber die scharfe Regel
-    fuer app/oberflaeche/, weil TabHost app.fach.vorgang braucht.
+    fuer app/gui/, weil TabHost app.domain.state braucht.
 
-Falle: pfade.py zaehlte von __file__ zwei Ebenen nach oben, in app/technik/
+Falle: paths.py zaehlte von __file__ zwei Ebenen nach oben, in app/infra/
 sind drei noetig. Genau diese Zahl war beim letzten Umbau schon einmal falsch.
 Der seitdem vorhandene Test hat gehalten. Nachgeprueft am laufenden Programm:
 6 Paletten, 24 Sauger, 13 Muster, used_builtin leer.
@@ -377,7 +377,7 @@ Der seitdem vorhandene Test hat gehalten. Nachgeprueft am laufenden Programm:
 
 SCHRITT 2  Werkzeugkasten an die Bibliothek abgegeben: 852 Zeilen weniger
 -------------------------------------------------------------------------------
-bedienelemente.py und formularbau.py sind weg. In QtControlsPyRS (0.3.0):
+bedienelemente.py und form_builder.py sind weg. In QtControlsPyRS (0.3.0):
 
     compact.py      die Compact-Fassungen, StatusBarButton, WideResultGrid
     formbuilder.py  Formulare als Beschreibung (deutsche Bausteine behalten)
@@ -395,9 +395,9 @@ Nachgeprueft am Bild: beide Reiter vor und nach dem Umbau gerendert,
 BILDPUNKT FUER BILDPUNKT IDENTISCH.
 
 
-SCHRITT 3  Hilfetexte in Dateien: hilfe.py von 1160 auf 394 Zeilen
+SCHRITT 3  Hilfetexte in Dateien: help_dialog.py von 1160 auf 394 Zeilen
 -------------------------------------------------------------------------------
-Die sieben Kapitel liegen in app/oberflaeche/hilfetexte/, eine Datei je
+Die sieben Kapitel liegen in app/gui/help_texts/, eine Datei je
 Kapitel, Titel in der ersten Zeile, Reihenfolge im Dateinamen.
 
 Prosa war der Text nie: 46 Formelbloecke und 22 Quelltextverweise steckten als

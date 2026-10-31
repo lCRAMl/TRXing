@@ -35,53 +35,53 @@ APP = pathlib.Path(__file__).resolve().parent.parent / "app"
 #
 # Zwei Schnitte liegen uebereinander, und sie meinen Verschiedenes.
 #
-# SENKRECHT schneiden app/palette/ und app/vakuum/: je ein Gegenstand, in sich
+# SENKRECHT schneiden app/pallet/ und app/vacuum/: je ein Gegenstand, in sich
 # vollstaendig. Was ein Modul darin darf, sagt sein NAME und nicht sein Ordner
-# - eine rechnung.py ist in jeder Scheibe eine rechnung.py. Siehe ROLLEN.
+# - eine calculator.py ist in jeder Scheibe eine calculator.py. Siehe ROLLEN.
 #
-# WAAGERECHT liegen app/oberflaeche/, app/fach/ und app/technik/ darunter.
+# WAAGERECHT liegen app/gui/, app/domain/ und app/infra/ darunter.
 # Das ist nicht die Rueckkehr der alten Schichten (core, dto, engines,
 # services, visualization, gui): die schnitten quer durch den Gegenstand, und
 # ein einziges Merkmal lag in sieben Ordnern. Diese drei tragen gar keinen
 # Gegenstand - sie sind der Werkzeugkasten, der Gemeinbesitz und der Unterbau.
 # Die Pruefrage lautet: fasst ein neues Merkmal mehr Ordner an als vorher?
-# Eine dritte Scheibe waere app/<name>/ plus eine Zeile in app/tabs.py.
+# Eine dritte Scheibe waere app/<name>/ plus eine Zeile in app/tab_registry.py.
 #
-# In der Wurzel von app/ liegt das Programm selbst - __main__, start, tabs,
-# kontext. Fuenf Dateien, kein Paket: es ist die Stelle, an der die Teile
+# In der Wurzel von app/ liegt das Programm selbst - __main__, application,
+# tab_registry, context. Fuenf Dateien, kein Paket: es ist die Stelle, an der die Teile
 # zusammenkommen, und die hat keine Schichtregel ueber sich.
 FORBIDDEN: dict[str, tuple[str, ...]] = {
     # Die beiden Scheiben kennen einander nicht. Was beide brauchen, steht in
-    # app/fach/ - deshalb liegt legemuster.py dort und nicht bei der Palette.
-    "palette": ("app.vakuum",),
-    "vakuum": ("app.palette",),
+    # app/domain/ - deshalb liegt layer_patterns.py dort und nicht bei der Palette.
+    "pallet": ("app.vacuum",),
+    "vacuum": ("app.pallet",),
 
     # Der Werkzeugkasten kennt keinen Gegenstand.
     #
     # Das ist die scharfste Regel im Programm und die nuetzlichste: sie ist
     # der Grund, warum sich der Inhalt dieses Pakets ueberhaupt in eine
-    # Bibliothek heben laesst. Ein einziger Import aus app.fach hier - und sei
+    # Bibliothek heben laesst. Ein einziger Import aus app.domain hier - und sei
     # es nur fuer eine Typangabe - macht aus einem Bedienelement ein
     # TRXing-Bedienelement.
-    "oberflaeche": ("app.palette", "app.vakuum", "app.fach",
-                    "app.start", "app.tabs", "app.kontext"),
+    "gui": ("app.pallet", "app.vacuum", "app.domain",
+                    "app.application", "app.tab_registry", "app.context"),
 
     # Das Fach weiss nichts von der Anzeige und nichts vom Zusammenbau.
     #
-    # Die Scheiben fehlen hier bewusst: katalog.py liest die JSON-Kataloge in
+    # Die Scheiben fehlen hier bewusst: catalog.py liest die JSON-Kataloge in
     # die Datenobjekte beider Scheiben ein und muss sie dafuer kennen. Wie
     # weit das reicht, steht nicht hier, sondern in
     # test_the_subject_layer_reaches_into_the_slices_only_for_their_data -
-    # eine Praefixliste koennte "nur daten.py" nicht ausdruecken.
-    "fach": ("app.oberflaeche", "app.start", "app.tabs", "app.kontext"),
+    # eine Praefixliste koennte "nur models.py" nicht ausdruecken.
+    "domain": ("app.gui", "app.application", "app.tab_registry", "app.context"),
 
     # Die unterste Lage greift nach nichts.
     #
     # Hintergrundarbeit, Protokoll, Verzeichnisse. Sobald ein Modul hier nach
     # oben greift, ist die Lage keine Lage mehr und die Testsuite verliert
     # ihren Grund, ohne QApplication zu laufen.
-    "technik": ("app.oberflaeche", "app.fach", "app.palette", "app.vakuum",
-                "app.start", "app.tabs", "app.kontext"),
+    "infra": ("app.gui", "app.domain", "app.pallet", "app.vacuum",
+                "app.application", "app.tab_registry", "app.context"),
 }
 
 
@@ -93,23 +93,23 @@ FORBIDDEN: dict[str, tuple[str, ...]] = {
 #: was ihn aufloest.
 RINGE_MIT_GRUND: dict[str, str] = {
     # Eine Ursache, zwei Eintraege.
-    "fach <-> palette":
-        "app/fach/katalog.py liest die JSON-Kataloge in app.palette.daten ein. "
-        "Aufloesen wuerde: katalog.py zerlegen und das Einlesen je Scheibe in "
+    "domain <-> pallet":
+        "app/domain/catalog.py liest die JSON-Kataloge in app.pallet.models ein. "
+        "Aufloesen wuerde: catalog.py zerlegen und das Einlesen je Scheibe in "
         "deren eigenes Modul geben.",
-    "fach <-> vakuum":
-        "Dasselbe fuer app.vakuum.daten - siehe 'fach <-> palette'.",
+    "domain <-> vacuum":
+        "Dasselbe fuer app.vacuum.models - siehe 'domain <-> pallet'.",
 
     # Eine Ursache, zwei Eintraege.
-    "(programm) <-> palette":
-        "app/tabs.py und app/kontext.py sind Vertrag UND Registratur in einer "
+    "(programm) <-> pallet":
+        "app/tab_registry.py und app/context.py sind Vertrag UND Registratur in einer "
         "Datei: die Scheibe holt sich TabHost und AppContext, und dieselben "
         "Dateien fuehren die Liste der Module. Aufloesen wuerde: den Vertrag "
         "vom Zusammenbau trennen. Kostet aber die scharfe Regel fuer "
-        "app/oberflaeche/, denn TabHost braucht app.fach.vorgang - deshalb "
+        "app/gui/, denn TabHost braucht app.domain.state - deshalb "
         "steht es bewusst noch so.",
-    "(programm) <-> vakuum":
-        "Dasselbe fuer die zweite Scheibe - siehe '(programm) <-> palette'.",
+    "(programm) <-> vacuum":
+        "Dasselbe fuer die zweite Scheibe - siehe '(programm) <-> pallet'.",
 }
 
 
@@ -124,10 +124,10 @@ RINGE_MIT_GRUND: dict[str, str] = {
 #: liegt in QT_WIDGETS und QT_CORE weiter unten: eine Namensliste laesst jede
 #: neue Datei durch, eine Positivliste nicht.
 QT_FREE = (
-    "einheiten.py", "ergebnis.py", "fehler.py", "pfade.py", "katalog.py",
-    "vorgang.py", "geometrie.py", "paket.py", "legemuster.py",
-    "daten.py", "rechnung.py", "stapel.py", "physik.py", "anordnung.py",
-    "saugermuster.py",
+    "units.py", "results.py", "errors.py", "paths.py", "catalog.py",
+    "state.py", "geometry.py", "package.py", "layer_patterns.py",
+    "models.py", "calculator.py", "stacking.py", "physics.py", "layout.py",
+    "cup_patterns.py",
 )
 
 
@@ -142,10 +142,10 @@ QT_OBERFLAECHE = ("QtWidgets", "QtGui", "QtQuick", "QtQml", "QtWebEngineWidgets"
 #:
 #: Warum eine Positivliste: vorher stand hier das Gegenteil, eine Liste von
 #: fuenfzehn Dateinamen, die Qt NICHT importieren durften. Alles, was nicht
-#: darin stand, durfte - eine neue kraefte.py in app/vakuum/ haette ab dem
+#: darin stand, durfte - eine neue kraefte.py in app/vacuum/ haette ab dem
 #: ersten Tag QtWidgets importieren koennen, und kein Test haette etwas
 #: gesagt. Sieben Dateien lagen tatsaechlich in diesem Niemandsland, darunter
-#: app/kontext.py, die den Programmzustand haelt.
+#: app/context.py, die den Programmzustand haelt.
 #:
 #: Jetzt ist die Grundstellung "kein Qt". Wer Qt braucht, steht hier - und wer
 #: hier steht, muss Qt auch wirklich benutzen, sonst raeumt
@@ -161,21 +161,21 @@ QT_OBERFLAECHE = ("QtWidgets", "QtGui", "QtQuick", "QtQml", "QtWebEngineWidgets"
 #: Darf das ganze Qt: baut Fenster, Bedienelemente oder Zeichnungen.
 QT_WIDGETS = (
     "__main__.py",
-    "start.py",
-    "tabs.py",
-    "oberflaeche/darstellung.py",
-    "oberflaeche/entprellung.py",
-    "oberflaeche/fensterzustand.py",
-    "oberflaeche/formularbau.py",
-    "oberflaeche/hilfe.py",
-    "oberflaeche/meldungen.py",
-    "oberflaeche/icons/__init__.py",
-    "palette/formular.py",
-    "palette/szene3d.py",
-    "palette/tab.py",
-    "palette/zeichnung.py",
-    "vakuum/tab.py",
-    "vakuum/zeichnung.py",
+    "application.py",
+    "tab_registry.py",
+    "gui/theme.py",
+    "gui/debounce.py",
+    "gui/window_state.py",
+    "gui/form_builder.py",
+    "gui/help_dialog.py",
+    "gui/notifications.py",
+    "gui/icons/__init__.py",
+    "pallet/form.py",
+    "pallet/scene_3d.py",
+    "pallet/tab.py",
+    "pallet/renderer.py",
+    "vacuum/tab.py",
+    "vacuum/renderer.py",
 )
 
 #: Darf QtCore, aber kein Bedienelement und keine Zeichnung.
@@ -184,16 +184,16 @@ QT_WIDGETS = (
 #: QObject und pyqtSignal, weil ein Signal der einzige threadsichere Weg ist,
 #: ein Ergebnis aus einem Worker in den Oberflaechen-Thread zu bringen. Ein
 #: Bedienelement haben sie damit nicht zu kennen: sie liegen auf der anderen
-#: Seite der Tuer, die dienst.py aufmacht (Spezifikation 29).
+#: Seite der Tuer, die service.py aufmacht (Spezifikation 29).
 #:
 #: Wer hier ein QWidget importiert, hat die Tuer von innen aufgemacht - und
 #: genau das faellt sonst erst auf, wenn die Rechnung ohne laufendes Fenster
 #: nicht mehr zu testen ist.
 QT_CORE = (
-    "technik/nebenlaeufig.py",
-    "technik/rechenlauf.py",
-    "palette/dienst.py",
-    "vakuum/dienst.py",
+    "infra/jobs.py",
+    "infra/calculation_service.py",
+    "pallet/service.py",
+    "vacuum/service.py",
 )
 
 
@@ -202,18 +202,18 @@ QT_CORE = (
 #: In einer Schichtenarchitektur sagte der ORDNER, was ein Modul darf. Bei
 #: vertikalen Schnitten liegt alles zu einem Thema beieinander, und der Ordner
 #: sagt nur noch, WORUM es geht. Die Rolle steckt im Dateinamen - und der ist
-#: in jeder Scheibe derselbe: eine rechnung.py ist ueberall eine rechnung.py.
+#: in jeder Scheibe derselbe: eine calculator.py ist ueberall eine calculator.py.
 ROLLEN: dict[str, tuple[str, ...]] = {
     # Rechnen. Kein Qt, keine Dateien, keine Oberflaeche.
     "rechnend": QT_FREE,
 
     # Zeichnen. Stellt dar, was im Ergebnis steht, und entscheidet nichts.
-    "zeichnend": ("zeichnung.py", "szene3d.py"),
+    "zeichnend": ("renderer.py", "scene_3d.py"),
 
     # Bedienen. Nimmt entgegen und zeigt an; gerechnet wird hinter der Tuer,
-    # die dienst.py aufmacht. Bewusst NUR die beiden Tab-Module: dienst.py
+    # die service.py aufmacht. Bewusst NUR die beiden Tab-Module: service.py
     # gehoert zur Oberflaeche, darf die Rechnung aber anstossen.
-    "bedienend": ("tab.py", "formular.py"),
+    "bedienend": ("tab.py", "form.py"),
 
     # Die Oberflaeche im weiteren Sinn - alles, was Qt anfasst, ohne zu
     # zeichnen. Fuer die Regel "hier wird nicht gerechnet" ist das der
@@ -223,40 +223,40 @@ ROLLEN: dict[str, tuple[str, ...]] = {
     # liegen als compact.py in qt_controls_pyrs, wo mehrere Anwendungen sie
     # teilen. Was sie an Regeln brauchen, prueft die Bibliothek.
     #
-    # formularbau.py, fensterzustand.py und entprellung.py lagen kurzzeitig
+    # form_builder.py, window_state.py und debounce.py lagen kurzzeitig
     # ebenfalls dort und sind zurueckgekommen: eine Widget-Sammlung bestimmt
     # das AUSSEHEN eines Programms. Ein Formularbau legt fest, WAS wo steht,
     # der Fensterzustand haelt Zustand, die Entprellung bremst Signale -
     # nichts davon ist ein Bedienelement. Siehe doc/ARCHITECTURE.md.
-    "oberflaeche": ("tab.py", "formular.py", "dienst.py", "start.py",
-                    "tabs.py", "kontext.py", "rechenlauf.py",
-                    "meldungen.py", "hilfe.py", "darstellung.py",
-                    "formularbau.py", "fensterzustand.py", "entprellung.py"),
+    "gui": ("tab.py", "form.py", "service.py", "application.py",
+            "tab_registry.py", "context.py", "calculation_service.py",
+            "notifications.py", "help_dialog.py", "theme.py",
+            "form_builder.py", "window_state.py", "debounce.py"),
 
     # Datentragend. Eingefrorene Objekte mit Einheitensuffix, kein Verhalten.
     #
-    # geometrie.py steht mit drin, seit dto/common.py aufgeteilt ist - Rect2D
-    # und Footprint sind Datentypen wie zuvor. ergebnis.py dagegen NICHT: dort
+    # geometry.py steht mit drin, seit dto/common.py aufgeteilt ist - Rect2D
+    # und Footprint sind Datentypen wie zuvor. results.py dagegen NICHT: dort
     # steht neben CalculationMeta auch CalculationTrace, und das ist ein
     # Sammler, der waehrend der Rechnung waechst. Veraenderlich zu sein ist
     # seine Aufgabe, nicht sein Fehler.
-    "daten": ("daten.py", "paket.py", "geometrie.py"),
+    "daten": ("models.py", "package.py", "geometry.py"),
 }
 
 #: Die Rechenteile, in die die Oberflaeche nicht hineingreifen darf.
 #:
-#: daten.py fehlt hier bewusst: die Datenobjekte sind das, WAS angezeigt wird.
-#: dienst.py ebenfalls - es ist die Tuer. Alles uebrige ist Rechnung, und wer
+#: models.py fehlt hier bewusst: die Datenobjekte sind das, WAS angezeigt wird.
+#: service.py ebenfalls - es ist die Tuer. Alles uebrige ist Rechnung, und wer
 #: von einem Tab aus direkt hineinfasst, baut die Fachlogik in die Anzeige.
-RECHENTEILE = ("rechnung.py", "physik.py", "anordnung.py", "stapel.py",
-               "saugermuster.py", "legemuster.py", "geometrie.py")
+RECHENTEILE = ("calculator.py", "physics.py", "layout.py", "stacking.py",
+               "cup_patterns.py", "layer_patterns.py", "geometry.py")
 
 #: Module, die auf Dateien zugreifen DUERFEN - und zwar nur diese drei.
 #:
-#: katalog.py liest die JSON-Kataloge, pfade.py sagt wo sie liegen, und
-#: fehler.py legt die Protokolldatei an. Alles andere bekommt gereicht, was es
+#: catalog.py liest die JSON-Kataloge, paths.py sagt wo sie liegen, und
+#: errors.py legt die Protokolldatei an. Alles andere bekommt gereicht, was es
 #: braucht.
-DATEIZUGRIFF_ERLAUBT = ("katalog.py", "pfade.py", "fehler.py")
+DATEIZUGRIFF_ERLAUBT = ("catalog.py", "paths.py", "errors.py")
 
 
 def _rolle(name: str) -> list[pathlib.Path]:
@@ -312,8 +312,8 @@ def test_the_interface_does_not_reach_into_the_calculation() -> None:
     gar nicht heran. Bei vertikalen Schnitten liegt beides im selben Ordner,
     und der Griff ist nur noch eine Zeile weit. Deshalb diese Regel.
 
-    Erlaubt bleiben daten.py - die Datenobjekte sind das, was angezeigt wird -
-    und dienst.py, das die Rechnung im Hintergrund anstoesst. Verboten ist der
+    Erlaubt bleiben models.py - die Datenobjekte sind das, was angezeigt wird -
+    und service.py, das die Rechnung im Hintergrund anstoesst. Verboten ist der
     direkte Zugriff auf rechnung, physik, anordnung, stapel und die Muster.
 
     Gemessener Zustand zum Zeitpunkt des Umbaus: kein einziger Verstoss. Die
@@ -355,7 +355,7 @@ def test_the_calculating_modules_do_not_touch_the_filesystem() -> None:
     Regel wandert die Konfiguration nach und nach in die Fachlogik, und die
     Rechnung ist ohne Dateisystem nicht mehr pruefbar.
 
-    Ausgenommen sind katalog.py und pfade.py - Dateien lesen ist ihre Aufgabe.
+    Ausgenommen sind catalog.py und paths.py - Dateien lesen ist ihre Aufgabe.
     """
     violations: list[str] = []
     for path in _rolle("rechnend"):
@@ -371,7 +371,7 @@ def test_the_calculating_modules_do_not_touch_the_filesystem() -> None:
 
 
 def test_configuration_is_read_in_exactly_one_module() -> None:
-    """Spezifikation 27: json.load steht in katalog.py und sonst nirgends.
+    """Spezifikation 27: json.load steht in catalog.py und sonst nirgends.
 
     Frueher sicherte das ein eigener Ordner app/config. Den gibt es nicht
     mehr, die Regel schon: wer anderswo eine JSON-Datei aufmacht, baut einen
@@ -380,7 +380,7 @@ def test_configuration_is_read_in_exactly_one_module() -> None:
     """
     violations: list[str] = []
     for path in sorted(APP.rglob("*.py")):
-        if path.name == "katalog.py" or "__pycache__" in path.parts:
+        if path.name == "catalog.py" or "__pycache__" in path.parts:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
@@ -395,7 +395,7 @@ def test_configuration_is_read_in_exactly_one_module() -> None:
                 violations.append(_relative(path) + ":" + str(node.lineno)
                                   + " -> json." + ziel.attr + "()")
 
-    assert not violations, "Konfiguration wird ausserhalb von katalog.py gelesen: " + ", ".join(violations)
+    assert not violations, "Konfiguration wird ausserhalb von catalog.py gelesen: " + ", ".join(violations)
 
 
 # Fachlogik in der Oberflaeche -------------------------------------------------
@@ -404,13 +404,13 @@ def test_gui_contains_no_calculation_formulas() -> None:
     """Spezifikation 10: keine Berechnungsformeln in der Oberflaeche.
 
     Als Anhaltspunkt dient der Import von Rechenbibliotheken. Die Oberflaeche
-    darf Werte umrechnen (app.fach.einheiten) und formatieren, aber nicht rechnen.
+    darf Werte umrechnen (app.domain.units) und formatieren, aber nicht rechnen.
     Wer hier math oder numpy braucht, baut gerade eine Formel nach, die in eine
     Engine gehoert.
     """
     violations = [
         _relative(path) + ":" + str(line) + " -> " + module
-        for path in _rolle("oberflaeche")
+        for path in _rolle("gui")
         for module, line in _imports_of(path)
         if module in ("math", "numpy", "scipy", "statistics") or module.startswith(("numpy.", "scipy."))
     ]
@@ -437,7 +437,7 @@ def test_renderers_contain_no_business_logic() -> None:
 
 def test_registered_modules_satisfy_the_contract() -> None:
     """Spezifikation 06: neue Module muessen dem Modulvertrag entsprechen."""
-    from app.tabs import CalculationModule, default_modules
+    from app.tab_registry import CalculationModule, default_modules
 
     for module in default_modules():
         assert isinstance(module, CalculationModule), (
@@ -449,14 +449,14 @@ def test_registered_modules_satisfy_the_contract() -> None:
 
 
 def test_module_ids_are_unique() -> None:
-    from app.tabs import default_modules
+    from app.tab_registry import default_modules
 
     ids = [module.module_id for module in default_modules()]
     assert len(ids) == len(set(ids)), "Doppelte Modulkennung: " + str(ids)
 
 
 def test_registry_rejects_a_module_without_the_contract() -> None:
-    from app.tabs import ModuleRegistry
+    from app.tab_registry import ModuleRegistry
 
     class NotAModule:
         pass
@@ -471,13 +471,13 @@ def test_main_window_names_no_module() -> None:
     Geprueft wird, dass der Zusammenbau keine Modulkennung als Zeichenkette
     enthaelt - genau so entstehen die verbotenen Sonderbehandlungen.
 
-    Geprueft wird app/start.py, wo seit dem Umbau Application und MainWindow
+    Geprueft wird app/application.py, wo seit dem Umbau Application und MainWindow
     stehen. Die Modulliste selbst nennt die Kennungen natuerlich; sie steht
-    deshalb in app/tabs.py und ausdruecklich nicht hier.
+    deshalb in app/tab_registry.py und ausdruecklich nicht hier.
     """
-    from app.tabs import default_modules
+    from app.tab_registry import default_modules
 
-    source = (APP / "start.py").read_text(encoding="utf-8")
+    source = (APP / "application.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     literals = {
         node.value for node in ast.walk(tree)
@@ -507,7 +507,7 @@ def _dataclass_fields(path: pathlib.Path):
 #:
 #: permeability_value ist die begruendete Ausnahme: seine Einheit haengt vom
 #: gewaehlten Leckagemodell ab - je Sauger, je Flaeche, oder je Flaeche und
-#: Druck (siehe app/vakuum/physik.py). Ein fester Suffix waere fuer
+#: Druck (siehe app/vacuum/physics.py). Ein fester Suffix waere fuer
 #: drei der vier Modelle falsch. Die Einheit wird deshalb im Feld unit_label
 #: mitgefuehrt und in der Oberflaeche neben dem Eingabefeld angezeigt. Genau
 #: das verlangt Spezifikation 22: die Permeabilitaet ist keine Naturkonstante,
@@ -520,14 +520,14 @@ _UNITLESS_FIELDS = {
 
 
 def test_numeric_dto_fields_carry_a_unit_suffix() -> None:
-    """Die Einheitenkonvention aus app/fach/einheiten.py, maschinell geprueft.
+    """Die Einheitenkonvention aus app/domain/units.py, maschinell geprueft.
 
     Eine Vakuumrechnung mischt mbar, l/min, m3/h, N, kg und mm. Wer das ohne
     feste Konvention rechnet, produziert Ergebnisse, die um Faktor 60 oder 1000
     danebenliegen und trotzdem plausibel aussehen. Der Suffix macht den Fehler
     schon beim Lesen sichtbar.
     """
-    from app.fach.einheiten import FIELD_SUFFIXES
+    from app.domain.units import FIELD_SUFFIXES
 
     violations: list[str] = []
     for path in _rolle("daten"):
@@ -592,7 +592,7 @@ PROGRAMM = "(programm)"
 def _paketkanten() -> dict[str, set[str]]:
     """Welches Paket von welchem abhaengt. Die Wurzel zaehlt als eines mit.
 
-    Gezaehlt werden auch Importe INNERHALB von Funktionen. app/tabs.py holt
+    Gezaehlt werden auch Importe INNERHALB von Funktionen. app/tab_registry.py holt
     die beiden Tab-Klassen erst dort, damit beim Laden kein Ring entsteht -
     fuer die Frage, wer von wem abhaengt, aendert das nichts.
     """
@@ -673,25 +673,25 @@ def test_every_documented_ring_still_exists() -> None:
 def test_the_subject_layer_reaches_into_the_slices_only_for_their_data() -> None:
     """Das Fach darf aus einer Scheibe nur deren Datenobjekte holen.
 
-    app/fach/katalog.py liest die JSON-Kataloge in PalletSpec, SuctionCupSpec
+    app/domain/catalog.py liest die JSON-Kataloge in PalletSpec, SuctionCupSpec
     und ihre Nachbarn ein und muss diese Typen deshalb kennen. Mehr nicht:
-    griffe es nach app.palette.rechnung oder app.vakuum.dienst, waere aus dem
+    griffe es nach app.pallet.calculator oder app.vacuum.service, waere aus dem
     Gemeinbesitz ein Teilnehmer geworden, und die Scheiben haetten eine Lage
     unter sich, die sie kennt.
 
-    Eine Praefixliste in FORBIDDEN kann das nicht ausdruecken - "app.palette"
+    Eine Praefixliste in FORBIDDEN kann das nicht ausdruecken - "app.pallet"
     verbietet alles oder nichts.
     """
     verstoesse: list[str] = []
-    for pfad in _python_files("fach"):
+    for pfad in _python_files("domain"):
         for modul, zeile in _imports_of(pfad):
-            for scheibe in ("app.palette", "app.vakuum"):
-                if modul.startswith(scheibe + ".") and not modul.endswith(".daten"):
+            for scheibe in ("app.pallet", "app.vacuum"):
+                if modul.startswith(scheibe + ".") and not modul.endswith(".models"):
                     verstoesse.append(
                         _relative(pfad) + ":" + str(zeile) + " -> " + modul
                     )
     assert not verstoesse, (
-        "Das Fach greift tiefer als daten.py in eine Scheibe: "
+        "Das Fach greift tiefer als models.py in eine Scheibe: "
         + ", ".join(verstoesse)
     )
 
