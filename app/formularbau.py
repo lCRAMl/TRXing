@@ -192,6 +192,19 @@ class Gruppe:
     zeilen: list[list[Any]]
     name: str = ""
 
+    #: Beschriftung ueber dem Feld statt daneben.
+    #:
+    #: Nebeneinander addieren sich Beschriftung und Feld; stehen zwei Paare in
+    #: einer Zeile, addieren sich vier Breiten. Gemessen am Vakuumtab:
+    #: "Saugerabstand" 156 + Feld 104 + "Beschleunigung" 168 + Feld 104 - die
+    #: Spalte brauchte 650 Bildpunkte, obwohl die Felder selbst nur 104 messen.
+    #:
+    #: Uebereinander zaehlt je Spalte das GROESSERE von beiden statt ihrer
+    #: Summe. Das kostet eine Zeilenhoehe je Zeile und spart ein Drittel
+    #: Breite - und die Breite ist das knappe Gut, weil daneben die Zeichnung
+    #: steht.
+    oben: bool = False
+
 
 # ==============================
 # Der Erbauer
@@ -344,6 +357,26 @@ def baue_gruppe(gruppe: Gruppe, ziel: Oberflaeche) -> KompaktGroupBox:
     raster.setVerticalSpacing(4)
 
     breiteste = max((len(zeile) for zeile in gruppe.zeilen), default=1)
+
+    if gruppe.oben:
+        # Je Baustein eine Rasterspalte; die Beschriftung sitzt in einer
+        # eigenen Zeile darueber. Zwei Rasterzeilen je Formularzeile.
+        for nummer, zeile in enumerate(gruppe.zeilen):
+            kopf, feld = nummer * 2, nummer * 2 + 1
+            for spalte, baustein in enumerate(zeile):
+                label, widget = _zelle(baustein, ziel)
+                if _spannt_volle_breite(baustein) or label is None:
+                    # Hinweise, Kaestchen und Raster brauchen keinen Kopf -
+                    # sie bringen ihre Beschriftung selbst mit oder sind eine.
+                    raster.addWidget(widget, kopf, 0, 2, breiteste)
+                    break
+                label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+                raster.addWidget(label, kopf, spalte)
+                raster.addWidget(widget, feld, spalte)
+        for spalte in range(breiteste):
+            raster.setColumnStretch(spalte, 1)
+        return box
+
     for nummer, zeile in enumerate(gruppe.zeilen):
         spalte = 0
         for baustein in zeile:
@@ -361,9 +394,18 @@ def baue_gruppe(gruppe: Gruppe, ziel: Oberflaeche) -> KompaktGroupBox:
             raster.addWidget(widget, nummer, spalte, 1, spannweite)
             spalte += spannweite
 
-    # Die letzte Spalte traegt den Dehnraum - sonst schwimmen die Felder
-    # auseinander, sobald die Spalte breiter wird als das Formular braucht.
-    raster.setColumnStretch(breiteste * 2 - 1, 1)
+    # JEDE Feldspalte traegt Dehnraum, nicht nur die letzte.
+    #
+    # Mit Dehnraum allein hinten blieben alle uebrigen Feldspalten auf ihrer
+    # Mindestbreite stehen, und der ganze Ueberschuss fiel rechts an. Sichtbar
+    # wurde das an der Warnmeldung unter "Max. Stapellast": sie sass in Spalte
+    # 1 von acht, bekam gut hundert Bildpunkte und brach sechszeilig um -
+    # mitten in einem Formular, das tausend Bildpunkte breit war.
+    #
+    # Die Beschriftungsspalten bleiben ohne: sie sollen so breit sein wie ihr
+    # Text und nicht mitwachsen.
+    for spalte in range(1, breiteste * 2, 2):
+        raster.setColumnStretch(spalte, 1)
     return box
 
 

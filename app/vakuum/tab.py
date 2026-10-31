@@ -88,13 +88,16 @@ BEDIENSPALTE = [
     Gruppe("Platte und Sauger", [
         [Wahl("cup_box", "Sauger-Typ")],
         [Hinweis("", name="cup_info")],
-        [Zahl("plate_length", "Plattenlaenge", "mm",
-              dict(min=10.0, max=3000.0, stellen=0, schritt=10.0))],
-        [Zahl("plate_width", "Plattenbreite", "mm",
+        # Laenge und Breite gehoeren in eine Zeile, Randabstand und
+        # Saugerabstand in die naechste: beides sind Paare, die man zusammen
+        # einstellt und zusammen liest.
+        [Zahl("plate_length", "Laenge", "mm",
+              dict(min=10.0, max=3000.0, stellen=0, schritt=10.0)),
+         Zahl("plate_width", "Breite", "mm",
               dict(min=10.0, max=3000.0, stellen=0, schritt=10.0))],
         [Zahl("edge_margin", "Randabstand", "mm",
-              dict(min=0.0, max=500.0, stellen=0, schritt=5.0))],
-        [Zahl("min_spacing", "Saugerabstand", "mm", dict(
+              dict(min=0.0, max=500.0, stellen=0, schritt=5.0)),
+         Zahl("min_spacing", "Saugerabstand", "mm", dict(
             min=0.0, max=500.0, stellen=0, schritt=1.0,
             hinweis="Lichter Abstand zwischen den Aussenmassen zweier Sauger.\n"
                     "0 bedeutet: die Sauger stossen aneinander."))],
@@ -104,7 +107,7 @@ BEDIENSPALTE = [
         [Ganzzahl("cup_count", "Saugeranzahl", "Stueck", dict(
             min=0, max=20000, wert=0, null_text="automatisch (maximal)"))],
         [Hinweis("", name="cup_limit")],
-    ], name="plate_box"),
+    ], name="plate_box", oben=True),
 
     Gruppe("Pakete", [
         [Ganzzahl("package_count", "Anzahl Pakete", "Stueck",
@@ -115,32 +118,36 @@ BEDIENSPALTE = [
                           "gewaehlten Muster an.\n"
                           "Aus: gleichmaessiges Raster.")],
         [Hinweis("", name="package_info")],
-    ], name="package_box"),
+    ], name="package_box", oben=True),
 
     Gruppe("Vakuum und Sicherheit", [
+        # Vakuum und Volumenstrom sind die beiden Kennwerte des Erzeugers -
+        # sie gehoeren nebeneinander.
         [Zahl("vacuum", "Vakuum", "mbar", dict(
             min=10.0, max=1000.0, stellen=0, schritt=25.0,
             hinweis="Unterdruck gegenueber der Umgebung. "
-                    "Datenblattwerte gelten bei 600 mbar."))],
-        [Zahl("flow", "Volumenstrom", "m3/h", dict(
+                    "Datenblattwerte gelten bei 600 mbar.")),
+         Zahl("flow", "Volumenstrom", "m3/h", dict(
             min=0.0, max=1000.0, stellen=2, schritt=1.0,
             hinweis="Nennvolumenstrom des Erzeugers bei geringem Unterdruck."))],
         [Wahl("restrictor_box", "Absperrung je Sauger",
               hinweis="Absperrung je Saugerposition. Ohne Begrenzung reissen unbelegte Sauger\n"
                           "das Vakuum der ganzen Platte ein. Keine Datenblattangabe.")],
         [Wahl("leakage_box", "Kartonpermeabilitaet")],
-        [Zahl("permeability", "Permeabilitaetswert", "",
-              dict(min=0.0, max=100.0, stellen=3, schritt=0.05))],
-        [Zahl("safety", "Sicherheitsfaktor", "", dict(
+        [Zahl("permeability", "Permeabilitaet", "",
+              dict(min=0.0, max=100.0, stellen=3, schritt=0.05)),
+         Zahl("safety", "Sicherheit", "", dict(
             min=1.0, max=20.0, stellen=1, schritt=0.5,
             hinweis="Die Datenblattkraefte enthalten ausdruecklich KEINEN "
                     "Sicherheitsfaktor.\nEr wird hier gesondert angesetzt."))],
+        # Ansaugrichtung und Reibbeiwert gehoeren zusammen: der Beiwert wirkt
+        # nur beim seitlichen Griff. Nebeneinander ist das ablesbar.
+        [Wahl("grip_box", "Ansaugrichtung")],
         [Zahl("acceleration", "Beschleunigung", "m/s2", dict(
             min=0.0, max=200.0, stellen=2, schritt=0.5,
             hinweis="Zusaetzliche Beschleunigung der Handhabung. "
-                    "0 ergibt die rein statische Rechnung."))],
-        [Wahl("grip_box", "Ansaugrichtung")],
-        [Zahl("friction", "Reibbeiwert", "", dict(
+                    "0 ergibt die rein statische Rechnung.")),
+         Zahl("friction", "Reibbeiwert", "", dict(
             min=0.01, max=2.0, stellen=2, schritt=0.05,
             hinweis="Reibbeiwert Sauger gegen Karton. Benutzerangabe, "
                     "keine Datenblattgroesse."))],
@@ -150,7 +157,7 @@ BEDIENSPALTE = [
         [Schalter("solve_point", "Arbeitspunkt loesen statt Sollvakuum annehmen",
                   angehakt=True, hinweis="Ein (empfohlen): rechnet das Vakuum, das sich gegen die Leckage tatsaechlich einstellt.\n"
                           "Aus: rechnet mit dem eingestellten Sollvakuum und warnt nur bei Ueberlast.")],
-    ], name="physics_box"),
+    ], name="physics_box", oben=True),
 
     Zeile([Knopf("calculate_button", "Berechnen", vorgabe=True)]),
 ]

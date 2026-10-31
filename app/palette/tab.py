@@ -47,8 +47,8 @@ from app.darstellung import ViewMode
 from app.palette.daten import PalletResult, SharedLayer
 from app.bedienelemente import restore_splitter, save_splitter, store
 from app.bedienelemente import (
-    Debouncer, KompaktButton, KompaktDropdown, KompaktRadioButton,
-    StaleBanner, compact_combo
+    BreitesRaster, Debouncer, KompaktButton, KompaktDropdown,
+    KompaktRadioButton, StaleBanner, compact_combo
 )
 from app.palette.formular import PackageForm
 from app.tabs import TabHost
@@ -58,8 +58,8 @@ from app.kontext import AppContext
 from app.palette.szene3d import create_scene
 from app.palette.zeichnung import Pallet2DView
 from app.formularbau import (
-    Ganzzahl, Gruppe, Hinweis, Knopf, Oberflaeche, Raster, Schalter, Wahl,
-    Zahl, Zeile, baue
+    Ganzzahl, Gruppe, Hinweis, Knopf, Oberflaeche, Schalter, Wahl, Zahl,
+    Zeile, baue
 )
 
 MODULE_ID = "pallet"
@@ -96,28 +96,37 @@ BEDIENSPALTE = [
         [Wahl("pallet_box", "Palettentyp")],
         [Wahl("pattern_box", "Palettiermuster")],
         [Hinweis("", name="pattern_hint")],
-    ], name="selection_box"),
+    ], name="selection_box", oben=True),
 
+    # Was zusammengehoert, steht nebeneinander: die beiden Obergrenzen der
+    # Palette in einer Zeile, Spalt und Stueckzahl in der naechsten. Das halbiert
+    # die Hoehe der Spalte, und beim Lesen gehoert ohnehin zusammen, was hier
+    # nebeneinander steht.
     Gruppe("Grenzwerte", [
         [Zahl("max_height", "max. Hoehe", "mm", dict(
             min=0.0, max=10000.0, stellen=0, schritt=50.0,
-            hinweis="0 uebernimmt den Wert des Palettentyps"))],
-        [Zahl("max_load", "max. Palettenlast", "kg", dict(
+            hinweis="0 uebernimmt den Wert des Palettentyps")),
+         Zahl("max_load", "max. Last", "kg", dict(
             min=0.0, max=100000.0, stellen=0, schritt=50.0,
             hinweis="0 uebernimmt den Wert des Palettentyps"))],
-        [Zahl("gap", "Spalt zwischen Paketen", "mm", dict(
+        [Zahl("gap", "Spalt", "mm", dict(
             min=0.0, max=200.0, stellen=1, schritt=1.0,
-            hinweis="Lichter Mindestabstand zwischen zwei Paketen"))],
-        [Ganzzahl("desired", "Gewuenschte Stueckzahl", "Stueck", dict(
+            hinweis="Lichter Mindestabstand zwischen zwei Paketen")),
+         Ganzzahl("desired", "Stueckzahl", "Stueck", dict(
             min=0, max=100000, wert=0, null_text="so viele wie moeglich"))],
         [Schalter("use_solver", "Zusaetzlichen Loeser verwenden (langsamer, oft dichter)")],
-    ], name="limits_box"),
+    ], name="limits_box", oben=True),
 
     Zeile([Knopf("calculate_button", "Berechnen", vorgabe=True),
            Knopf("cancel_button", "Abbrechen", aktiv=False)]),
-
-    Raster("results", "Ergebnis"),
 ]
+
+#: Das Ergebnisraster steht NICHT in der Bedienspalte.
+#:
+#: Dort rollte es mit und war bei kleinem Fenster weggescrollt - ausgerechnet
+#: das, worauf man nach dem Rechnen schaut. Es sitzt jetzt unter der Zeichnung
+#: und bleibt stehen. Beide Tabs sind damit gleich gebaut: links Eingaben, die
+#: rollen duerfen, rechts Zeichnung und Ergebnis, die immer dastehen.
 
 #: Die Zeilen der Ergebnisanzeige. None ist eine Trennlinie.
 ERGEBNISZEILEN = [
@@ -236,7 +245,12 @@ class PalletTab(TabHost):
         self.ui.scene_layout.setContentsMargins(0, 0, 0, 0)
         self.ui.views.addWidget(self.ui.view_2d)
         self.ui.views.addWidget(self.ui.scene_host)
-        self.ui.view_layout.addWidget(self.ui.views)
+        self.ui.view_layout.addWidget(self.ui.views, 1)
+
+        # Das Ergebnis unter der Zeichnung, ausserhalb der Rollflaeche: es
+        # bleibt stehen, auch wenn die Eingaben nach unten weglaufen.
+        self.ui.results = BreitesRaster("Ergebnis")
+        self.ui.view_layout.addWidget(self.ui.results)
 
         self.ui.splitter.addWidget(self.ui.view_panel)
 

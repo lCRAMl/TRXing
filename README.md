@@ -97,8 +97,32 @@ Wer die Einheit änderte, musste zwei Dateien anfassen.
 | `Hinweis` | `QLabel` (`role="note"`) | Erklärung unter einer Zeile |
 | `Raster` | `ResultGrid` | Ergebniswerte; Zeilen trägt der Tab nach |
 | `Platz` | `QWidget` | Platzhalter für Zeichenfläche oder 3D-Szene |
-| `Gruppe` | `KompaktGroupBox` | Rahmen mit Überschrift und Zeilen darin |
+| `Gruppe` | `KompaktGroupBox` | Rahmen mit Überschrift und Zeilen darin; `oben=True` setzt die Beschriftung über das Feld statt daneben |
 | `Zeile` | `QHBoxLayout` | mehrere Elemente nebeneinander, ohne Rahmen |
+
+### Das Gerüst beider Tabs
+
+Beide Tabs sind gleich gebaut:
+
+```
+[Paketformular]          nur Palettierung, über die volle Breite
+[Hinweisband]            erscheint nur bei veralteter Anzeige
+[Teiler]
+   links   Eingaben      scrollt, wenn es eng wird
+   rechts  Zeichnung     bekommt allen Platz, der übrig ist
+           Ergebnis      steht fest darunter
+```
+
+Das Ergebnis steht **außerhalb** der Rollfläche. In der Bedienspalte rollte es
+mit und war bei kleinem Fenster weggescrollt — ausgerechnet das, worauf man
+nach dem Rechnen schaut.
+
+Die Beschriftung steht **über** dem Feld (`oben=True`). Daneben addieren sich
+Beschriftung und Feld; stehen zwei Paare in einer Zeile, addieren sich vier
+Breiten. Gemessen am Vakuumtab: 650 Pixel Mindestbreite, obwohl die Felder
+selbst nur 104 messen. Übereinander zählt je Spalte das Größere statt der
+Summe — 426 statt 650. Breite ist das knappe Gut, weil daneben die Zeichnung
+steht; Höhe darf scrollen.
 
 ### Was gehört wohin
 

@@ -222,6 +222,18 @@ class ResultGrid(_ResultGrid):
     TITLE_PAD = 6
 
 
+
+class BreitesRaster(ResultGrid):
+    """Ergebniswerte ueber die volle Breite, vierspaltig.
+
+    Fuer den Platz unter der Zeichnung. Zweispaltig waere der Block dort
+    sieben Zeilen hoch und nimmt der Zeichnung ein Drittel ihrer Hoehe -
+    vierspaltig sind es vier, und die Zeichnung behaelt ihren Platz.
+    """
+
+    COLUMNS = 4
+
+
 NOTE_WRAP_WIDTH = 240
 
 
