@@ -96,7 +96,7 @@ def test_the_outline_is_drawn_wherever_it_differs_from_the_sealing_ring():
     Der Wirkungsbereich verschwindet frueher - drei Kreise dicht beieinander
     werden zu einem Fleck. Die Kontur ist der aeusserste und bleibt.
     """
-    from app.vacuum import renderer as vacuum_2d
+    from app.gui.vacuum import renderer as vacuum_2d
 
     assert vacuum_2d.MIN_OUTLINE_GAP_PX <= 1.0
     assert vacuum_2d.OUTLINE_PEN_WIDTH >= 1.0

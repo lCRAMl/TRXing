@@ -62,10 +62,14 @@ app/                 __main__ . application . tab_registry . context
 
   pallet/            Palettierung: Lagen legen, stapeln   ] senkrecht
   vacuum/            Saugplatte: verteilen, Kraft rechnen ]  geschnitten
+                     (nur Rechnung - die Tabs siehe gui/) ]
 
-  gui/               Farben, Formularbau, Meldungen,
+  gui/               alles, was Qt anfasst
+    (direkt)         Farben, Formularbau, Meldungen,      ]
                      Hilfe, Fensterzustand, Entprellung,  ]
                      help_texts/, darkstyle/, icons/      ]
+    pallet/          tab, form, renderer, scene_3d        ] waagerecht
+    vacuum/          tab, renderer                        ]  darunter
   domain/            Paket, Einheiten, Geometrie, Muster, ] waagerecht
                      Katalog, Ergebnis, Zustand           ]  darunter
   infra/             Hintergrundarbeit, Protokoll, Pfade  ]
@@ -192,21 +196,21 @@ Von der Absicht zur Datei. Jede Zeile hat **genau eine** Stelle:
 
 | Ich will ändern … | Datei | Wo darin |
 |---|---|---|
-| Beschriftung, Einheit, Grenzen, Schrittweite, Vorgabewert, Tooltip eines Feldes | `app/pallet/tab.py`, `app/vacuum/tab.py`, `app/pallet/form.py` | in `BEDIENSPALTE` / `FORMULAR` — alles steht in einer Zeile beieinander |
+| Beschriftung, Einheit, Grenzen, Schrittweite, Vorgabewert, Tooltip eines Feldes | `app/gui/pallet/tab.py`, `app/gui/vacuum/tab.py`, `app/gui/pallet/form.py` | in `BEDIENSPALTE` / `FORMULAR` — alles steht in einer Zeile beieinander |
 | Reihenfolge der Felder, was nebeneinander steht, Gruppenaufteilung | dieselben Dateien | die Listenstruktur; eine innere Liste ist eine Zeile auf dem Schirm |
 | Beschriftung über statt neben dem Feld | dieselben Dateien | `Gruppe(…, oben=True)` |
 | Welche Zeilen die Ergebnisanzeige hat | dieselben Dateien | `ERGEBNISZEILEN`, `STROMZEILEN`, `ABGELEITET`; `None` ist eine Trennlinie |
 | Einen neuen Feldtyp (es gibt noch keinen Baustein dafür) | `app/gui/form_builder.py` | eine Datenklasse und ein Zweig in `_zelle()` |
-| Teiler, Rollfläche, Zeichenfläche, 3D-Szene, Ansichtsleiste | `app/pallet/tab.py`, `app/vacuum/tab.py` | `_build_layout()` |
+| Teiler, Rollfläche, Zeichenfläche, 3D-Szene, Ansichtsleiste | `app/gui/pallet/tab.py`, `app/gui/vacuum/tab.py` | `_build_layout()` |
 | **Größe der Bedienelemente** — Höhe einer Leiste, Luftrand, Textabstand innen | `qt_controls_pyrs/compact.py` | `COMPACT_HEIGHT`, `COMPACT_ROOM`, `COMPACT_PAD` |
 | **Abstand zweier Formularzeilen** (senkrecht) | `qt_controls_pyrs/compact.py`, gelesen in `app/gui/form_builder.py` | `COMPACT_SPACING` |
 | **Abstand Beschriftung ↔ Feld** und zwischen zwei Feldern einer Zeile | dieselbe Datei | `COMPACT_SPACING_X` |
 | **Abstand zweier Gruppenrahmen** | dieselbe Datei | `COMPACT_GROUP_SPACING` |
-| Rand und Abstand um die gesamte Tabfläche | `app/vacuum/tab.py`, `app/pallet/tab.py` | `_build_layout()` — `root.setContentsMargins(6,6,6,6)`, `root.setSpacing(4)` |
-| Breite der Bedienspalte beim ersten Start | `app/vacuum/tab.py`, `app/pallet/tab.py` | `SPLITTER_SIZES` — danach gilt, wohin der Benutzer den Griff zieht |
-| Wie schmal sich die Bedienspalte ziehen lässt | `app/vacuum/tab.py`, `app/pallet/tab.py` | `_configure_layout()` — ergibt sich aus dem breitesten Inhalt |
+| Rand und Abstand um die gesamte Tabfläche | `app/gui/vacuum/tab.py`, `app/gui/pallet/tab.py` | `_build_layout()` — `root.setContentsMargins(6,6,6,6)`, `root.setSpacing(4)` |
+| Breite der Bedienspalte beim ersten Start | `app/gui/vacuum/tab.py`, `app/gui/pallet/tab.py` | `SPLITTER_SIZES` — danach gilt, wohin der Benutzer den Griff zieht |
+| Wie schmal sich die Bedienspalte ziehen lässt | `app/gui/vacuum/tab.py`, `app/gui/pallet/tab.py` | `_configure_layout()` — ergibt sich aus dem breitesten Inhalt |
 | Maße eines einzelnen Elementtyps (Pfeilspalte, Kästchengröße) | `qt_controls_pyrs/compact.py` | die Konstanten der jeweiligen `Compact…`-Klasse |
-| Spaltenzahl einer Ergebnisanzeige | dort, wo sie gebaut wird — z. B. `EinspaltigesRaster` in `app/vacuum/tab.py` | `COLUMNS` in einer eigenen Unterklasse |
+| Spaltenzahl einer Ergebnisanzeige | dort, wo sie gebaut wird — z. B. `EinspaltigesRaster` in `app/gui/vacuum/tab.py` | `COLUMNS` in einer eigenen Unterklasse |
 | Höhe der Statusleiste | `qt_controls_pyrs/compact.py` | `StatusBarButton` — eine Statusleiste ist so hoch wie ihr höchstes Element |
 | Einen Satz in der Hilfe, eine Formel, einen Quelltextverweis | `app/gui/help_texts/*.html` | eine Datei je Kapitel; `<<formel …>>` und `<<quelle …>>` sind die einzigen zwei Marken |
 | Ein neues Hilfekapitel | `app/gui/help_texts/` | eine Datei `08-name.html` mit `titel:` in der ersten Zeile — mehr nicht |
@@ -236,7 +240,7 @@ werden muss.
 > jeder dieser Anwendungen. Soll nur TRXing anders aussehen, gehört die
 > Änderung nach `app/gui/theme.py` oder in eine eigene
 > Unterklasse hier — so entstand `EinspaltigesRaster` in
-> `app/vacuum/tab.py`.
+> `app/gui/vacuum/tab.py`.
 >
 > Die Vorbilder (`HaloButton`, `NumberField`, …) bleiben dabei unangetastet:
 > `tests/test_compact.py` in der Bibliothek nagelt ihre Maße fest, damit
@@ -427,8 +431,8 @@ Stelle:
 |---|---|---|
 | **Schriftgröße aller Bedienelemente** | `app/gui/theme.py` | `FONT_SIZE_OFFSET_PT` |
 | **Fenstergröße beim ersten Start** | `app/application.py` | `DEFAULT_SIZE` |
-| Aufteilung Palettierung | `app/pallet/tab.py` | `SPLITTER_SIZES` |
-| Aufteilung Vakuumplatte | `app/vacuum/tab.py` | `SPLITTER_SIZES` |
+| Aufteilung Palettierung | `app/gui/pallet/tab.py` | `SPLITTER_SIZES` |
+| Aufteilung Vakuumplatte | `app/gui/vacuum/tab.py` | `SPLITTER_SIZES` |
 
 `FONT_SIZE_OFFSET_PT` ist die Schriftgröße in Punkten **gegenüber der
 Windows-Vorgabe**: `0` übernimmt sie, `-1` macht die ganze Oberfläche

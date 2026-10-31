@@ -83,8 +83,8 @@ def test_both_tabs_appear(window):
 
 def test_no_tab_failed_to_build(window, application):
     """Ein gescheiterter Tab bekommt einen Platzhalter - der darf hier nicht auftauchen."""
-    from app.pallet.tab import PalletTab
-    from app.vacuum.tab import VacuumTab
+    from app.gui.pallet.tab import PalletTab
+    from app.gui.vacuum.tab import VacuumTab
 
     manager = window._tab_manager
     assert isinstance(manager.widget_for("pallet"), PalletTab)
@@ -94,7 +94,7 @@ def test_no_tab_failed_to_build(window, application):
 def test_the_package_form_sits_at_the_top_of_the_pallet_tab(window, package_form):
     """Die Paketdaten sind kein eigener Tab mehr, sondern das erste Formular
     der Palettierung - noch ueber der Palettenauswahl."""
-    from app.pallet.form import PackageForm
+    from app.gui.pallet.form import PackageForm
 
     tab = window._tab_manager.widget_for("pallet")
     assert isinstance(package_form, PackageForm)

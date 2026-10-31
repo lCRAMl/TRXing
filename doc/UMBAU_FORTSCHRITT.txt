@@ -144,9 +144,9 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        dto/pallet.py             -> app/pallet/models.py
        engines/patterns/*        -> app/pallet/muster.py
        engines/palletizing/*     -> app/pallet/calculator.py
-       visualization/pallet_2d   -> app/pallet/renderer.py
-       visualization/pallet_3d + adapters -> app/pallet/scene_3d.py
-       gui/pallet/*              -> app/pallet/tab.py, ui_tab.py
+       visualization/pallet_2d   -> app/gui/pallet/renderer.py
+       visualization/pallet_3d + adapters -> app/gui/pallet/scene_3d.py
+       gui/pallet/*              -> app/gui/pallet/tab.py, ui_tab.py
        services/pallet_service   -> palette/service.py
        ERLEDIGT. Dazu vorgezogen, weil sonst Importzyklen stehenblieben:
          gui/common/*        -> bedienelemente.py
@@ -166,8 +166,8 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        engines/vacuum/layout     -> app/vacuum/layout.py
        engines/vacuum/{force,flow,leakage,contact} -> app/vacuum/physics.py
        engines/vacuum/calculator -> app/vacuum/calculator.py
-       visualization/vacuum_2d   -> app/vacuum/renderer.py
-       gui/vakuum/*              -> app/vacuum/tab.py, ui_tab.py
+       visualization/vacuum_2d   -> app/gui/vacuum/renderer.py
+       gui/vakuum/*              -> app/gui/vacuum/tab.py, ui_tab.py
        services/vacuum_service   -> vakuum/service.py
        ERLEDIGT. Damit sind dto/, engines/, services/ und visualization/
        verschwunden. Gemessene Eigenschaft, als Regel festgehalten: die

@@ -139,7 +139,7 @@ def create_scene(parent: QWidget | None = None) -> Scene3D:
         )
         return MissingBackendScene(reason)
     try:
-        from app.pallet.scene_3d import PyVistaScene
+        from app.gui.pallet.scene_3d import PyVistaScene
 
         return PyVistaScene(parent)
     except Exception as exc:

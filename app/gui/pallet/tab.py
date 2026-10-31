@@ -6,7 +6,7 @@ Musterstrategien, und er rechnet nichts - auch nicht die Flaechenausnutzung,
 die steht im Ergebnis.
 
 Am Kopf sitzt das Paketformular. Es ist kein Teil dieses Tabs, sondern ein
-eigenes Widget mit eigener Layoutdatei (app/pallet/form.py): die
+eigenes Widget mit eigener Layoutdatei (app/gui/pallet/form.py): die
 Paketdaten gelten fuer die ganze Anwendung, nicht nur fuer die Palettierung.
 Der Tab nimmt es auf und reicht ihm die drei Lebenszeichen weiter, die ein Tab
 von aussen bekommt - Zustandsaenderung, Uebernahme, Ende.
@@ -51,13 +51,13 @@ from qt_controls_pyrs import (
 )
 from app.gui.debounce import Debouncer
 from app.gui.window_state import restore_splitter, save_splitter, store
-from app.pallet.form import PackageForm
+from app.gui.pallet.form import PackageForm
 from app.tab_registry import TabHost
 from app.gui.theme import PALETTE
 from app.domain.state import AppStateSnapshot, StateChange
 from app.context import AppContext
-from app.pallet.scene_3d import create_scene
-from app.pallet.renderer import Pallet2DView
+from app.gui.pallet.scene_3d import create_scene
+from app.gui.pallet.renderer import Pallet2DView
 from app.gui.form_builder import (
     Ganzzahl, Gruppe, Hinweis, Oberflaeche, Schalter, Wahl, Zahl, baue
 )

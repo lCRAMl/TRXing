@@ -13,31 +13,34 @@ darunter. Keine dieser drei Lagen trägt einen Gegenstand; sie sind der
 Werkzeugkasten, der Gemeinbesitz und der Unterbau.
 
 ```
-          ┌──────────────────────────────────────────────────────┐
+          ┌────────────────────────────────────────────────────────┐
           │  app/   __main__ · application · tab_registry · context │
-          │  Das Programm: Fenster, Modulliste, Kontext          │
-          └─────────────────────────┬────────────────────────────┘
-                                    │
-       ┌────────────────────────────┴────────────────────────────┐
-┌──────▼─────────────┐                                ┌──────────▼─────────┐
-│   app/pallet/      │                                │   app/vacuum/      │
-│ models.py          │                                │ models.py          │
-│ calculator.py      │ ◀── kennen einander nicht ──▶  │ calculator.py      │
-│ stacking.py        │                                │ physics.py         │
-│ renderer.py        │    eine Tuer je Scheibe:       │ layout.py          │
-│ scene_3d.py        │    service.py                  │ cup_patterns.py    │
-│ tab.py             │                                │ renderer.py        │
-│ form.py            │                                │ tab.py             │
-│ service.py         │                                │ service.py         │
-└──────┬─────────────┘                                └──────────┬─────────┘
-       └────────────────────────────┬────────────────────────────┘
-                                    │
-  ┌─────────────────────────────────▼─────────────────────────────────┐
-  │ app/gui/      Werkzeugkasten - kennt keinen Gegenstand            │
-  │   theme · notifications · help_dialog · form_builder              │
-  │   window_state · debounce                                         │
-  │   help_texts/ · darkstyle/ · icons/                               │
-  ├───────────────────────────────────────────────────────────────────┤
+          │  Das Programm: Fenster, Modulliste, Kontext            │
+          └──────────────────────────┬─────────────────────────────┘
+                                     │
+  ┌──────────────────────────────────▼────────────────────────────────┐
+  │ app/gui/    alles, was Qt anfasst                                 │
+  │                                                                   │
+  │   gegenstandsfrei:  theme · notifications · help_dialog           │
+  │                     form_builder · window_state · debounce        │
+  │                     help_texts/ · darkstyle/ · icons/             │
+  │                                                                   │
+  │   je Scheibe:       pallet/  tab · form · renderer · scene_3d     │
+  │                     vacuum/  tab · renderer                       │
+  └───────┬───────────────────────────────────────────────┬───────────┘
+          │                                               │
+┌─────────▼──────────┐                           ┌────────▼───────────┐
+│   app/pallet/      │                           │   app/vacuum/      │
+│ models.py          │ ◀── kennen einander   ──▶ │ models.py          │
+│ calculator.py      │     nicht                 │ calculator.py      │
+│ stacking.py        │                           │ physics.py         │
+│ service.py         │  eine Tuer je Scheibe:    │ layout.py          │
+│                    │  service.py               │ cup_patterns.py    │
+│                    │                           │ service.py         │
+└─────────┬──────────┘                           └────────┬───────────┘
+          └───────────────────────┬───────────────────────┘
+                                  │
+  ┌───────────────────────────────▼───────────────────────────────────┐
   │ app/domain/   Gemeinbesitz - was beide Scheiben brauchen          │
   │   package · units · geometry · layer_patterns · results · state   │
   │   catalog                                                         │
@@ -136,7 +139,7 @@ gleich aus.** Der Preis steht in der anderen Richtung — eine Änderung an
 `COMPACT_HEIGHT` ändert jedes Fenster jeder dieser Anwendungen. Soll nur
 TRXing anders aussehen, gehört die Änderung nach
 `app/gui/theme.py` oder in eine Unterklasse hier; so entstand
-`EinspaltigesRaster` in `app/vacuum/tab.py`.
+`EinspaltigesRaster` in `app/gui/vacuum/tab.py`.
 
 Eine Ausnahme steht bewusst noch in der Bibliothek: `COMPACT_SPACING`,
 `COMPACT_SPACING_X` und `COMPACT_GROUP_SPACING`. Die Bibliothek liest sie
@@ -348,7 +351,7 @@ Fenster.
 
 **Nicht jede Beschreibung ist ein Tab.** Die Paketdaten sind die gemeinsame
 Eingabe beider Module und kein Berechnungsprogramm; ihr Formular
-(`app/pallet/form.py`) sitzt am Kopf der Palettierung und folgt derselben
+(`app/gui/pallet/form.py`) sitzt am Kopf der Palettierung und folgt derselben
 Trennung. Der Tab hängt es ein und reicht ihm die drei Lebenszeichen weiter,
 die er selbst von außen bekommt — Zustandsänderung, Übernahme, Ende.
 

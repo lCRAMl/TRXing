@@ -162,7 +162,7 @@ Mehr braucht das Hauptfenster nicht zu wissen. Es gibt darin keine Abfrage auf
 
 Die Paketdaten sind bewusst KEIN Modul. Sie sind kein Berechnungsprogramm,
 sondern die gemeinsame Eingabe aller Programme; ihr Formular sitzt am Kopf der
-Palettierung (app/pallet/form.py) und schreibt in den
+Palettierung (app/gui/pallet/form.py) und schreibt in den
 Anwendungszustand, aus dem sich jedes Modul bedient.
 
 Warum dieser Vertrag in der Oberflaechenschicht liegt und nicht bei den
@@ -224,7 +224,7 @@ def default_modules() -> list[CalculationModule]:
     Modulvertrag ohne die Tabs, und Tests koennen ihn pruefen, ohne die ganze
     Oberflaeche zu bauen.
     """
-    from app.pallet.tab import PalletModule
-    from app.vacuum.tab import VacuumModule
+    from app.gui.pallet.tab import PalletModule
+    from app.gui.vacuum.tab import VacuumModule
 
     return [PalletModule(), VacuumModule()]

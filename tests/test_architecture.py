@@ -53,8 +53,12 @@ APP = pathlib.Path(__file__).resolve().parent.parent / "app"
 FORBIDDEN: dict[str, tuple[str, ...]] = {
     # Die beiden Scheiben kennen einander nicht. Was beide brauchen, steht in
     # app/domain/ - deshalb liegt layer_patterns.py dort und nicht bei der Palette.
-    "pallet": ("app.vacuum",),
-    "vacuum": ("app.pallet",),
+    # app.gui steht seit dem 2026-11-01 mit drin. Vorher ging es nicht: die
+    # Scheiben trugen ihre eigenen Tabs, und ein Tab braucht die Oberflaeche.
+    # Seit die Tabs unter app/gui/ liegen, enthaelt eine Scheibe nur noch
+    # Rechnung - und Rechnung, die nach der Anzeige greift, faellt jetzt auf.
+    "pallet": ("app.vacuum", "app.gui"),
+    "vacuum": ("app.pallet", "app.gui"),
 
     # Der Werkzeugkasten kennt keinen Gegenstand.
     #
@@ -63,8 +67,20 @@ FORBIDDEN: dict[str, tuple[str, ...]] = {
     # Bibliothek heben laesst. Ein einziger Import aus app.domain hier - und sei
     # es nur fuer eine Typangabe - macht aus einem Bedienelement ein
     # TRXing-Bedienelement.
+    # ACHTUNG: dieser Eintrag gilt NUR fuer app/gui/*.py selbst, nicht fuer
+    # app/gui/pallet/ und app/gui/vacuum/ - die haben eigene Eintraege, und
+    # _python_files() gibt jede Datei der genauesten Regel. Ohne diese
+    # Feinheit waere die Regel mit dem Umzug der Tabs wertlos geworden: ein
+    # Tab MUSS seine Scheibe kennen.
     "gui": ("app.pallet", "app.vacuum", "app.domain",
-                    "app.application", "app.tab_registry", "app.context"),
+            "app.application", "app.tab_registry", "app.context",
+            "app.gui.pallet", "app.gui.vacuum"),
+
+    # Die Oberflaeche einer Scheibe kennt die andere Scheibe nicht - weder
+    # deren Rechnung noch deren Oberflaeche. Das ist dieselbe Trennung wie
+    # zwischen app/pallet und app/vacuum, nur eine Etage hoeher.
+    "gui/pallet": ("app.vacuum", "app.gui.vacuum"),
+    "gui/vacuum": ("app.pallet", "app.gui.pallet"),
 
     # Das Fach weiss nichts von der Anzeige und nichts vom Zusammenbau.
     #
@@ -100,16 +116,22 @@ RINGE_MIT_GRUND: dict[str, str] = {
     "domain <-> vacuum":
         "Dasselbe fuer app.vacuum.models - siehe 'domain <-> pallet'.",
 
-    # Eine Ursache, zwei Eintraege.
-    "(programm) <-> pallet":
-        "app/tab_registry.py und app/context.py sind Vertrag UND Registratur in einer "
-        "Datei: die Scheibe holt sich TabHost und AppContext, und dieselben "
-        "Dateien fuehren die Liste der Module. Aufloesen wuerde: den Vertrag "
-        "vom Zusammenbau trennen. Kostet aber die scharfe Regel fuer "
-        "app/gui/, denn TabHost braucht app.domain.state - deshalb "
+    # Ein Ring, wo vorher zwei waren.
+    #
+    # Bis zum 2026-11-01 hiessen sie "(programm) <-> pallet" und
+    # "(programm) <-> vacuum": die Tabs lagen in den Scheiben, holten sich
+    # dort TabHost und AppContext, und app/tab_registry.py holte sich die
+    # Tabs. Seit die Tabs unter app/gui/pallet/ und app/gui/vacuum/ liegen,
+    # haben die Scheiben keine Kante mehr zur Wurzel - sie kennen nur noch
+    # app.domain und app.infra. Der Ring ist mit umgezogen, nicht
+    # verschwunden.
+    "(programm) <-> gui":
+        "app/tab_registry.py und app/context.py sind Vertrag UND Registratur in "
+        "einer Datei: die Tabs holen sich dort TabHost und AppContext, und "
+        "dieselben Dateien fuehren die Liste der Module. Aufloesen wuerde: den "
+        "Vertrag vom Zusammenbau trennen. Kostet aber die scharfe Regel fuer "
+        "app/gui/ selbst, denn TabHost braucht app.domain.state - deshalb "
         "steht es bewusst noch so.",
-    "(programm) <-> vacuum":
-        "Dasselbe fuer die zweite Scheibe - siehe '(programm) <-> pallet'.",
 }
 
 
@@ -170,12 +192,12 @@ QT_WIDGETS = (
     "gui/help_dialog.py",
     "gui/notifications.py",
     "gui/icons/__init__.py",
-    "pallet/form.py",
-    "pallet/scene_3d.py",
-    "pallet/tab.py",
-    "pallet/renderer.py",
-    "vacuum/tab.py",
-    "vacuum/renderer.py",
+    "gui/pallet/form.py",
+    "gui/pallet/scene_3d.py",
+    "gui/pallet/tab.py",
+    "gui/pallet/renderer.py",
+    "gui/vacuum/tab.py",
+    "gui/vacuum/renderer.py",
 )
 
 #: Darf QtCore, aber kein Bedienelement und keine Zeichnung.
@@ -280,7 +302,23 @@ def _imports_of(path: pathlib.Path) -> list[tuple[str, int]]:
 
 
 def _python_files(package: str) -> list[pathlib.Path]:
-    return sorted(p for p in (APP / package).rglob("*.py") if "__pycache__" not in p.parts)
+    """Alle Module eines Pakets - ohne die, fuer die eine GENAUERE Regel gilt.
+
+    app/gui/ hat seit dem Umzug der Tabs drei Regeln: eine fuer den
+    gegenstandsfreien Teil und je eine fuer app/gui/pallet/ und
+    app/gui/vacuum/. Ohne diese Zeile fielen die Tabs unter die scharfe
+    Regel fuer app/gui/ - und die verbietet genau das, wovon ein Tab lebt.
+    """
+    genauer = [k for k in FORBIDDEN if k != package and k.startswith(package + "/")]
+    treffer = []
+    for pfad in (APP / package).rglob("*.py"):
+        if "__pycache__" in pfad.parts:
+            continue
+        unter = str(pfad.relative_to(APP)).replace("\\", "/")
+        if any(unter.startswith(k + "/") for k in genauer):
+            continue
+        treffer.append(pfad)
+    return sorted(treffer)
 
 
 def _relative(path: pathlib.Path) -> str:

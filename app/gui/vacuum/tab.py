@@ -49,7 +49,7 @@ from app.tab_registry import TabHost
 from app.gui.theme import PALETTE
 from app.domain.state import AppStateSnapshot, StateChange
 from app.context import AppContext
-from app.vacuum.renderer import Vacuum2DView
+from app.gui.vacuum.renderer import Vacuum2DView
 from app.gui.form_builder import (
     Ganzzahl, Gruppe, Hinweis, Oberflaeche, Schalter, Wahl, Zahl, baue
 )

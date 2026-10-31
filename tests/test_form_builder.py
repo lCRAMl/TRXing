@@ -251,9 +251,9 @@ def _benutzte_namen(pfad: pathlib.Path) -> set[str]:
 
 
 TABS = [
-    ("app/pallet/tab.py", "app.pallet.tab", "PalletTab"),
-    ("app/vacuum/tab.py", "app.vacuum.tab", "VacuumTab"),
-    ("app/pallet/form.py", "app.pallet.form", "PackageForm"),
+    ("app/gui/pallet/tab.py", "app.gui.pallet.tab", "PalletTab"),
+    ("app/gui/vacuum/tab.py", "app.gui.vacuum.tab", "VacuumTab"),
+    ("app/gui/pallet/form.py", "app.gui.pallet.form", "PackageForm"),
 ]
 
 
@@ -302,8 +302,8 @@ def test_die_bedienspalte_behaelt_ihre_mindestbreite(qtbot, application):
     Stand frueher als minimumSize in der .ui-Datei. Beim Umstellen einmal
     verloren: die Vakuumspalte liess sich auf 126 Pixel zusammenschieben.
     """
-    from app.pallet.tab import PalletTab
-    from app.vacuum.tab import VacuumTab
+    from app.gui.pallet.tab import PalletTab
+    from app.gui.vacuum.tab import VacuumTab
 
     for klasse in (PalletTab, VacuumTab):
         tab = klasse(application.context)
@@ -321,7 +321,7 @@ def test_das_muster_der_palettierung_wird_vorgegeben_uebernommen(qtbot, applicat
     verschiedene Palettiermuster bekam - weil gar keines mehr uebernommen
     wurde.
     """
-    from app.vacuum.tab import VacuumTab
+    from app.gui.vacuum.tab import VacuumTab
 
     tab = VacuumTab(application.context)
     qtbot.addWidget(tab)
@@ -332,7 +332,7 @@ def test_das_muster_der_palettierung_wird_vorgegeben_uebernommen(qtbot, applicat
 def test_lange_kaestchentexte_brechen_um(qtbot, application):
     """Einzeilig misst "Teilweise aufliegende Sauger..." ueber 600 Bildpunkte
     und zwaenge die ganze Spalte auf diese Breite."""
-    from app.vacuum.tab import VacuumTab
+    from app.gui.vacuum.tab import VacuumTab
 
     tab = VacuumTab(application.context)
     qtbot.addWidget(tab)
