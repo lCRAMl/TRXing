@@ -23,6 +23,7 @@ Kurz: jede Schicht darf nur nach unten greifen, nie nach oben.
 from __future__ import annotations
 
 import ast
+import builtins
 import pathlib
 
 import pytest
@@ -649,3 +650,107 @@ def test_the_calculating_modules_stay_qt_free() -> None:
     assert not offenders, (
         "Diese rechnenden Module importieren Qt: " + ", ".join(offenders)
     )
+
+
+# Namen, die es nicht gibt --------------------------------------------------
+
+#: Was in jedem Modul bekannt ist, ohne dass es dort steht.
+_EINGEBAUT = set(dir(builtins)) | {
+    "__file__", "__name__", "__doc__", "__package__", "__spec__",
+    "__loader__", "__builtins__", "__debug__", "__class__",
+}
+
+
+def _gebundene_namen(baum: ast.AST) -> set[str]:
+    """Alle Namen, die eine Datei irgendwo bindet.
+
+    Grosszuegig gezaehlt und ueber alle Ebenen hinweg: eine Variable, die nur
+    in einer Funktion zugewiesen wird, gilt auch im Dateikopf als bekannt. Das
+    ist absichtlich zu nachsichtig. Eine genaue Namensaufloesung waere ein
+    halbes pyflakes; was hier gesucht wird, ist der Name, den es NIRGENDS
+    gibt.
+    """
+    namen: set[str] = set()
+    for knoten in ast.walk(baum):
+        if isinstance(knoten, ast.Import):
+            for alias in knoten.names:
+                namen.add((alias.asname or alias.name).split(".")[0])
+        elif isinstance(knoten, ast.ImportFrom):
+            for alias in knoten.names:
+                namen.add(alias.asname or alias.name)
+        elif isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            namen.add(knoten.name)
+        elif isinstance(knoten, ast.arg):
+            namen.add(knoten.arg)
+        elif isinstance(knoten, ast.Name) and isinstance(knoten.ctx, (ast.Store, ast.Del)):
+            namen.add(knoten.id)
+        elif isinstance(knoten, ast.ExceptHandler) and knoten.name:
+            namen.add(knoten.name)
+        elif isinstance(knoten, (ast.Global, ast.Nonlocal)):
+            namen.update(knoten.names)
+        elif isinstance(knoten, (ast.MatchAs, ast.MatchStar)) and knoten.name:
+            namen.add(knoten.name)
+    return namen
+
+
+@pytest.mark.parametrize("ordner", ["app", "tests", "."])
+def test_no_module_uses_a_name_that_does_not_exist(ordner: str) -> None:
+    """Ein Name, den es nirgends gibt, ist ein NameError beim Benutzen.
+
+    Entstanden an einem echten Fall: beim Zurueckholen eines Moduls aus der
+    Bibliothek hat eine Textersetzung APP_SLUG aus dem Import von
+    app/__main__.py genommen, obwohl die Datei den Namen zwei Funktionen
+    weiter benutzt. Die Anwendung startete nicht mehr - und alle 579 Tests
+    blieben gruen, weil keiner von ihnen app/__main__.py anfasst.
+
+    Der Import allein reicht als Schutz nicht: der Name steht INNERHALB einer
+    Funktion, und die laeuft erst beim Start.
+
+    "." sind die Dateien in der Projektwurzel, nicht rekursiv: main.py und
+    AUTOBUILD.py. Dieselbe Ersetzung hat auch AUTOBUILD.py erwischt, und das
+    waere erst beim naechsten Bauen der .exe aufgefallen.
+    """
+    wurzel = APP.parent / ordner
+    dateien = wurzel.glob("*.py") if ordner == "." else wurzel.rglob("*.py")
+    verstoesse: list[str] = []
+    for pfad in sorted(dateien):
+        if "__pycache__" in pfad.parts:
+            continue
+        baum = ast.parse(pfad.read_text(encoding="utf-8"), filename=str(pfad))
+        bekannt = _gebundene_namen(baum) | _EINGEBAUT
+        offen: dict[str, int] = {}
+        for knoten in ast.walk(baum):
+            if (isinstance(knoten, ast.Name) and isinstance(knoten.ctx, ast.Load)
+                    and knoten.id not in bekannt):
+                offen.setdefault(knoten.id, knoten.lineno)
+        for name, zeile in sorted(offen.items(), key=lambda paar: paar[1]):
+            verstoesse.append(_relative(pfad) + ":" + str(zeile) + " -> " + name)
+
+    assert not verstoesse, (
+        "Diese Namen gibt es in ihrer Datei nicht:\n  " + "\n  ".join(verstoesse)
+    )
+
+
+def test_the_program_starts_as_a_process() -> None:
+    """Der Einstiegspunkt wird wirklich ausgefuehrt, nicht nur importiert.
+
+    app/__main__.py war bis 2026-10-31 die einzige Datei des Programms, die
+    kein Test je angefasst hat - ausgerechnet die, mit der es startet. Ein
+    Fehler darin faellt sonst erst dem Benutzer auf.
+
+    --version laeuft ohne Fenster und ohne Konfiguration durch; geprueft wird
+    damit, dass das Modul laedt, argparse steht und der Prozess sauber endet.
+    """
+    import subprocess
+    import sys
+
+    wurzel = APP.parent
+    ergebnis = subprocess.run(
+        [sys.executable, "-m", "app", "--version"],
+        cwd=str(wurzel), capture_output=True, text=True, timeout=120,
+    )
+    assert ergebnis.returncode == 0, (
+        "python -m app --version endete mit " + str(ergebnis.returncode)
+        + "\n" + ergebnis.stderr[-2000:]
+    )
+    assert "TRXing" in ergebnis.stdout, ergebnis.stdout

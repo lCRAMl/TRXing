@@ -45,7 +45,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-from app import APP_NAME, __version__ as SOURCE_VERSION  # noqa: E402
+from app import APP_NAME, APP_SLUG, __version__ as SOURCE_VERSION  # noqa: E402
 
 # =========================
 # Konfiguration

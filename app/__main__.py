@@ -14,7 +14,7 @@ import logging
 import sys
 from pathlib import Path
 
-from app import APP_NAME, __version__
+from app import APP_NAME, APP_SLUG, __version__
 from app.start import Application
 
 
