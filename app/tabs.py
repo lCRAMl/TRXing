@@ -20,9 +20,9 @@ from typing import Protocol, runtime_checkable
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QLabel, QTabWidget, QVBoxLayout, QWidget
 
-from app.fehler import AppError, ErrorReporter, Severity
-from app.darstellung import PALETTE
-from app.vorgang import AppStateSnapshot, StateChange
+from app.technik.fehler import AppError, ErrorReporter, Severity
+from app.oberflaeche.darstellung import PALETTE
+from app.fach.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
 
 

@@ -12,8 +12,8 @@ from __future__ import annotations
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFontMetrics
 from PyQt6.QtWidgets import QLabel, QProgressBar, QPushButton, QStatusBar, QWidget
-from app.fehler import AppError, Severity
-from app.darstellung import PALETTE
+from app.technik.fehler import AppError, Severity
+from app.oberflaeche.darstellung import PALETTE
 import time
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
@@ -30,10 +30,10 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from app.fehler import AppError, ErrorReporter, Severity
-from app.bedienelemente import LeistenKnopf, mono_font
+from app.technik.fehler import AppError, ErrorReporter, Severity
+from app.oberflaeche.bedienelemente import LeistenKnopf, mono_font
 from PyQt6.QtCore import QObject, pyqtSignal
-from app.fehler import AppError, ErrorReporter
+from app.technik.fehler import AppError, ErrorReporter
 from qt_controls_pyrs import HaloButton
 
 

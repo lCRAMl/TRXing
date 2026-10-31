@@ -19,12 +19,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.katalog import SettingsService
-from app.fehler import ErrorReporter
-from app.nebenlaeufig import RequestGate
-from app.nebenlaeufig import JobManager
-from app.vorgang import AppState
-from app.vorgang import PackageService
+from app.fach.katalog import SettingsService
+from app.technik.fehler import ErrorReporter
+from app.technik.nebenlaeufig import RequestGate
+from app.technik.nebenlaeufig import JobManager
+from app.fach.vorgang import AppState
+from app.fach.vorgang import PackageService
 from app.palette.dienst import PalletService
 from app.vakuum.dienst import VacuumService
 

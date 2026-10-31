@@ -32,18 +32,83 @@ APP = pathlib.Path(__file__).resolve().parent.parent / "app"
 
 # Paket -> Praefixe, die es NICHT importieren darf.
 #
-# Seit dem Umbau auf vertikale Schnitte gibt es nur noch zwei Pakete mit
-# Fachlogik. Die alten Schichtregeln (core, dto, engines, services, jobs,
-# visualization, gui) sind entfallen - was ein Modul darf, sagt jetzt sein
-# NAME und nicht mehr sein Ordner. Siehe ROLLEN weiter unten.
+# Zwei Schnitte liegen uebereinander, und sie meinen Verschiedenes.
+#
+# SENKRECHT schneiden app/palette/ und app/vakuum/: je ein Gegenstand, in sich
+# vollstaendig. Was ein Modul darin darf, sagt sein NAME und nicht sein Ordner
+# - eine rechnung.py ist in jeder Scheibe eine rechnung.py. Siehe ROLLEN.
+#
+# WAAGERECHT liegen app/oberflaeche/, app/fach/ und app/technik/ darunter.
+# Das ist nicht die Rueckkehr der alten Schichten (core, dto, engines,
+# services, visualization, gui): die schnitten quer durch den Gegenstand, und
+# ein einziges Merkmal lag in sieben Ordnern. Diese drei tragen gar keinen
+# Gegenstand - sie sind der Werkzeugkasten, der Gemeinbesitz und der Unterbau.
+# Die Pruefrage lautet: fasst ein neues Merkmal mehr Ordner an als vorher?
+# Eine dritte Scheibe waere app/<name>/ plus eine Zeile in app/tabs.py.
+#
+# In der Wurzel von app/ liegt das Programm selbst - __main__, start, tabs,
+# kontext. Fuenf Dateien, kein Paket: es ist die Stelle, an der die Teile
+# zusammenkommen, und die hat keine Schichtregel ueber sich.
 FORBIDDEN: dict[str, tuple[str, ...]] = {
+    # Die beiden Scheiben kennen einander nicht. Was beide brauchen, steht in
+    # app/fach/ - deshalb liegt legemuster.py dort und nicht bei der Palette.
     "palette": ("app.vakuum",),
     "vakuum": ("app.palette",),
 
-    # Reine Dateiordner ohne Logik: das Programmsymbol und das dunkle
-    # Stylesheet. Sie importieren nichts ausser Qt.
-    "icons": ("app.palette", "app.vakuum", "app.gui"),
-    "darkstyle": (),
+    # Der Werkzeugkasten kennt keinen Gegenstand.
+    #
+    # Das ist die scharfste Regel im Programm und die nuetzlichste: sie ist
+    # der Grund, warum sich der Inhalt dieses Pakets ueberhaupt in eine
+    # Bibliothek heben laesst. Ein einziger Import aus app.fach hier - und sei
+    # es nur fuer eine Typangabe - macht aus einem Bedienelement ein
+    # TRXing-Bedienelement.
+    "oberflaeche": ("app.palette", "app.vakuum", "app.fach",
+                    "app.start", "app.tabs", "app.kontext"),
+
+    # Das Fach weiss nichts von der Anzeige und nichts vom Zusammenbau.
+    #
+    # Die Scheiben fehlen hier bewusst: katalog.py liest die JSON-Kataloge in
+    # die Datenobjekte beider Scheiben ein und muss sie dafuer kennen. Wie
+    # weit das reicht, steht nicht hier, sondern in
+    # test_the_subject_layer_reaches_into_the_slices_only_for_their_data -
+    # eine Praefixliste koennte "nur daten.py" nicht ausdruecken.
+    "fach": ("app.oberflaeche", "app.start", "app.tabs", "app.kontext"),
+
+    # Die unterste Lage greift nach nichts.
+    #
+    # Hintergrundarbeit, Protokoll, Verzeichnisse. Sobald ein Modul hier nach
+    # oben greift, ist die Lage keine Lage mehr und die Testsuite verliert
+    # ihren Grund, ohne QApplication zu laufen.
+    "technik": ("app.oberflaeche", "app.fach", "app.palette", "app.vakuum",
+                "app.start", "app.tabs", "app.kontext"),
+}
+
+
+#: Ringe zwischen Paketen, die bestehen - mit Grund und mit Heilmittel.
+#:
+#: Jeder Eintrag ist eine Ausnahme, die jemand aufgeschrieben und begruendet
+#: hat. Ein NEUER Ring faellt weiterhin auf. Der Unterschied zu einem
+#: abgeschalteten Test ist genau dieser: hier steht, was der Ring kostet und
+#: was ihn aufloest.
+RINGE_MIT_GRUND: dict[str, str] = {
+    # Eine Ursache, zwei Eintraege.
+    "fach <-> palette":
+        "app/fach/katalog.py liest die JSON-Kataloge in app.palette.daten ein. "
+        "Aufloesen wuerde: katalog.py zerlegen und das Einlesen je Scheibe in "
+        "deren eigenes Modul geben.",
+    "fach <-> vakuum":
+        "Dasselbe fuer app.vakuum.daten - siehe 'fach <-> palette'.",
+
+    # Eine Ursache, zwei Eintraege.
+    "(programm) <-> palette":
+        "app/tabs.py und app/kontext.py sind Vertrag UND Registratur in einer "
+        "Datei: die Scheibe holt sich TabHost und AppContext, und dieselben "
+        "Dateien fuehren die Liste der Module. Aufloesen wuerde: den Vertrag "
+        "vom Zusammenbau trennen. Kostet aber die scharfe Regel fuer "
+        "app/oberflaeche/, denn TabHost braucht app.fach.vorgang - deshalb "
+        "steht es bewusst noch so.",
+    "(programm) <-> vakuum":
+        "Dasselbe fuer die zweite Scheibe - siehe '(programm) <-> palette'.",
 }
 
 
@@ -258,7 +323,7 @@ def test_gui_contains_no_calculation_formulas() -> None:
     """Spezifikation 10: keine Berechnungsformeln in der Oberflaeche.
 
     Als Anhaltspunkt dient der Import von Rechenbibliotheken. Die Oberflaeche
-    darf Werte umrechnen (app.einheiten) und formatieren, aber nicht rechnen.
+    darf Werte umrechnen (app.fach.einheiten) und formatieren, aber nicht rechnen.
     Wer hier math oder numpy braucht, baut gerade eine Formel nach, die in eine
     Engine gehoert.
     """
@@ -374,14 +439,14 @@ _UNITLESS_FIELDS = {
 
 
 def test_numeric_dto_fields_carry_a_unit_suffix() -> None:
-    """Die Einheitenkonvention aus app/einheiten.py, maschinell geprueft.
+    """Die Einheitenkonvention aus app/fach/einheiten.py, maschinell geprueft.
 
     Eine Vakuumrechnung mischt mbar, l/min, m3/h, N, kg und mm. Wer das ohne
     feste Konvention rechnet, produziert Ergebnisse, die um Faktor 60 oder 1000
     danebenliegen und trotzdem plausibel aussehen. Der Suffix macht den Fehler
     schon beim Lesen sichtbar.
     """
-    from app.einheiten import FIELD_SUFFIXES
+    from app.fach.einheiten import FIELD_SUFFIXES
 
     violations: list[str] = []
     for path in _rolle("daten"):
@@ -438,33 +503,116 @@ def test_every_package_is_covered_by_a_rule() -> None:
     )
 
 
+#: Name der Wurzel von app/ im Ringtest. Sie ist kein Paket, traegt aber
+#: Abhaengigkeiten wie eines - und wurde deshalb vorher nicht geprueft.
+PROGRAMM = "(programm)"
+
+
+def _paketkanten() -> dict[str, set[str]]:
+    """Welches Paket von welchem abhaengt. Die Wurzel zaehlt als eines mit.
+
+    Gezaehlt werden auch Importe INNERHALB von Funktionen. app/tabs.py holt
+    die beiden Tab-Klassen erst dort, damit beim Laden kein Ring entsteht -
+    fuer die Frage, wer von wem abhaengt, aendert das nichts.
+    """
+    def paket_von(pfad: pathlib.Path) -> str:
+        teile = pfad.relative_to(APP).parts
+        return teile[0] if len(teile) > 1 else PROGRAMM
+
+    kanten: dict[str, set[str]] = {}
+    for pfad in sorted(APP.rglob("*.py")):
+        if "__pycache__" in pfad.parts:
+            continue
+        quelle = paket_von(pfad)
+        ziele = kanten.setdefault(quelle, set())
+        for modul, _zeile in _imports_of(pfad):
+            if not modul.startswith("app."):
+                continue
+            teil = modul.split(".")[1]
+            ziel = teil if (APP / teil).is_dir() else PROGRAMM
+            if ziel != quelle:
+                ziele.add(ziel)
+    return kanten
+
+
 def test_no_module_imports_itself_in_a_circle() -> None:
     """Spezifikation 01: keine zyklischen Abhaengigkeiten.
 
     Geprueft auf Paketebene - ein Zyklus innerhalb eines Pakets ist eine
     Geschmacksfrage, einer zwischen Paketen ein Architekturfehler.
+
+    Seit die Wurzel von app/ gruppiert ist, prueft dieser Test MEHR als
+    vorher: die vier Pakete darunter und zusaetzlich die Wurzel selbst. Als
+    alles flach in app/ lag, waren Zweiwege-Abhaengigkeiten zwischen
+    Werkzeugkasten, Fach und Zusammenbau unsichtbar - nicht, weil es sie nicht
+    gab, sondern weil sie alle im selben Ordner lagen.
+
+    Vier davon sind dabei zum Vorschein gekommen. Sie stehen mit Grund und
+    Heilmittel in RINGE_MIT_GRUND und nicht in einem auskommentierten Test.
     """
-    edges: dict[str, set[str]] = {}
-    for package in sorted(p.name for p in APP.iterdir() if p.is_dir() and not p.name.startswith("__")):
-        targets: set[str] = set()
-        for path in _python_files(package):
-            for module, _line in _imports_of(path):
-                if not module.startswith("app."):
-                    continue
-                target = module.split(".")[1]
-                if target != package and (APP / target).is_dir():
-                    targets.add(target)
-        edges[package] = targets
+    kanten = _paketkanten()
 
-    cycles: list[str] = []
-    for source, targets in edges.items():
-        for target in targets:
-            if source in edges.get(target, set()):
-                pair = " <-> ".join(sorted((source, target)))
-                if pair not in cycles:
-                    cycles.append(pair)
+    ringe: list[str] = []
+    for quelle, ziele in kanten.items():
+        for ziel in ziele:
+            if quelle in kanten.get(ziel, set()):
+                paar = " <-> ".join(sorted((quelle, ziel)))
+                if paar not in ringe:
+                    ringe.append(paar)
 
-    assert not cycles, "Zyklische Paketabhaengigkeiten:\n  " + "\n  ".join(cycles)
+    neu = sorted(set(ringe) - set(RINGE_MIT_GRUND))
+    assert not neu, (
+        "Neue zyklische Paketabhaengigkeiten:\n  " + "\n  ".join(neu)
+        + "\n\nEntweder aufloesen oder mit Grund in RINGE_MIT_GRUND eintragen."
+    )
+
+
+def test_every_documented_ring_still_exists() -> None:
+    """Eine Ausnahme, die niemand mehr braucht, muss verschwinden.
+
+    Ohne diesen Test waechst RINGE_MIT_GRUND nur noch: wer einen Ring
+    aufloest, merkt nicht, dass die Begruendung dafuer noch dasteht - und der
+    naechste liest sie als geltende Architektur.
+    """
+    kanten = _paketkanten()
+
+    vorhanden = set()
+    for quelle, ziele in kanten.items():
+        for ziel in ziele:
+            if quelle in kanten.get(ziel, set()):
+                vorhanden.add(" <-> ".join(sorted((quelle, ziel))))
+
+    veraltet = sorted(set(RINGE_MIT_GRUND) - vorhanden)
+    assert not veraltet, (
+        "Diese Ringe gibt es nicht mehr - Eintrag aus RINGE_MIT_GRUND "
+        "entfernen:\n  " + "\n  ".join(veraltet)
+    )
+
+
+def test_the_subject_layer_reaches_into_the_slices_only_for_their_data() -> None:
+    """Das Fach darf aus einer Scheibe nur deren Datenobjekte holen.
+
+    app/fach/katalog.py liest die JSON-Kataloge in PalletSpec, SuctionCupSpec
+    und ihre Nachbarn ein und muss diese Typen deshalb kennen. Mehr nicht:
+    griffe es nach app.palette.rechnung oder app.vakuum.dienst, waere aus dem
+    Gemeinbesitz ein Teilnehmer geworden, und die Scheiben haetten eine Lage
+    unter sich, die sie kennt.
+
+    Eine Praefixliste in FORBIDDEN kann das nicht ausdruecken - "app.palette"
+    verbietet alles oder nichts.
+    """
+    verstoesse: list[str] = []
+    for pfad in _python_files("fach"):
+        for modul, zeile in _imports_of(pfad):
+            for scheibe in ("app.palette", "app.vakuum"):
+                if modul.startswith(scheibe + ".") and not modul.endswith(".daten"):
+                    verstoesse.append(
+                        _relative(pfad) + ":" + str(zeile) + " -> " + modul
+                    )
+    assert not verstoesse, (
+        "Das Fach greift tiefer als daten.py in eine Scheibe: "
+        + ", ".join(verstoesse)
+    )
 
 
 def test_the_calculating_modules_stay_qt_free() -> None:

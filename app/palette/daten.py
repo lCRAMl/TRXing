@@ -20,10 +20,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from app.ergebnis import FrozenTrace
-from app.ergebnis import CalculationMeta
-from app.geometrie import Footprint
-from app.paket import Orientation, PackageSpec
+from app.fach.ergebnis import FrozenTrace
+from app.fach.ergebnis import CalculationMeta
+from app.fach.geometrie import Footprint
+from app.fach.paket import Orientation, PackageSpec
 
 
 @dataclass(frozen=True, slots=True)
@@ -193,7 +193,7 @@ class SharedLayer:
     Dieses Objekt traegt deshalb die fertigen Standflaechen selbst. Es ist
     bewusst KEIN PalletResult: der Vakuumtab bekommt die Geometrie, die er als
     Eingabe braucht, und nicht das Ergebnis eines fremden Moduls mit Gewichten,
-    Lastanalyse und Trace. Die Regel aus app/vorgang.py - ein
+    Lastanalyse und Trace. Die Regel aus app/fach/vorgang.py - ein
     Ergebnis gehoert dem Tab, der es angefordert hat - bleibt damit bestehen.
 
     Die Koordinaten stehen im Palettensystem. Wo die Gruppe unter der Platte

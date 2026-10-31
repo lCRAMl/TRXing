@@ -17,17 +17,17 @@ Zusammengelegt aus engines/vacuum/{force,contact,leakage,flow}.py.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from app.einheiten import GRAVITY_MS2
+from app.fach.einheiten import GRAVITY_MS2
 from app.vakuum.daten import SuctionCupSpec
 from app.vakuum.daten import GripDirection
-from app.geometrie import Footprint
+from app.fach.geometrie import Footprint
 from app.vakuum.daten import ContactClass, CupContact, SuctionCupSpec, SuctionPlacement
-from app.geometrie import circle_fits_in_rect, circle_rect_overlap_area_mm2
+from app.fach.geometrie import circle_fits_in_rect, circle_rect_overlap_area_mm2
 from typing import Protocol
-from app.einheiten import lpm_to_m3s
+from app.fach.einheiten import lpm_to_m3s
 from app.vakuum.daten import LeakageModel, LeakageSpec
 import math
-from app.einheiten import (
+from app.fach.einheiten import (
     AIR_DENSITY_KGM3,
     AIR_GAS_CONSTANT,
     AIR_KAPPA,
@@ -255,7 +255,7 @@ Sauger mit besonders nachgiebiger Dichtlippe. Standardmaessig aus, weil die
 optimistische Annahme hier zu einem zu schweren Paket fuehren wuerde.
 
 Die ueberdeckte Flaeche wird trotzdem exakt berechnet (geschlossene Loesung in
-app/geometrie.py) und ausgegeben - sie ist die Kennzahl, an der
+app/fach/geometrie.py) und ausgegeben - sie ist die Kennzahl, an der
 man sieht, wie knapp ein Sauger daneben liegt.
 """
 

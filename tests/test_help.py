@@ -13,7 +13,7 @@ import re
 
 import pytest
 
-from app.hilfe import full_document, sections
+from app.oberflaeche.hilfe import full_document, sections
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -88,7 +88,7 @@ def test_the_important_engines_are_referenced():
         "app/vakuum/physik.py",
         "app/vakuum/physik.py",
         "app/vakuum/rechnung.py",
-        "app/geometrie.py",
+        "app/fach/geometrie.py",
     ):
         assert path in document, path + " wird nicht erwaehnt"
 
@@ -116,7 +116,7 @@ def test_assumptions_are_declared_as_such():
 # Fenster -----------------------------------------------------------------------
 
 def test_dialog_opens_and_lists_every_section(qt_app):
-    from app.hilfe import FormulaHelpDialog
+    from app.oberflaeche.hilfe import FormulaHelpDialog
 
     dialog = FormulaHelpDialog()
     try:
@@ -127,7 +127,7 @@ def test_dialog_opens_and_lists_every_section(qt_app):
 
 
 def test_dialog_search_finds_a_formula(qt_app):
-    from app.hilfe import FormulaHelpDialog
+    from app.oberflaeche.hilfe import FormulaHelpDialog
 
     dialog = FormulaHelpDialog()
     try:
@@ -138,7 +138,7 @@ def test_dialog_search_finds_a_formula(qt_app):
 
 
 def test_dialog_jumps_to_a_section(qt_app):
-    from app.hilfe import FormulaHelpDialog
+    from app.oberflaeche.hilfe import FormulaHelpDialog
 
     dialog = FormulaHelpDialog()
     try:

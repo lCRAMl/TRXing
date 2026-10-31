@@ -44,7 +44,7 @@ from PyQt6.QtWidgets import (
     QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 )
 
-from app.bedienelemente import (
+from app.oberflaeche.bedienelemente import (
     IntField, KompaktButton, KompaktCheckBox, KompaktDropdown, KompaktGroupBox,
     KompaktLineEdit, KompaktRadioButton, NumberField, ResultGrid, compact_combo
 )

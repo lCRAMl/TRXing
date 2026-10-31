@@ -103,14 +103,14 @@ def _run_gui(application: Application) -> int:
     qt_app.setApplicationVersion(__version__)
 
     # Einmal fuer die ganze Anwendung: jedes Fenster und jeder Dialog erbt es.
-    from app.icons import app_icon
+    from app.oberflaeche.icons import app_icon
 
     qt_app.setWindowIcon(app_icon())
 
     # Vor dem ersten Fenster: eine spaeter gesetzte Palette erreicht bereits
     # erzeugte Widgets nur teilweise. Steht Windows auf helle Fenster, aendert
     # der Aufruf nichts.
-    from app.darstellung import apply_theme
+    from app.oberflaeche.darstellung import apply_theme
 
     if apply_theme(qt_app):
         logging.getLogger("app").info("Dunkle Fassung: Windows steht auf dunkle Fenster")

@@ -13,13 +13,13 @@ from dataclasses import replace
 
 import pytest
 
-from app.ergebnis import Status
-from app.einheiten import lpm_to_m3s, m3s_to_m3h, mbar_to_pa
-from app.geometrie import Footprint
-from app.paket import PackageSpec
+from app.fach.ergebnis import Status
+from app.fach.einheiten import lpm_to_m3s, m3s_to_m3h, mbar_to_pa
+from app.fach.geometrie import Footprint
+from app.fach.paket import PackageSpec
 from app.vakuum.daten import ContactClass, RestrictorMode, RestrictorSpec, SuctionPlacement
 from app.vakuum.daten import GripDirection, LeakageModel, LeakageSpec, PumpSpec, VacuumInput, VacuumPlateSpec
-from app.geometrie import circle_rect_overlap_area_mm2
+from app.fach.geometrie import circle_rect_overlap_area_mm2
 from app.vakuum import anordnung, physik
 from app.vakuum.rechnung import VacuumCalculator, VacuumError
 from app.vakuum.physik import workpiece_flow_m3s
@@ -565,7 +565,7 @@ def test_result_is_reproducible(calculator, base_request):
 
 
 def test_cancellation_stops_the_run(calculator, base_request):
-    from app.nebenlaeufig import CancellationToken, CancelledError
+    from app.technik.nebenlaeufig import CancellationToken, CancelledError
 
     token = CancellationToken()
     token.cancel()

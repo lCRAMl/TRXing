@@ -19,8 +19,8 @@ from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPen, QPolygonF
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from app.palette.daten import Layer, LoadStatus, PalletResult
-from app.darstellung import toned
-from app.darstellung import PALETTE
+from app.oberflaeche.darstellung import toned
+from app.oberflaeche.darstellung import PALETTE
 
 #: Rand um die Zeichnung in Bildpunkten - Platz fuer die Bemassung.
 MARGIN_PX = 46

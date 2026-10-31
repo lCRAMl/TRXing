@@ -20,7 +20,7 @@ from typing import Any, Callable, Protocol
 import logging
 import logging.handlers
 from pathlib import Path
-from app.pfade import ensure_dir, log_dir
+from app.technik.pfade import ensure_dir, log_dir
 
 
 # ---------------------------------------------------------------------------

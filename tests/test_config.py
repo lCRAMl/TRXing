@@ -11,10 +11,10 @@ import pathlib
 
 import pytest
 
-from app.katalog import ConfigLoader, strip_comments
-from app.katalog import parse_pallets, parse_suction_cups, parse_vacuum_defaults
-from app.katalog import SettingsService
-from app.fehler import Severity
+from app.fach.katalog import ConfigLoader, strip_comments
+from app.fach.katalog import parse_pallets, parse_suction_cups, parse_vacuum_defaults
+from app.fach.katalog import SettingsService
+from app.technik.fehler import Severity
 from app.vakuum.daten import RestrictorMode
 from app.vakuum.daten import GripDirection, LeakageModel
 
@@ -226,7 +226,7 @@ def test_cup_with_impossible_geometry_is_rejected(reporter):
 
 
 def test_unknown_enum_value_drops_only_that_entry(reporter):
-    from app.katalog import parse_patterns
+    from app.fach.katalog import parse_patterns
 
     data = {
         "patterns": [
@@ -294,7 +294,7 @@ def test_the_real_configuration_directory_is_found_in_the_source_tree() -> None:
 
     Alle uebrigen Tests haengen sich ihr eigenes Verzeichnis ein und koennen
     deshalb nicht bemerken, wenn die Suche im Quelltextbaum ins Leere laeuft.
-    Genau das ist beim Umbau passiert: app/pfade.py zaehlte von __file__ aus
+    Genau das ist beim Umbau passiert: app/technik/pfade.py zaehlte von __file__ aus
     drei Ebenen nach oben, weil es frueher in app/core/ lag. Nach dem Umzug
     nach app/ war das eine zuviel, und die Anwendung startete mit
     Notfalldaten - sechs Paletten und vierundzwanzig Sauger fehlten, ohne
@@ -302,7 +302,7 @@ def test_the_real_configuration_directory_is_found_in_the_source_tree() -> None:
 
     Geprueft wird deshalb der echte Pfad, nicht ein eingehaengter.
     """
-    from app.pfade import config_dir, config_search_paths
+    from app.technik.pfade import config_dir, config_search_paths
 
     root = pathlib.Path(__file__).resolve().parent.parent
     assert (root / "config").is_dir(), "Im Projekt fehlt der Ordner config/"

@@ -1,53 +1,87 @@
 # Architektur
 
-## Aufbau: zwei Scheiben auf gemeinsamem Grund
+## Aufbau: zwei Scheiben auf drei Lagen
 
-Das Programm ist nach **Fachgebieten** geschnitten, nicht nach technischen
-Schichten. Alles, was zu einem Thema gehört — Daten, Rechnung, Zeichnung,
-Bedienung —, liegt in einem Ordner beieinander.
+Zwei Schnitte liegen übereinander, und sie meinen Verschiedenes.
+
+**Senkrecht** geschnitten sind `app/palette/` und `app/vakuum/`: je ein
+Fachgebiet, in sich vollständig. Alles, was zu einem Thema gehört — Daten,
+Rechnung, Zeichnung, Bedienung —, liegt in einem Ordner beieinander.
+
+**Waagerecht** liegen `app/oberflaeche/`, `app/fach/` und `app/technik/`
+darunter. Keine dieser drei Lagen trägt einen Gegenstand; sie sind der
+Werkzeugkasten, der Gemeinbesitz und der Unterbau.
 
 ```
-                   ┌──────────────────────────────────┐
-                   │             start.py             │
-                   │  Zusammenbau: Dienste, Fenster   │
-                   └───────────────┬──────────────────┘
-                                   │
-         ┌─────────────────────────┴─────────────────────────┐
-         │                                                   │
-┌────────▼──────────┐                              ┌─────────▼─────────┐
-│   app/palette/    │                              │    app/vakuum/    │
-│                   │                              │                   │
-│ daten.py          │                              │ daten.py          │
-│ rechnung.py  ◀── eine Tür je Scheibe ──▶          │ rechnung.py       │
-│ stapel.py         │                              │ physik.py         │
-│ zeichnung.py      │                              │ anordnung.py      │
-│ szene3d.py        │                              │ saugermuster.py   │
-│ tab.py            │                              │ zeichnung.py      │
-│ formular.py       │                              │ tab.py            │
-│ dienst.py         │                              │ dienst.py         │
-└────────┬──────────┘                              └─────────┬─────────┘
-         │                                                   │
-         └─────────────────────┬─────────────────────────────┘
-                               │
-            ┌──────────────────▼───────────────────┐
-            │          Gemeinsamer Grund           │
-            │                                      │
-            │ geometrie.py   legemuster.py         │
-            │ paket.py       vorgang.py            │
-            │ einheiten.py   ergebnis.py           │
-            │ katalog.py     pfade.py   fehler.py  │
-            │ nebenlaeufig.py                      │
-            │                                      │
-            │ bedienelemente.py  darstellung.py    │
-            │ meldungen.py  tabs.py  hilfe.py      │
-            └──────────────────────────────────────┘
+             ┌─────────────────────────────────────────────────┐
+             │  app/   __main__ · start · tabs · kontext       │
+             │  Das Programm: Fenster, Modulliste, Kontext     │
+             └───────────────────────┬─────────────────────────┘
+                                     │
+        ┌────────────────────────────┴────────────────────────────┐
+┌───────▼───────────┐                                   ┌─────────▼─────────┐
+│   app/palette/    │                                   │    app/vakuum/    │
+│ daten.py          │                                   │ daten.py          │
+│ rechnung.py       │  ◀── kennen einander nicht ──▶     │ rechnung.py       │
+│ stapel.py         │                                   │ physik.py         │
+│ zeichnung.py      │      eine Tür je Scheibe:          │ anordnung.py      │
+│ szene3d.py        │      dienst.py                    │ saugermuster.py   │
+│ tab.py            │                                   │ zeichnung.py      │
+│ formular.py       │                                   │ tab.py            │
+│ dienst.py         │                                   │ dienst.py         │
+└───────┬───────────┘                                   └─────────┬─────────┘
+        └────────────────────────────┬────────────────────────────┘
+                                     │
+   ┌─────────────────────────────────▼──────────────────────────────────┐
+   │ app/oberflaeche/   Werkzeugkasten — kennt keinen Gegenstand        │
+   │   darstellung · bedienelemente · formularbau · meldungen · hilfe   │
+   │   darkstyle/ · icons/                                              │
+   ├────────────────────────────────────────────────────────────────────┤
+   │ app/fach/          Gemeinbesitz — was beide Scheiben brauchen      │
+   │   paket · einheiten · geometrie · legemuster · ergebnis · vorgang  │
+   │   katalog                                                          │
+   ├────────────────────────────────────────────────────────────────────┤
+   │ app/technik/       Unterbau — weiß nicht, WAS gerechnet wird       │
+   │   nebenlaeufig · rechenlauf · fehler · pfade                       │
+   └────────────────────────────────────────────────────────────────────┘
 ```
+
+Dies ist **nicht** die Rückkehr der alten Schichten (`core`, `dto`, `engines`,
+`services`, `visualization`, `gui`), die der Umbau im Oktober 2026 abgeschafft
+hat. Die schnitten quer durch den Gegenstand: ein einziges Merkmal lag in
+sieben Ordnern verteilt. Die Prüffrage lautet **„fasst ein neues Merkmal mehr
+Ordner an als vorher?"** — und die Antwort ist nein: eine dritte Scheibe wäre
+`app/<name>/` plus eine Zeile in `app/tabs.py`.
+
+In der Wurzel von `app/` liegen fünf Dateien, kein Paket: `__main__.py`,
+`start.py`, `tabs.py`, `kontext.py` und `__init__.py`. Das ist die Stelle, an
+der die Teile zusammenkommen — und die hat keine Lage über sich.
 
 **Die beiden Scheiben kennen einander nicht.** Keine Datei in `app/palette`
-importiert etwas aus `app/vakuum` und umgekehrt. Was beide brauchen, liegt
-eine Ebene höher — vor allem `legemuster.py`: die Palettierung legt damit ihre
+importiert etwas aus `app/vakuum` und umgekehrt. Was beide brauchen, liegt in
+`app/fach/` — vor allem `legemuster.py`: die Palettierung legt damit ihre
 Lagen, und die Vakuumplatte ordnet damit die Pakete an, die sie heben soll
 (Spezifikation 18).
+
+### Vier Ringe, zwei Ursachen
+
+Das Gruppieren der Wurzel hat Zweiwege-Abhängigkeiten **sichtbar gemacht**,
+die es vorher schon gab: solange alle einundzwanzig Module flach in `app/`
+lagen, konnte kein Test sie bemerken. Sie stehen jetzt mit Grund und
+Heilmittel in `RINGE_MIT_GRUND` in `tests/test_architecture.py`, und ein
+*neuer* Ring fällt weiterhin auf. Ein zweiter Test verlangt umgekehrt, dass
+jeder Eintrag noch einer wirklichen Abhängigkeit entspricht — eine
+Begründung, die niemand mehr braucht, liest der Nächste sonst als geltende
+Architektur.
+
+| Ring | Ursache | Was ihn auflösen würde |
+|---|---|---|
+| `fach ↔ palette`, `fach ↔ vakuum` | `app/fach/katalog.py` liest die JSON-Kataloge in die Datenobjekte **beider** Scheiben ein | `katalog.py` zerlegen und das Einlesen je Scheibe in deren eigenes Modul geben |
+| `(programm) ↔ palette`, `(programm) ↔ vakuum` | `app/tabs.py` und `app/kontext.py` sind **Vertrag und Registratur in einer Datei**: die Scheibe holt sich `TabHost` und `AppContext`, dieselben Dateien führen die Modulliste | den Vertrag vom Zusammenbau trennen — kostet aber die scharfe Regel für `app/oberflaeche/`, weil `TabHost` `app.fach.vorgang` braucht |
+
+Wie weit `app/fach/katalog.py` in eine Scheibe greifen darf, steht nicht in
+der Prefixliste `FORBIDDEN` — die kann „nur `daten.py`" nicht ausdrücken —,
+sondern in einem eigenen Test.
 
 ### Wer was darf — nach dem Namen, nicht nach dem Ordner
 
@@ -81,7 +115,7 @@ Gruppenrahmen, die Auswahl-, Eingabe- und Zahlenfelder, die Knöpfe, Kästchen
 und Auswahlknöpfe — und die zusammengesetzten Teile `NumberField`,
 `IntField`, `ResultGrid` und `StaleBanner`, die vorher hier zuhause waren.
 
-Durchgereicht werden sie über `app/bedienelemente.py` und nicht direkt
+Durchgereicht werden sie über `app/oberflaeche/bedienelemente.py` und nicht direkt
 importiert. Der Grund steht dort: die Beschreibungen und die Tabs greifen auf diesen Modulpfad zu statt auf den
 XML ein, und der soll nicht an einem Bibliotheksnamen hängen, der sich ändern
 kann.
@@ -90,7 +124,7 @@ kann.
 Rahmen und Füllung inbegriffen. Eine Stylesheet-Regel daneben ist nicht
 wirkungslos, sondern schädlich: sie legt ihre Füllung über die gezeichnete
 Leiste, und übrig bleibt ein graues Rechteck mit einem zweiten Rahmen darum.
-Genau so sah es beim ersten Versuch aus. In `app/darstellung.py` sind die
+Genau so sah es beim ersten Versuch aus. In `app/oberflaeche/darstellung.py` sind die
 Regeln für `QGroupBox`, `QLineEdit`, `QSpinBox`, `QComboBox`, `QPushButton` und
 die Reiter deshalb entfallen; `HALO_OVERRIDES` räumt zusätzlich hinter
 `darkstyle.qss` auf, das als Fremddatei unangetastet bleibt.
@@ -142,7 +176,7 @@ in `doc/Programmarchitekturen_Auswahl.txt`.
 
 Es gibt zwei Paletten, `LIGHT` und `DARK`. Welche gilt, steht in `PALETTE` und
 wird **einmal beim Import** entschieden — abgefragt wird die Einstellung von
-Windows in `app/darstellung.py` (Registry, Qt-frei, übersteuerbar mit
+Windows in `app/oberflaeche/darstellung.py` (Registry, Qt-frei, übersteuerbar mit
 `TRXING_THEME`).
 
 Der Zeitpunkt ist der Punkt, auf den es ankommt. Ein Dutzend Module holt sich
@@ -151,19 +185,19 @@ fest. Ein Austausch zur Laufzeit erreichte diese Module nicht: sie zeigten
 weiter die alten Farben, und die Anzeige wäre halb hell und halb dunkel. Ein
 Wechsel des Windows-Modus wirkt deshalb beim nächsten Start.
 
-Die Abfrage gehört aus zwei Gründen nach `app/darstellung.py` und nicht in einen Tab:
-`app/darstellung.py` braucht die Antwort, darf Qt aber nicht kennen —
+Die Abfrage gehört aus zwei Gründen nach `app/oberflaeche/darstellung.py` und nicht in einen Tab:
+`app/oberflaeche/darstellung.py` braucht die Antwort, darf Qt aber nicht kennen —
 und die Antwort muss vor der `QApplication` feststehen, womit
 `QStyleHints.colorScheme()` ausscheidet.
 
-Was Qt daraus macht, steht in `app/darstellung.py`: der Stil *Fusion* (der
+Was Qt daraus macht, steht in `app/oberflaeche/darstellung.py`: der Stil *Fusion* (der
 einzige, der eine eigene Palette vollständig durchreicht), die `QPalette` mit
-denselben Farbwerten und das Stylesheet aus `app/darkstyle/` für die
+denselben Farbwerten und das Stylesheet aus `app/oberflaeche/darkstyle/` für die
 Feinheiten, für die eine Palette nicht reicht. `apply_theme()` setzt beides vor
 dem ersten Fenster; danach erreicht eine Palette bereits erzeugte Widgets nur
 noch teilweise.
 
-Für die Zeichnungen gilt dieselbe Trennung: `app/darstellung.py`
+Für die Zeichnungen gilt dieselbe Trennung: `app/oberflaeche/darstellung.py`
 kennt die Richtung, nicht die Farbe. Eine blasse Füllung wird auf hellem Grund
 aufgehellt und auf dunklem abgedunkelt — beides rückt sie an den Hintergrund
 heran und lässt den Ring die Aussage tragen.
@@ -178,7 +212,7 @@ und **Verhalten**:
 ```
 BEDIENSPALTE = [...]   eine Liste von Zeilen, im Quelltext des Tabs
    │                   Beschriftung, Einheit, Grenzen, Vorgaben
-   │ app/formularbau.py: baue()
+   │ app/oberflaeche/formularbau.py: baue()
    ▼
 self.ui.<name>         die gebauten Bedienelemente, ansprechbar über ihren Namen
    │
@@ -212,7 +246,7 @@ fängt dieselbe Fehlerart, nämlich einen Namen, der auf einer Seite fehlt.
 
 ## Einheitenkonvention
 
-Definiert in `app/einheiten.py`, erzwungen durch
+Definiert in `app/fach/einheiten.py`, erzwungen durch
 `test_numeric_dto_fields_carry_a_unit_suffix`.
 
 | Größe | Einheit | Feldsuffix |
@@ -238,8 +272,8 @@ Anzeige.
 Zwei Mechanismen, die zusammengehören:
 
 ```
-CancellationToken   bricht ab, was noch läuft      (app/nebenlaeufig.py)
-RequestGate         verwirft, was überholt wurde   (app/nebenlaeufig.py)
+CancellationToken   bricht ab, was noch läuft      (app/technik/nebenlaeufig.py)
+RequestGate         verwirft, was überholt wurde   (app/technik/nebenlaeufig.py)
 ```
 
 Der Abbruch allein genügt nicht: zwischen „abgebrochen“ und „Ergebnis liegt

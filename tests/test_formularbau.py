@@ -26,8 +26,8 @@ import pathlib
 import pytest
 from PyQt6.QtWidgets import QCheckBox, QLabel, QPushButton, QRadioButton, QWidget
 
-from app.bedienelemente import IntField, KompaktDropdown, NumberField, ResultGrid
-from app.formularbau import (
+from app.oberflaeche.bedienelemente import IntField, KompaktDropdown, NumberField, ResultGrid
+from app.oberflaeche.formularbau import (
     Ganzzahl, Gruppe, Hinweis, Knopf, Oberflaeche, Platz, Raster, Schalter,
     Text, Wahl, Zahl, Zeile, baue
 )

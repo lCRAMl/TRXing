@@ -10,8 +10,8 @@ Zusammengelegt aus engines/palletizing/{stacking,loads}.py.
 
 from __future__ import annotations
 
-from app.geometrie import Footprint
-from app.paket import Orientation
+from app.fach.geometrie import Footprint
+from app.fach.paket import Orientation
 from app.palette.daten import Layer, Placement, ZMode
 from app.palette.daten import Layer, LoadAnalysis, LoadStatus, PackageLoad, Placement
 

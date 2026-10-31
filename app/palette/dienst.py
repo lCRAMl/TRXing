@@ -8,15 +8,15 @@ from __future__ import annotations
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from app.katalog import SettingsService
-from app.fehler import ErrorReporter
-from app.nebenlaeufig import RequestGate
-from app.paket import PackageSpec
+from app.fach.katalog import SettingsService
+from app.technik.fehler import ErrorReporter
+from app.technik.nebenlaeufig import RequestGate
+from app.fach.paket import PackageSpec
 from app.palette.daten import PalletConstraints, PalletSpec, PatternSpec, SharedLayer
 from app.palette.rechnung import PalletizingError, berechne_palette, build_constraints
-from app.nebenlaeufig import JobManager
-from app.nebenlaeufig import CHANNEL_PALLET, JobHandle
-from app.rechenlauf import CalculationService
+from app.technik.nebenlaeufig import JobManager
+from app.technik.nebenlaeufig import CHANNEL_PALLET, JobHandle
+from app.technik.rechenlauf import CalculationService
 
 
 class PalletService(CalculationService):
@@ -80,7 +80,7 @@ class PalletService(CalculationService):
         Die Oberflaeche graut die Option sonst aus, statt sie anzubieten und
         ins Leere laufen zu lassen.
         """
-        from app.legemuster import solver_available
+        from app.fach.legemuster import solver_available
 
         return solver_available()
 

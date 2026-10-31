@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Callable, Protocol
-from app.geometrie import Footprint
+from app.fach.geometrie import Footprint
 import math
 import logging
 
@@ -609,13 +609,13 @@ def max_count(request: PatternRequest) -> PatternLayout:
     """Dichteste Packung aus den generischen Strategien.
 
     Der optionale CP-SAT-Loeser wird nur einbezogen, wenn er verfuegbar und in
-    den Optionen freigegeben ist - siehe app/legemuster.py. Ohne
+    den Optionen freigegeben ist - siehe app/fach/legemuster.py. Ohne
     ihn ist das Ergebnis das beste aus Raster und Guillotine.
     """
     candidates = [uniform_grid(request), guillotine_mix(request), running_bond(request)]
 
     if request.options.get("use_solver"):
-        from app.legemuster import solve_max_count
+        from app.fach.legemuster import solve_max_count
 
         solved = solve_max_count(request)
         if solved is not None:

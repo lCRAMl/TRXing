@@ -6,12 +6,12 @@ import threading
 
 import pytest
 
-from app.nebenlaeufig import CancellationToken, CancelledError
-from app.fehler import AppError, CallbackSink, Severity
-from app.nebenlaeufig import RequestGate
-from app.ergebnis import Status, ValidationIssue, ValidationReport, classify
-from app.ergebnis import new_trace
-from app.einheiten import force_from_pressure, lpm_to_m3s, m3s_to_lpm, mbar_to_pa
+from app.technik.nebenlaeufig import CancellationToken, CancelledError
+from app.technik.fehler import AppError, CallbackSink, Severity
+from app.technik.nebenlaeufig import RequestGate
+from app.fach.ergebnis import Status, ValidationIssue, ValidationReport, classify
+from app.fach.ergebnis import new_trace
+from app.fach.einheiten import force_from_pressure, lpm_to_m3s, m3s_to_lpm, mbar_to_pa
 
 
 # Fehler -----------------------------------------------------------------------
@@ -58,7 +58,7 @@ def test_broken_sink_does_not_stop_the_others(reporter):
 
 
 def test_problem_store_respects_its_limit():
-    from app.fehler import ProblemStore
+    from app.technik.fehler import ProblemStore
 
     store = ProblemStore(limit=3)
     for i in range(10):
@@ -154,7 +154,7 @@ def test_channels_do_not_interfere():
 # Validierung ------------------------------------------------------------------
 
 def test_report_separates_errors_and_warnings():
-    from app.ergebnis import IssueLevel
+    from app.fach.ergebnis import IssueLevel
 
     report = ValidationReport((
         ValidationIssue("length_mm", "zu klein"),
@@ -208,7 +208,7 @@ def test_theme_override_wins_over_the_system(monkeypatch):
     Ohne diesen Weg liesse sich die dunkle Fassung nur pruefen, indem der Test
     die Registry des Benutzers umstellt.
     """
-    from app import darstellung as os_theme
+    from app.oberflaeche import darstellung as os_theme
 
     monkeypatch.setenv(os_theme.ENV_NAME, "dark")
     assert os_theme.prefers_dark() is True
@@ -219,7 +219,7 @@ def test_theme_override_wins_over_the_system(monkeypatch):
 
 def test_theme_falls_back_to_the_system_setting(monkeypatch):
     """Ohne Vorgabe und bei unbekannter Vorgabe zaehlt Windows."""
-    from app import darstellung as os_theme
+    from app.oberflaeche import darstellung as os_theme
 
     monkeypatch.setattr(os_theme, "windows_prefers_dark", lambda: True)
 
@@ -234,7 +234,7 @@ def test_unreadable_registry_means_light(monkeypatch):
     """Ein Lesefehler darf den Start nicht aufhalten - dann eben hell."""
     import builtins
 
-    from app import darstellung as os_theme
+    from app.oberflaeche import darstellung as os_theme
 
     real_import = builtins.__import__
 

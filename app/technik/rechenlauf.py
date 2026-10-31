@@ -20,12 +20,12 @@ from typing import Any, Callable
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from app.nebenlaeufig import CancellationToken
-from app.fehler import ErrorReporter
-from app.nebenlaeufig import RequestGate, RequestTicket
-from app.nebenlaeufig import FunctionJob
-from app.nebenlaeufig import JobManager
-from app.nebenlaeufig import JobHandle
+from app.technik.nebenlaeufig import CancellationToken
+from app.technik.fehler import ErrorReporter
+from app.technik.nebenlaeufig import RequestGate, RequestTicket
+from app.technik.nebenlaeufig import FunctionJob
+from app.technik.nebenlaeufig import JobManager
+from app.technik.nebenlaeufig import JobHandle
 
 
 class CalculationService(QObject):

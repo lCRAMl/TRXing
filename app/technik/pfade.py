@@ -28,14 +28,19 @@ def is_frozen() -> bool:
 
 #: Die Projektwurzel, von dieser Datei aus gezaehlt.
 #:
-#: EIN parent, weil diese Datei direkt in app/ liegt. Sie lag frueher in
-#: app/core/ und brauchte deshalb zwei - beim Umzug blieb die Zahl stehen,
-#: und die Suche landete eine Ebene ueber dem Projekt. Gefunden hat das kein
-#: Test: sie haengen sich ihr eigenes Konfigurationsverzeichnis ein. Nur der
-#: Start von Hand zeigte "Keine gueltige Palette gefunden".
+#: DREI parent, weil diese Datei in app/technik/ liegt: technik -> app ->
+#: Projektwurzel. Die Zahl ist schon zweimal falsch gewesen. Beim Umzug aus
+#: app/core/ nach app/ blieb sie bei drei stehen, die Suche landete eine Ebene
+#: ueber dem Projekt, und die Anwendung startete mit Notfalldaten - sechs
+#: Paletten und vierundzwanzig Sauger fehlten, ohne dass ein Test rot wurde.
+#: Die uebrigen Tests haengen sich ihr eigenes Konfigurationsverzeichnis ein
+#: und koennen es deshalb nicht bemerken.
 #:
-#: Zieht diese Datei wieder um, muss diese Zeile mit.
-_PROJEKTWURZEL = Path(__file__).resolve().parent.parent
+#: Seitdem gibt es test_the_real_configuration_directory_is_found_in_the_source_tree
+#: in tests/test_config.py: der prueft den echten Pfad und nicht einen
+#: eingehaengten. Zieht diese Datei wieder um, muss diese Zeile mit - der Test
+#: sagt es dann sofort.
+_PROJEKTWURZEL = Path(__file__).resolve().parent.parent.parent
 
 
 def resource_dir() -> Path:

@@ -6,7 +6,7 @@ und ein paar Kleinigkeiten an Auswahlfeldern.
 Die Formularteile - NumberField, IntField, ResultGrid, StaleBanner - stehen
 seit dem Wechsel auf qt_controls_pyrs in der Bibliothek und werden hier nur
 noch durchgereicht. Durchgereicht und nicht direkt importiert, weil die
-.ui-Dateien sie unter `app.bedienelemente` suchen: der Qt Designer traegt den
+.ui-Dateien sie unter `app.oberflaeche.bedienelemente` suchen: der Qt Designer traegt den
 Modulpfad in die XML-Datei ein, und der soll nicht an einer Bibliothek
 haengen, die sich umbenennen laesst.
 
@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from app.darstellung import MONO_FAMILY, PALETTE
+from app.oberflaeche.darstellung import MONO_FAMILY, PALETTE
 from qt_controls_pyrs import (
     HaloButton, HaloCheckBox, HaloDoubleSpinBox, HaloDropdown, HaloGroupBox,
     HaloLineEdit, HaloRadioButton, HaloSpinBox, StaleBanner

@@ -22,9 +22,9 @@ import pytest
 from PyQt6.QtGui import QColor, QFont, QPalette
 from PyQt6.QtWidgets import QStyleFactory
 
-from app import darstellung as theme
-from app import darstellung as colors
-from app.darstellung import DARK, LIGHT, Palette
+from app.oberflaeche import darstellung as theme
+from app.oberflaeche import darstellung as colors
+from app.oberflaeche.darstellung import DARK, LIGHT, Palette
 
 pytestmark = pytest.mark.usefixtures("qt_app")
 
@@ -122,7 +122,7 @@ def test_pale_fill_moves_towards_the_background(monkeypatch):
 
 def test_the_darkstyle_folder_travels_with_the_gui():
     directory = theme.darkstyle_dir()
-    assert directory.is_dir(), "darkstyle/ fehlt neben app/darstellung.py"
+    assert directory.is_dir(), "darkstyle/ fehlt neben app/oberflaeche/darstellung.py"
     assert (directory / "darkstyle.qss").is_file()
 
 

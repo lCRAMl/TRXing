@@ -8,7 +8,7 @@ Drei Arbeitsgaenge an denselben Dateien, deshalb an einem Ort:
 
 Die Dateien liegen NEBEN der Programmdatei, nicht darin - nur so laesst sich
 ein neuer Saugertyp oder eine neue Palette nach der Auslieferung ergaenzen.
-Wo gesucht wird, steht in app/pfade.py.
+Wo gesucht wird, steht in app/technik/pfade.py.
 
 Zusammengelegt aus config/loader.py, config/schema.py und
 config/settings_service.py.
@@ -20,11 +20,11 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from app.fehler import AppError, ErrorReporter, Severity
+from app.technik.fehler import AppError, ErrorReporter, Severity
 import math
 from typing import Any, Callable
-from app.fehler import ErrorReporter
-from app.einheiten import lpm_to_m3s
+from app.technik.fehler import ErrorReporter
+from app.fach.einheiten import lpm_to_m3s
 from app.palette.daten import PalletSpec, PatternSpec, ZMode
 from app.vakuum.daten import RestrictorMode, RestrictorSpec, SuctionCupSpec
 from app.vakuum.daten import GripDirection, LeakageModel, LeakageSpec, PumpSpec, VacuumPlateSpec
@@ -707,7 +707,7 @@ class SettingsService:
     def get_vacuum_defaults(self) -> VacuumDefaults:
         with self._lock:
             if self._vacuum is None:
-                from app.katalog import VacuumDefaults as VD
+                from app.fach.katalog import VacuumDefaults as VD
                 from app.vakuum.daten import RestrictorSpec
                 from app.vakuum.daten import LeakageSpec
 

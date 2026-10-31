@@ -32,11 +32,11 @@ from __future__ import annotations
 
 from PyQt6.QtWidgets import QHBoxLayout, QWidget
 
-from app.paket import PackageSpec
-from app.bedienelemente import Debouncer, ResultGrid
-from app.vorgang import AppStateSnapshot, StateChange
+from app.fach.paket import PackageSpec
+from app.oberflaeche.bedienelemente import Debouncer, ResultGrid
+from app.fach.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
-from app.formularbau import Gruppe, Oberflaeche, Schalter, Text, Zahl, baue
+from app.oberflaeche.formularbau import Gruppe, Oberflaeche, Schalter, Text, Zahl, baue
 
 
 #: Das Formular als Beschreibung.

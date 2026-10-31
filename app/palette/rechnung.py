@@ -25,11 +25,11 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 
-from app.nebenlaeufig import CancellationToken, never
-from app.ergebnis import CalculationTrace, new_trace
-from app.ergebnis import CalculationMeta
-from app.geometrie import Footprint
-from app.paket import Orientation, PackageSpec
+from app.technik.nebenlaeufig import CancellationToken, never
+from app.fach.ergebnis import CalculationTrace, new_trace
+from app.fach.ergebnis import CalculationMeta
+from app.fach.geometrie import Footprint
+from app.fach.paket import Orientation, PackageSpec
 from app.palette.daten import (
     LimitingFactor,
     Layer,
@@ -40,7 +40,7 @@ from app.palette.daten import (
     ZMode,
 )
 from app.palette import stapel
-from app.legemuster import PatternRequest, generate
+from app.fach.legemuster import PatternRequest, generate
 
 #: Version des Rechenverfahrens. Steigt, wenn sich Ergebnisse bei gleicher
 #: Eingabe aendern - damit ist ein altes Protokoll zuordenbar.

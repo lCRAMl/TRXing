@@ -11,7 +11,7 @@ Zusammengelegt aus gui/help/content.py und gui/help/formula_dialog.py.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from app.darstellung import PALETTE
+from app.oberflaeche.darstellung import PALETTE
 from qt_controls_pyrs import HaloButton
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeySequence, QShortcut, QTextDocument
@@ -160,7 +160,7 @@ Fehlerquelle; umgerechnet wird erst in der Anzeige.</p>
     "dp  =  p_Umgebung - p_innen",
     "",
     "-0,6 bar  =  600 mbar  =  60000 Pa",
-) + _source("app/einheiten.py", "alle Umrechnungen, Naturkonstanten, Suffixliste") + """
+) + _source("app/fach/einheiten.py", "alle Umrechnungen, Naturkonstanten, Suffixliste") + """
 
 <h2>Umrechnungen</h2>
 """ + _formula(
@@ -205,7 +205,7 @@ uebrigen Ergebnisse haengen an diesen vier Zahlen.</p>
     "V   = 400 * 300 * 200      = 24 000 000 mm3 = 24,00 Liter",
     "A   = 400 * 300            = 120 000 mm2   = 1200 cm2",
     "rho = 5 / 0,024            = 208,3 kg/m3",
-) + _source("app/paket.py", "PackageSpec.volume_mm3, .density_kgm3, .footprint_area_mm2") + """
+) + _source("app/fach/paket.py", "PackageSpec.volume_mm3, .density_kgm3, .footprint_area_mm2") + """
 
 <h2>Stapelhoehe aus der zulaessigen Stapellast</h2>
 <p>Das unterste Paket eines Saeulenstapels traegt alle darueber. Bei n Paketen
@@ -239,7 +239,7 @@ erscheint:</p>
 <p>Die Obergrenzen fangen die haeufigste Verwechslung ab: eine Laenge von
 400000 ist eine Eingabe in Mikrometern oder ein vergessenes Komma, keine
 Palette.</p>
-""" + _source("app/paket.py", "validate_package()")
+""" + _source("app/fach/paket.py", "validate_package()")
 
 
 # 3 Palettierung ----------------------------------------------------------------
@@ -331,7 +331,7 @@ geht er exakt auf. Welche Wechselfolge ein Muster verwendet:</p>
 </table>
 <p>Der Ringstapel ist die Ausnahme: sein freier Kern ist die Definition des
 Musters, nicht ein Mangel.</p>
-""" + _source("app/legemuster.py",
+""" + _source("app/fach/legemuster.py",
               "alle Muster; alternating_bands() in base.py") + """
 
 <h2>Stapelaufbau</h2>
@@ -645,7 +645,7 @@ Inklusion und Exklusion &ndash; jeder Quadrant mit eigenem Vorzeichen:</p>
 ) + """
 <p>Gegenprobe: ein Kreis mit r&nbsp;=&nbsp;5 zur Haelfte im Rechteck ergibt
 <code>pi&middot;25/2 = 39,2699</code> &ndash; exakt, nicht genaehert.</p>
-""" + _source("app/geometrie.py",
+""" + _source("app/fach/geometrie.py",
               "circle_rect_overlap_area_mm2(), circle_fits_in_rect()")
 
 
@@ -745,7 +745,7 @@ Sicherheitsfaktor 1,0:</p>
 ) + """
 <p>Die Einstufung leitet sich aus diesen Zahlen ab, nicht aus einer Heuristik
 der Oberflaeche.</p>
-""" + _source("app/ergebnis.py", "classify()")
+""" + _source("app/fach/ergebnis.py", "classify()")
 
 
 # 6 Vakuum: Stroemung -----------------------------------------------------------
@@ -950,7 +950,7 @@ das sich nicht schliessen laesst. Die Torpruefung beim Empfang schliesst es.</p>
     "Anfrage 42 startet",
     "Anfrage 41 endet   ->  Ergebnis verwerfen",
     "Anfrage 42 endet   ->  Ergebnis anzeigen",
-) + _source("app/nebenlaeufig.py", "RequestGate und CancellationToken") + """
+) + _source("app/technik/nebenlaeufig.py", "RequestGate und CancellationToken") + """
 
 <h2>Nachrechnen statt melden</h2>
 <p>Aenderungen an den Paketdaten loesen in beiden Tabs eine neue Berechnung
@@ -960,7 +960,7 @@ waere verschenkt.</p>
 <p>Der zentrale Zustand fuehrt dafuer einen Zaehler, den jede fachliche
 Aenderung erhoeht. Jedes Ergebnis merkt sich den Stand, unter dem es entstand;
 weichen beide ab, ist die Anzeige ueberholt.</p>
-""" + _source("app/vorgang.py", "AppState.revision, INVALIDATES") + """
+""" + _source("app/fach/vorgang.py", "AppState.revision, INVALIDATES") + """
 
 <h2>Reproduzierbarkeit</h2>
 <p>Gleiche Eingabe, gleiches Ergebnis &ndash; sonst waere ein Palettierplan als

@@ -108,36 +108,36 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        - diese Datei angelegt
 
 [x] 1  Querschnitt zusammenlegen
-       core/units.py        -> app/einheiten.py
-       core/paths.py        -> app/pfade.py
-       core/errors.py       -> app/fehler.py  (mit logging_setup.py)
-       core/result.py       -> app/ergebnis.py (mit trace.py)
-       core/os_theme.py     -> app/darstellung.py
-       config/*             -> app/katalog.py
+       core/units.py        -> app/fach/einheiten.py
+       core/paths.py        -> app/technik/pfade.py
+       core/errors.py       -> app/technik/fehler.py  (mit logging_setup.py)
+       core/result.py       -> app/fach/ergebnis.py (mit trace.py)
+       core/os_theme.py     -> app/oberflaeche/darstellung.py
+       config/*             -> app/fach/katalog.py
        Danach: core/ und config/ sind leer.
        ERLEDIGT. config/ entfernt. In core/ stehen nur noch cancellation.py
        und requests.py - die gehen in Schritt 2. 565 Tests gruen.
-       Hinweis: app/darstellung.py enthaelt vorerst nur die Hell/Dunkel-
+       Hinweis: app/oberflaeche/darstellung.py enthaelt vorerst nur die Hell/Dunkel-
        Erkennung des Betriebssystems; Schritt 8 legt Farben und Stylesheet
        dazu und schreibt dann auch den Dateikopf neu.
 
 [x] 2  Nebenlaeufigkeit
-       jobs/* + core/cancellation.py + core/requests.py -> app/nebenlaeufig.py
+       jobs/* + core/cancellation.py + core/requests.py -> app/technik/nebenlaeufig.py
        Ziel: ein kleiner Helfer, der einen Lauf startet, abbricht und
        Fortschritt meldet. Der Abbruch langer Palettierlaeufe MUSS bleiben.
 
 [x] 3  Gemeinsamer Zustand
-       services/app_state.py -> app/vorgang.py
+       services/app_state.py -> app/fach/vorgang.py
        Die uebrigen services/* werden in Schritt 6 und 7 aufgeloest:
        ihr Inhalt wandert in die jeweilige rechnung.py oder in den Tab.
        ERLEDIGT fuer app_state.py.
 
 [x] 4  Geometrie
-       engines/geometry/shapes.py -> app/geometrie.py
+       engines/geometry/shapes.py -> app/fach/geometrie.py
        ERLEDIGT.
 
 [x] 5  Paket
-       dto/package.py + gui/package/* -> app/paket.py (+ ui_paket.py)
+       dto/package.py + gui/package/* -> app/fach/paket.py (+ ui_paket.py)
 
 [x] 6  Scheibe Palette
        dto/pallet.py             -> app/palette/daten.py
@@ -155,7 +155,7 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
          services/context.py -> kontext.py
          services/package_service.py -> vorgang.py
          services/calculation_service.py -> rechenlauf.py
-         app/gui/darkstyle/ -> app/darkstyle/, app/gui/icons/ -> app/icons/
+         app/gui/darkstyle/ -> app/oberflaeche/darkstyle/, app/gui/icons/ -> app/oberflaeche/icons/
        Die beiden Ordner mussten mit, weil sie ueber __file__ gefunden werden;
        AUTOBUILD.py und tools/build_ui.py wurden nachgezogen.
 
@@ -173,9 +173,9 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        beiden Scheiben importieren einander NICHT.
 
 [x] 8  Oberflaechenhuelle
-       gui/common/widgets + gui/status/* -> app/bedienelemente.py
-       gui/help/*                        -> app/hilfe.py
-       gui/theme + visualization/{colors,theme} -> app/darstellung.py
+       gui/common/widgets + gui/status/* -> app/oberflaeche/bedienelemente.py
+       gui/help/*                        -> app/oberflaeche/hilfe.py
+       gui/theme + visualization/{colors,theme} -> app/oberflaeche/darstellung.py
        gui/{main_window,tab_manager,module_registry} + application.py
                                          -> app/start.py
        services/context.py               -> kontext.py (in Schritt 6)
@@ -272,7 +272,7 @@ LAUFENDE NOTIZEN
 
 2026-10-26  Schritt 8. Der wichtigste Fund des ganzen Umbaus:
 
-            app/pfade.py zaehlte von __file__ aus DREI Ebenen nach oben, weil
+            app/technik/pfade.py zaehlte von __file__ aus DREI Ebenen nach oben, weil
             es frueher app/core/paths.py war. Nach dem Umzug nach app/ war das
             eine zuviel, und die Anwendung fand ihr config/ nicht mehr - sie
             startete mit Notfalldaten statt mit sechs Paletten und

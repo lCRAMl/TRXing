@@ -18,7 +18,7 @@ import math
 from dataclasses import dataclass
 from enum import Enum
 
-from app.ergebnis import IssueLevel, ValidationIssue, ValidationReport
+from app.fach.ergebnis import IssueLevel, ValidationIssue, ValidationReport
 
 #: Plausibilitaetsgrenzen. Bewusst weit gefasst - sie sollen Tippfehler und
 #: Einheitenverwechslungen abfangen (Meter statt Millimeter), nicht den

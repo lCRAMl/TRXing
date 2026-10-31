@@ -25,10 +25,10 @@ import threading
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Callable
-from app.paket import PackageSpec
-from app.fehler import ErrorReporter
-from app.ergebnis import ValidationReport
-from app.paket import PackageSpec, validate_package
+from app.fach.paket import PackageSpec
+from app.technik.fehler import ErrorReporter
+from app.fach.ergebnis import ValidationReport
+from app.fach.paket import PackageSpec, validate_package
 
 
 # ---------------------------------------------------------------------------

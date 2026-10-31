@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Protocol
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 from app.palette.daten import PalletResult
-from app.darstellung import PALETTE
+from app.oberflaeche.darstellung import PALETTE
 import os
 
 
@@ -171,7 +171,7 @@ from pyvistaqt import QtInteractor  # noqa: E402
 from PyQt6.QtWidgets import QWidget  # noqa: E402
 
 from app.palette.daten import Layer, LoadStatus, PalletResult
-from app.darstellung import PALETTE
+from app.oberflaeche.darstellung import PALETTE
 
 _STATUS_COLORS = {
     LoadStatus.OK: PALETTE.package_fill,

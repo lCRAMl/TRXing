@@ -10,12 +10,12 @@ from __future__ import annotations
 
 import pytest
 
-from app.paket import Orientation, PackageSpec
+from app.fach.paket import Orientation, PackageSpec
 from app.palette.daten import LimitingFactor, PatternSpec, ZMode
-from app.geometrie import any_overlap
+from app.fach.geometrie import any_overlap
 from app.palette import stapel
 from app.palette.rechnung import PalletOptimizer, PalletizingError, build_constraints
-from app.legemuster import PatternRequest, available_strategies, generate
+from app.fach.legemuster import PatternRequest, available_strategies, generate
 
 ALL_PATTERNS = [
     "auto", "aligned", "column", "rotated", "brick", "cross", "alternating",
@@ -413,7 +413,7 @@ def test_trace_records_the_path(optimizer, settings, euro_pallet, package):
 
 
 def test_cancellation_stops_the_run(optimizer, settings, euro_pallet, package):
-    from app.nebenlaeufig import CancellationToken, CancelledError
+    from app.technik.nebenlaeufig import CancellationToken, CancelledError
 
     token = CancellationToken()
     token.cancel()

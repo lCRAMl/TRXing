@@ -22,12 +22,12 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from statistics import median
 
-from app.geometrie import Footprint
-from app.paket import PackageSpec
+from app.fach.geometrie import Footprint
+from app.fach.paket import PackageSpec
 from app.vakuum.daten import SuctionCupSpec, SuctionPlacement
 from app.vakuum.daten import VacuumPlateSpec
-from app.geometrie import rect_contains_rect
-from app.legemuster import PatternRequest, generate as generate_pattern
+from app.fach.geometrie import rect_contains_rect
+from app.fach.legemuster import PatternRequest, generate as generate_pattern
 from app.vakuum import saugermuster
 from app.vakuum.saugermuster import Arrangement, ArrangementRequest
 

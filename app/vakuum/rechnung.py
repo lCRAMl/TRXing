@@ -41,11 +41,11 @@ from __future__ import annotations
 
 import time
 
-from app.nebenlaeufig import CancellationToken, never
-from app.ergebnis import Status, classify
-from app.ergebnis import CalculationTrace, new_trace
-from app.einheiten import m3s_to_m3h, pa_to_mbar
-from app.ergebnis import CalculationMeta
+from app.technik.nebenlaeufig import CancellationToken, never
+from app.fach.ergebnis import Status, classify
+from app.fach.ergebnis import CalculationTrace, new_trace
+from app.fach.einheiten import m3s_to_m3h, pa_to_mbar
+from app.fach.ergebnis import CalculationMeta
 from app.vakuum.daten import RestrictorMode
 from app.vakuum.daten import (
     FlowBreakdown,

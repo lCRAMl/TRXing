@@ -38,20 +38,20 @@ from PyQt6.QtWidgets import (
     QHBoxLayout, QScrollArea, QSplitter, QVBoxLayout, QWidget
 )
 
-from app.ergebnis import Status
-from app.einheiten import m3s_to_m3h, mbar_to_pa, pa_to_mbar
+from app.fach.ergebnis import Status
+from app.fach.einheiten import m3s_to_m3h, mbar_to_pa, pa_to_mbar
 from app.vakuum.daten import RestrictorMode, RestrictorSpec
 from app.vakuum.daten import GripDirection, LeakageSpec, VacuumInput, VacuumPlateSpec, VacuumResult
-from app.bedienelemente import restore_splitter, save_splitter, store
-from app.bedienelemente import (
+from app.oberflaeche.bedienelemente import restore_splitter, save_splitter, store
+from app.oberflaeche.bedienelemente import (
     Debouncer, ResultGrid, StaleBanner, compact_combo
 )
 from app.tabs import TabHost
-from app.darstellung import PALETTE
-from app.vorgang import AppStateSnapshot, StateChange
+from app.oberflaeche.darstellung import PALETTE
+from app.fach.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
 from app.vakuum.zeichnung import Vacuum2DView
-from app.formularbau import (
+from app.oberflaeche.formularbau import (
     Ganzzahl, Gruppe, Hinweis, Oberflaeche, Schalter, Wahl, Zahl, baue
 )
 
@@ -164,7 +164,7 @@ BEDIENSPALTE = [
 #: "Berechnen" war damit ein zweiter Weg zum gleichen Ergebnis - und einer,
 #: der beim Hinsehen das Gegenteil behauptet: wer ihn sieht, haelt die Anzeige
 #: fuer veraltet, bis er geklickt hat. Der Abbruch steht in der Statusleiste,
-#: neben dem Fortschritt, den er abbricht (siehe app/meldungen.py).
+#: neben dem Fortschritt, den er abbricht (siehe app/oberflaeche/meldungen.py).
 ]
 
 #: Die Zeilen der beiden Ergebnisanzeigen. None ist eine Trennlinie.

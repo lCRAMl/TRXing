@@ -17,7 +17,7 @@ from dataclasses import replace
 
 import pytest
 
-from app.vorgang import StateChange
+from app.fach.vorgang import StateChange
 
 pytestmark = pytest.mark.usefixtures("qt_app")
 
@@ -453,7 +453,7 @@ def test_pattern_from_the_pallet_tab_reaches_the_vacuum_tab(window, application,
 
 def test_invalidation_map_covers_every_change(application):
     """Jede Zustandsaenderung muss wissen, welche Anzeige sie entwertet."""
-    from app.vorgang import AppState
+    from app.fach.vorgang import AppState
 
     for change in StateChange:
         assert AppState.invalidated_channels(change), (
@@ -580,9 +580,9 @@ def test_the_application_icon_is_there(qt_app):
     die passende. Bleibt nur eine uebrig, sieht sie in der anderen Groesse
     ausgefranst aus.
     """
-    from app.icons import app_icon, app_icon_path
+    from app.oberflaeche.icons import app_icon, app_icon_path
 
-    assert app_icon_path().is_file(), "pallet.ico fehlt neben app/icons/__init__.py"
+    assert app_icon_path().is_file(), "pallet.ico fehlt neben app/oberflaeche/icons/__init__.py"
 
     icon = app_icon()
     assert not icon.isNull()
@@ -599,7 +599,7 @@ def test_the_icon_travels_with_the_package():
     """
     import AUTOBUILD
 
-    from app.icons import app_icon_path
+    from app.oberflaeche.icons import app_icon_path
 
     assert AUTOBUILD.ICON_FILE == app_icon_path(), (
         "Bauskript und Anwendung meinen verschiedene Dateien"
@@ -607,7 +607,7 @@ def test_the_icon_travels_with_the_package():
     assert AUTOBUILD.ICON_FILE.is_file()
 
     bundled = {target for _source, target in AUTOBUILD.DATA_FILES}
-    assert "app/icons" in bundled, "Der Symbolordner fehlt in DATA_FILES"
+    assert "app/oberflaeche/icons" in bundled, "Der Symbolordner fehlt in DATA_FILES"
 
 
 def test_the_spacing_field_says_what_it_costs(window, qt_app):
@@ -635,8 +635,8 @@ def test_the_help_styles_follow_the_palette():
     Fest verdrahtete helle Untergruende ergaben in der dunklen Fassung weisse
     Schrift auf weisser Tabelle.
     """
-    from app.hilfe import STYLE
-    from app.darstellung import PALETTE
+    from app.oberflaeche.hilfe import STYLE
+    from app.oberflaeche.darstellung import PALETTE
 
     assert PALETTE.surface_alt in STYLE
     assert PALETTE.border in STYLE

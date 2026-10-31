@@ -25,10 +25,10 @@ import time
 from enum import Enum
 from typing import Any, Callable
 from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
-from app.fehler import AppError, ErrorReporter, Severity
+from app.technik.fehler import AppError, ErrorReporter, Severity
 import os
 from PyQt6.QtCore import QObject, QThreadPool, pyqtSignal
-from app.fehler import ErrorReporter
+from app.technik.fehler import ErrorReporter
 
 
 # ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ nimmt es seine Kinder mit. Die Palettierung nutzt das, wenn ein Durchlauf
 mehrere Musterkandidaten parallel bewertet.
 
 Der Abbruch ist die eine Haelfte des Schutzes vor veralteten Ergebnissen, die
-monoton steigende request_id in app/nebenlaeufig.py die andere: abgebrochen
+monoton steigende request_id in app/technik/nebenlaeufig.py die andere: abgebrochen
 wird, was noch laeuft - verworfen wird, was schon fertig ist, aber zu einer
 ueberholten Anfrage gehoert.
 """

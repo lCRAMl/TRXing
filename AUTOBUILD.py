@@ -12,7 +12,7 @@ Ein Aufruf, drei Schritte:
   3. Die Konfigurationsdateien danebenlegen und den Bauplatz aufraeumen.
 
 Seit Oktober 2026 gibt es keinen Zwischenschritt fuer Layoutdateien mehr: die
-Oberflaeche wird in app/formularbau.py aus Beschreibungen gebaut, nicht aus
+Oberflaeche wird in app/oberflaeche/formularbau.py aus Beschreibungen gebaut, nicht aus
 .ui-Dateien erzeugt.
 
 **Die Falle dieses Rechners:** PyQt6 und PySide6 liegen in derselben
@@ -90,16 +90,18 @@ ALWAYS_COLLECT = ("qt_controls_pyrs",)
 #: die Bildchen daneben findet es nicht von allein.
 #:
 #: Das Ziel ist derselbe relative Pfad wie in der Quelle. Nur so findet
-#: app/darstellung.py den Ordner in beiden Betriebsarten ueber __file__ - im
-#: Quelltextbaum wie im entpackten Paket.
+#: app/oberflaeche/darstellung.py den Ordner in beiden Betriebsarten ueber
+#: __file__ - im Quelltextbaum wie im entpackten Paket. Beide Ordner liegen
+#: deshalb NEBEN darstellung.py und sind beim Gruppieren der Wurzel mit ihr
+#: umgezogen.
 DATA_FILES = (
-    ("app/darkstyle", "app/darkstyle"),
-    ("app/icons", "app/icons"),
+    ("app/oberflaeche/darkstyle", "app/oberflaeche/darkstyle"),
+    ("app/oberflaeche/icons", "app/oberflaeche/icons"),
 )
 
 #: Symbol der fertigen Programmdatei. Dieselbe Datei, die die Anwendung zur
-#: Laufzeit als Fenstersymbol setzt - siehe app/icons/__init__.py.
-ICON_FILE = ROOT / "app" / "icons" / "pallet.ico"
+#: Laufzeit als Fenstersymbol setzt - siehe app/oberflaeche/icons/__init__.py.
+ICON_FILE = ROOT / "app" / "oberflaeche" / "icons" / "pallet.ico"
 
 
 # =========================

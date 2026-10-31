@@ -17,13 +17,13 @@ from dataclasses import replace
 
 import pytest
 
-from app.katalog import SettingsService
-from app.nebenlaeufig import CancellationToken
-from app.fehler import ErrorReporter, Severity
-from app.paket import PackageSpec, validate_package
+from app.fach.katalog import SettingsService
+from app.technik.nebenlaeufig import CancellationToken
+from app.technik.fehler import ErrorReporter, Severity
+from app.fach.paket import PackageSpec, validate_package
 from app.vakuum.daten import VacuumInput, VacuumPlateSpec
 from app.palette.rechnung import PalletOptimizer, PalletizingError, build_constraints
-from app.legemuster import PatternRequest, available_strategies, generate
+from app.fach.legemuster import PatternRequest, available_strategies, generate
 from app.vakuum.rechnung import VacuumCalculator, VacuumError
 from app.vakuum.anordnung import SuctionLayoutEngine
 
@@ -380,7 +380,7 @@ def test_configuration_with_wrong_types(tmp_path):
 
 def test_cancellation_during_a_large_run(settings):
     """Ein Abbruch muss auch mitten in einer grossen Rechnung greifen."""
-    from app.nebenlaeufig import CancelledError
+    from app.technik.nebenlaeufig import CancelledError
 
     pallet = settings.get_pallet("iso_1200x1200")
     small = PackageSpec(80.0, 60.0, 50.0, 0.3)

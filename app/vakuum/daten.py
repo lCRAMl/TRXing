@@ -2,7 +2,7 @@
 
 Zum Vorzeichen: Unterdruck wird durchgaengig als positive Druckdifferenz zur
 Umgebung gefuehrt (vacuum_pa). Die im Datenblatt uebliche Schreibweise -0,6 bar
-entspricht hier 60000 Pa. Siehe app/einheiten.py.
+entspricht hier 60000 Pa. Siehe app/fach/einheiten.py.
 
 Zum Arbeitspunkt: die Anwendung rechnet nicht mit dem eingestellten Sollvakuum,
 sondern loest den Schnittpunkt aus Pumpenkennlinie und Leckagebedarf. Ein
@@ -19,12 +19,12 @@ import math
 from dataclasses import dataclass
 from enum import Enum
 from dataclasses import dataclass, field
-from app.ergebnis import Status
-from app.ergebnis import FrozenTrace
-from app.einheiten import GRAVITY_MS2, STANDARD_AMBIENT_PA
-from app.ergebnis import CalculationMeta
-from app.geometrie import Footprint
-from app.paket import PackageSpec
+from app.fach.ergebnis import Status
+from app.fach.ergebnis import FrozenTrace
+from app.fach.einheiten import GRAVITY_MS2, STANDARD_AMBIENT_PA
+from app.fach.ergebnis import CalculationMeta
+from app.fach.geometrie import Footprint
+from app.fach.paket import PackageSpec
 
 
 # ---------------------------------------------------------------------------
@@ -259,7 +259,7 @@ class CupContact:
 
 Zum Vorzeichen: Unterdruck wird durchgaengig als positive Druckdifferenz zur
 Umgebung gefuehrt (vacuum_pa). Die im Datenblatt uebliche Schreibweise -0,6 bar
-entspricht hier 60000 Pa. Siehe app/einheiten.py.
+entspricht hier 60000 Pa. Siehe app/fach/einheiten.py.
 
 Zum Arbeitspunkt: die Anwendung rechnet nicht mit dem eingestellten Sollvakuum,
 sondern loest den Schnittpunkt aus Pumpenkennlinie und Leckagebedarf. Ein

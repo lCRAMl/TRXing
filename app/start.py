@@ -24,14 +24,14 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from app import APP_NAME, __version__
-from app.katalog import ConfigStatus, SettingsService
-from app.fehler import ErrorReporter
-from app.fehler import LoggingSink, install_excepthooks, setup_logging
-from app.pfade import config_dir, log_dir
-from app.nebenlaeufig import RequestGate
-from app.nebenlaeufig import JobManager, PoolConfig
-from app.vorgang import AppState
-from app.vorgang import PackageService
+from app.fach.katalog import ConfigStatus, SettingsService
+from app.technik.fehler import ErrorReporter
+from app.technik.fehler import LoggingSink, install_excepthooks, setup_logging
+from app.technik.pfade import config_dir, log_dir
+from app.technik.nebenlaeufig import RequestGate
+from app.technik.nebenlaeufig import JobManager, PoolConfig
+from app.fach.vorgang import AppState
+from app.fach.vorgang import PackageService
 from app.palette.dienst import PalletService
 from app.vakuum.dienst import VacuumService
 from typing import Protocol, runtime_checkable
@@ -41,14 +41,14 @@ from PyQt6.QtCore import QByteArray, Qt, QUrl
 from PyQt6.QtGui import QAction, QCloseEvent, QDesktopServices, QKeySequence
 from PyQt6.QtWidgets import QMainWindow, QMessageBox, QTabWidget
 from app import APP_NAME, version_label
-from app.fehler import AppError, Severity
-from app.bedienelemente import restore_splitter, save_splitter, store
-from app.meldungen import ErrorBridge
-from app.meldungen import ProblemPanel
-from app.meldungen import StatusBar
+from app.technik.fehler import AppError, Severity
+from app.oberflaeche.bedienelemente import restore_splitter, save_splitter, store
+from app.oberflaeche.meldungen import ErrorBridge
+from app.oberflaeche.meldungen import ProblemPanel
+from app.oberflaeche.meldungen import StatusBar
 from app.tabs import CalculationModule, ModuleRegistry, TabManager
 from qt_controls_pyrs import HaloTabWidget
-from app.darstellung import stylesheet
+from app.oberflaeche.darstellung import stylesheet
 
 
 # ---------------------------------------------------------------------------
@@ -380,7 +380,7 @@ class MainWindow(QMainWindow):
         Wiederoeffnen die Stelle wieder, an der man war.
         """
         if self._formula_help is None:
-            from app.hilfe import FormulaHelpDialog
+            from app.oberflaeche.hilfe import FormulaHelpDialog
 
             self._formula_help = FormulaHelpDialog(self)
         self._formula_help.show()

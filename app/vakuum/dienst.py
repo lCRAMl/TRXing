@@ -13,10 +13,10 @@ from __future__ import annotations
 
 from PyQt6.QtCore import QObject
 
-from app.katalog import VacuumDefaults
-from app.katalog import SettingsService
-from app.fehler import ErrorReporter
-from app.nebenlaeufig import RequestGate
+from app.fach.katalog import VacuumDefaults
+from app.fach.katalog import SettingsService
+from app.technik.fehler import ErrorReporter
+from app.technik.nebenlaeufig import RequestGate
 from app.vakuum.daten import SuctionCupSpec
 from app.vakuum.daten import GripDirection, VacuumInput
 from app.vakuum.rechnung import VacuumError, berechne_vakuum
@@ -26,9 +26,9 @@ from app.vakuum.physik import (
     required_cup_count,
 )
 from app.vakuum.anordnung import SuctionLayoutEngine
-from app.nebenlaeufig import JobManager
-from app.nebenlaeufig import CHANNEL_VACUUM, JobHandle
-from app.rechenlauf import CalculationService
+from app.technik.nebenlaeufig import JobManager
+from app.technik.nebenlaeufig import CHANNEL_VACUUM, JobHandle
+from app.technik.rechenlauf import CalculationService
 
 
 class VacuumService(CalculationService):

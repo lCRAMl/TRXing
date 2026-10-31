@@ -48,17 +48,48 @@ Fehlt eine optionale Abhängigkeit, läuft die Anwendung vollständig weiter: di
 ## Tests
 
 ```bash
-python -m pytest              # alle 554 Tests, rund 15 Sekunden
+python -m pytest              # alle 557 Tests, rund 30 Sekunden
 python -m pytest tests/test_architecture.py   # nur die Schichtregeln
 python -m pytest tests/test_formularbau.py    # nur den Formularbau
 ```
 
 ---
 
+## Wo liegt was
+
+```
+app/                 __main__ . start . tabs . kontext    das Programm
+
+  palette/           Palettierung: Lagen legen, stapeln   ] senkrecht
+  vakuum/            Saugplatte: verteilen, Kraft rechnen ]  geschnitten
+
+  oberflaeche/       Farben, Bedienelemente, Formularbau,
+                     Meldungen, Hilfe, darkstyle/, icons/ ]
+  fach/              Paket, Einheiten, Geometrie, Muster, ] waagerecht
+                     Katalog, Ergebnis, Zustand           ]  darunter
+  technik/           Hintergrundarbeit, Protokoll, Pfade  ]
+
+config/              die JSON-Kataloge, mitausgeliefert
+doc/ARCHITECTURE.md  warum es so geschnitten ist
+```
+
+Die drei unteren Lagen tragen **keinen Gegenstand**: Werkzeugkasten,
+Gemeinbesitz, Unterbau. Eine dritte Scheibe waere `app/<name>/` plus eine
+Zeile in `app/tabs.py` - mehr nicht.
+
+Beide Scheiben haben **dieselben Dateinamen**: `daten`, `rechnung`,
+`zeichnung`, `tab`, `dienst`. Was ein Modul darf, sagt sein Name und nicht
+sein Ordner - eine `rechnung.py` ist in jeder Scheibe eine `rechnung.py`.
+Die Regeln stehen maschinenlesbar in `tests/test_architecture.py` und laufen
+bei jedem Testlauf mit; der Hintergrund in
+[doc/ARCHITECTURE.md](doc/ARCHITECTURE.md).
+
+---
+
 ## Oberfläche bearbeiten (Beschreibungen)
 
 Die Anordnung jedes Tabs steht als **Beschreibung im Quelltext** — eine Liste
-von Zeilen, aus der `app/formularbau.py` die Bedienelemente baut:
+von Zeilen, aus der `app/oberflaeche/formularbau.py` die Bedienelemente baut:
 
 ```python
 BEDIENSPALTE = [
@@ -143,11 +174,11 @@ steht; Höhe darf scrollen.
 | Zeilen der Ergebnisanzeige | ✔ (als Liste) | |
 | Teiler, Rollflächen, Zeichenfläche | | ✔ |
 | Ereignisse, Berechnung, Zustand | | ✔ |
-| Farben | Rolle (`role="note"`) | `app/darstellung.py` |
+| Farben | Rolle (`role="note"`) | `app/oberflaeche/darstellung.py` |
 
 Die Umgebung eines Tabs — Teiler, Rollfläche, Zeichenfläche, 3D-Szene — steht
 weiterhin im Quelltext. Das sind Einzelstücke und keine Formularzeilen;
-`app/formularbau.py` baut Formulare, keine Fenster.
+`app/oberflaeche/formularbau.py` baut Formulare, keine Fenster.
 
 `tests/test_formularbau.py` vergleicht Beschreibung und Benutzung: jeder Name,
 den ein Tab unter `self.ui` anspricht, muss auch gebaut werden. Ohne diese
@@ -164,17 +195,17 @@ Von der Absicht zur Datei. Jede Zeile hat **genau eine** Stelle:
 | Reihenfolge der Felder, was nebeneinander steht, Gruppenaufteilung | dieselben Dateien | die Listenstruktur; eine innere Liste ist eine Zeile auf dem Schirm |
 | Beschriftung über statt neben dem Feld | dieselben Dateien | `Gruppe(…, oben=True)` |
 | Welche Zeilen die Ergebnisanzeige hat | dieselben Dateien | `ERGEBNISZEILEN`, `STROMZEILEN`, `ABGELEITET`; `None` ist eine Trennlinie |
-| Einen neuen Feldtyp (es gibt noch keinen Baustein dafür) | `app/formularbau.py` | eine Datenklasse und ein Zweig in `_zelle()` |
+| Einen neuen Feldtyp (es gibt noch keinen Baustein dafür) | `app/oberflaeche/formularbau.py` | eine Datenklasse und ein Zweig in `_zelle()` |
 | Teiler, Rollfläche, Zeichenfläche, 3D-Szene, Ansichtsleiste | `app/palette/tab.py`, `app/vakuum/tab.py` | `_build_layout()` |
-| **Höhe, Innenabstand, Zeilenabstand aller Bedienelemente** | `app/bedienelemente.py` | `KOMPAKT_HOEHE`, `KOMPAKT_RAND`, `KOMPAKT_PAD`, `KOMPAKT_ABSTAND` |
-| Maße eines einzelnen Elementtyps (Pfeilspalte, Kästchengröße, Spaltenzahl des Ergebnisrasters) | `app/bedienelemente.py` | die Konstanten der jeweiligen `Kompakt…`-Klasse |
-| Höhe der Statusleiste | `app/bedienelemente.py` | `LeistenKnopf` — eine Statusleiste ist so hoch wie ihr höchstes Element |
-| Farben, Schriftgröße, Stylesheet | `app/darstellung.py` | `PALETTE`, `FONT_SIZE_OFFSET_PT`, `stylesheet()`, `HALO_OVERRIDES` |
+| **Höhe, Innenabstand, Zeilenabstand aller Bedienelemente** | `app/oberflaeche/bedienelemente.py` | `KOMPAKT_HOEHE`, `KOMPAKT_RAND`, `KOMPAKT_PAD`, `KOMPAKT_ABSTAND` |
+| Maße eines einzelnen Elementtyps (Pfeilspalte, Kästchengröße, Spaltenzahl des Ergebnisrasters) | `app/oberflaeche/bedienelemente.py` | die Konstanten der jeweiligen `Kompakt…`-Klasse |
+| Höhe der Statusleiste | `app/oberflaeche/bedienelemente.py` | `LeistenKnopf` — eine Statusleiste ist so hoch wie ihr höchstes Element |
+| Farben, Schriftgröße, Stylesheet | `app/oberflaeche/darstellung.py` | `PALETTE`, `FONT_SIZE_OFFSET_PT`, `stylesheet()`, `HALO_OVERRIDES` |
 | Wie ein Element **gezeichnet** wird (Halo, Animation, Pfeile) | `QtControlsPyRS` | die Klasse dort; `Kompakt…` erbt und ändert nur Zahlen |
 
 Die Faustregel dahinter: **was ein Feld bedeutet**, steht in der Beschreibung;
-**wie dicht** die Oberfläche gesetzt ist, in `app/bedienelemente.py`; **wie sie
-aussieht**, in `app/darstellung.py` und in der Bibliothek; **was ein Tab tut**,
+**wie dicht** die Oberfläche gesetzt ist, in `app/oberflaeche/bedienelemente.py`; **wie sie
+aussieht**, in `app/oberflaeche/darstellung.py` und in der Bibliothek; **was ein Tab tut**,
 im Tab.
 
 > **Eine Falle, die zweimal zugeschlagen hat.** `setMinimumWidth()` und jede
@@ -244,7 +275,7 @@ Datenblatt des Herstellers:
 ### Ein neues Palettiermuster
 
 Eintrag in `config/pallet_patterns.json`, sofern die Strategie in
-`app/legemuster.py` angemeldet ist. Verfügbar sind `auto`,
+`app/fach/legemuster.py` angemeldet ist. Verfügbar sind `auto`,
 `max_count`, `uniform_grid`, `guillotine_mix`, `running_bond`, `checkerboard`,
 `pinwheel`, `spiral`, `perimeter`, `ring`, `column`.
 
@@ -329,14 +360,14 @@ set TRXING_THEME=auto     :: wie Windows (Vorgabe)
 ```
 
 Die dunkle Fassung besteht aus drei Teilen: der Qt-Palette und den Farben der
-Zeichnungen (`app/darstellung.py`), dem Qt-Stil *Fusion* — der einzige,
+Zeichnungen (`app/oberflaeche/darstellung.py`), dem Qt-Stil *Fusion* — der einzige,
 der eine eigene Palette vollständig durchreicht — und dem Stylesheet in
-`app/darkstyle/` für Rollbalken, Ankreuzfelder und Aufklapppfeile samt
-ihrer Bildchen. Verdrahtet ist das in `app/darstellung.py`.
+`app/oberflaeche/darkstyle/` für Rollbalken, Ankreuzfelder und Aufklapppfeile samt
+ihrer Bildchen. Verdrahtet ist das in `app/oberflaeche/darstellung.py`.
 
 ### Programmsymbol
 
-`app/icons/pallet.ico` — eine Datei für zwei Zwecke: die Anwendung setzt sie
+`app/oberflaeche/icons/pallet.ico` — eine Datei für zwei Zwecke: die Anwendung setzt sie
 beim Start als Fenstersymbol (jedes Fenster und jeder Dialog erbt es), und
 `AUTOBUILD.py` gibt sie PyInstaller als Symbol der fertigen `.exe` mit. Ein
 Austausch betrifft deshalb nur diese eine Datei — gleicher Name, gleicher Ort,
@@ -359,7 +390,7 @@ Stelle:
 
 | Einstellung | Datei | Konstante |
 |---|---|---|
-| **Schriftgröße aller Bedienelemente** | `app/darstellung.py` | `FONT_SIZE_OFFSET_PT` |
+| **Schriftgröße aller Bedienelemente** | `app/oberflaeche/darstellung.py` | `FONT_SIZE_OFFSET_PT` |
 | **Fenstergröße beim ersten Start** | `app/start.py` | `DEFAULT_SIZE` |
 | Aufteilung Palettierung | `app/palette/tab.py` | `SPLITTER_SIZES` |
 | Aufteilung Vakuumplatte | `app/vakuum/tab.py` | `SPLITTER_SIZES` |
@@ -479,5 +510,3 @@ ein offener. Gezählt wird nicht nach Mittelpunkt, sondern geometrisch.
 * Architektur, Schichtregeln und Leistungsentscheidungen: [doc/ARCHITECTURE.md](doc/ARCHITECTURE.md)
 * Die ursprüngliche Aufgabenstellung: `doc/01.txt` bis `doc/03.txt`
 * Protokoll: `%LOCALAPPDATA%\TRXing\logs\app.log` (rotierend, 3 Sicherungen)
-# TRXing
-# TRXing

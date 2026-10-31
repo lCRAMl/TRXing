@@ -32,7 +32,7 @@ if not os.environ.get("DISPLAY") and sys.platform not in ("win32", "darwin"):
 
 @pytest.fixture
 def reporter():
-    from app.fehler import ErrorReporter
+    from app.technik.fehler import ErrorReporter
 
     return ErrorReporter()
 
@@ -40,7 +40,7 @@ def reporter():
 @pytest.fixture
 def settings(reporter, tmp_path):
     """SettingsService auf den mitgelieferten Konfigurationsdateien."""
-    from app.katalog import SettingsService
+    from app.fach.katalog import SettingsService
 
     service = SettingsService(ROOT / "config", reporter)
     service.load()
@@ -49,7 +49,7 @@ def settings(reporter, tmp_path):
 
 @pytest.fixture
 def package():
-    from app.paket import PackageSpec
+    from app.fach.paket import PackageSpec
 
     return PackageSpec(length_mm=400.0, width_mm=300.0, height_mm=200.0, weight_kg=5.0, max_stack_load_kg=60.0)
 
