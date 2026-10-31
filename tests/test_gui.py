@@ -852,8 +852,21 @@ def test_die_ergebnisse_der_vakuumplatte_stehen_untereinander(window):
     gehoert.
     """
     tab = window._tab_manager.widget_for("vacuum")
-    assert tab.ui.results.columns == 1
-    assert tab.ui.flow_results.columns == 1
+
+    # Geprueft wird das Ergebnis im Raster, nicht die Konstante: vier Werte
+    # muessen in vier Rasterzeilen stehen. Eine Zusicherung auf COLUMNS == 1
+    # waere nur die Wiederholung dessen, was eine Zeile weiter oben im
+    # Quelltext steht.
+    for raster in (tab.ui.results, tab.ui.flow_results):
+        gitter = raster.layout()
+        zeilen = [
+            gitter.getItemPosition(gitter.indexOf(label))[0]
+            for label in list(raster._rows.values())[:4]
+        ]
+        assert len(set(zeilen)) == 4, (
+            raster.title() + ": vier Werte stehen in " + str(len(set(zeilen)))
+            + " Rasterzeilen statt in vier"
+        )
 
 
 def test_ein_zu_schweres_paket_faerbt_sein_gewicht(window, application, qt_app):

@@ -33,10 +33,11 @@ from __future__ import annotations
 from PyQt6.QtWidgets import QHBoxLayout, QWidget
 
 from app.fach.paket import PackageSpec
-from qt_controls_pyrs import CompactResultGrid, Debouncer
+from qt_controls_pyrs import CompactResultGrid
+from app.oberflaeche.entprellung import Debouncer
 from app.fach.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
-from qt_controls_pyrs.formbuilder import (
+from app.oberflaeche.formularbau import (
     Gruppe, Oberflaeche, Schalter, Text, Zahl, baue
 )
 

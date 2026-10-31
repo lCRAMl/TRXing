@@ -23,7 +23,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from app import APP_NAME, APP_SLUG, __version__
+from app import APP_NAME, __version__
 from app.fach.katalog import ConfigStatus, SettingsService
 from app.technik.fehler import ErrorReporter
 from app.technik.fehler import LoggingSink, install_excepthooks, setup_logging
@@ -42,8 +42,8 @@ from PyQt6.QtGui import QAction, QCloseEvent, QDesktopServices, QKeySequence
 from PyQt6.QtWidgets import QMainWindow, QMessageBox, QTabWidget
 from app import APP_NAME, version_label
 from app.technik.fehler import AppError, Severity
-from qt_controls_pyrs.windowstate import (
-    restore_splitter, save_splitter, set_application, store
+from app.oberflaeche.fensterzustand import (
+    restore_splitter, save_splitter, store
 )
 from app.oberflaeche.meldungen import ErrorBridge
 from app.oberflaeche.meldungen import ProblemPanel
@@ -91,16 +91,6 @@ class Application:
     """Haelt die langlebigen Komponenten und ihren Lebenszyklus."""
 
     def __init__(self, config_directory: Path | None = None, log_directory: Path | None = None) -> None:
-        # Unter welchem Namen die Oberflaeche sich Fenstergroessen und
-        # Teilerstellungen merkt. Die Bibliothek wuerde sonst auf den von Qt
-        # bekannten Namen zurueckfallen, und der ist eine Zufallsgleichheit:
-        # APP_NAME und APP_SLUG sind beide "TRXing", aber das muss nicht so
-        # bleiben. Faellt der Name auseinander, liegen die gemerkten Werte
-        # ploetzlich unter einem anderen Registry-Schluessel - und jeder
-        # Benutzer hat seine Aufteilung verloren, ohne dass etwas kaputt
-        # aussieht.
-        set_application(APP_SLUG)
-
         self._config_directory = config_directory
         self._log_directory = log_directory
 

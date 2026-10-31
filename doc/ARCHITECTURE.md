@@ -114,21 +114,37 @@ Schwesterprojekt im Nachbarordner. Von dort kommen die Reiter, die
 Gruppenrahmen, die Auswahl-, Eingabe- und Zahlenfelder, die Knöpfe, Kästchen
 und Auswahlknöpfe sowie `StaleBanner`.
 
-Seit dem Umbau Ende Oktober liegt dort auch der **Werkzeugkasten**, der vorher
-hier zuhause war — er war fachfrei, und mehrere Anwendungen brauchen ihn:
+Seit dem Umbau Ende Oktober liegen dort auch die **kompakten Fassungen**
+(`compact.py`): `CompactButton`, `CompactDropdown`, `CompactNumberField`,
+`StatusBarButton`, `WideResultGrid`, `compact_combo` und die Maße, aus denen
+sie gebaut sind. Sie waren vorher in `app/bedienelemente.py` zuhause.
 
-| in der Bibliothek | war vorher | was es ist |
-|---|---|---|
-| `compact.py` | `app/bedienelemente.py` | die dichter gesetzten `Compact…`-Fassungen, `StatusBarButton`, `WideResultGrid`, `compact_combo` |
-| `formbuilder.py` | `app/formularbau.py` | ein Formular als Liste von Zeilen beschreiben statt als .ui-Datei zeichnen |
-| `windowstate.py` | ein Teil von `app/bedienelemente.py` | Fenstergröße und Teilerstellung zwischen zwei Starts merken |
-| `debouncer.py` | ein Teil von `app/bedienelemente.py` | schnelle Änderungen zu einem Aufruf sammeln |
+**Die Grenze verläuft bei „Aussehen".** Eine Widget-Sammlung bestimmt, wie ein
+Bedienelement aussieht — nicht, was wo steht und nicht, was sich das Programm
+merkt. Drei Module waren kurzzeitig ebenfalls dort und sind am 2026-10-31
+zurückgekommen, weil sie diese Grenze überschritten:
 
-Das sind 850 Zeilen weniger hier und eine Zusage mehr: **alle Anwendungen an
-dieser Bibliothek sehen gleich aus.** Der Preis steht in der anderen Richtung —
-eine Änderung an `COMPACT_HEIGHT` ändert jedes Fenster jeder dieser
-Anwendungen. Soll nur TRXing anders aussehen, gehört die Änderung nach
-`app/oberflaeche/darstellung.py` oder in eine Unterklasse hier.
+| wieder hier | warum es dort nicht hingehörte |
+|---|---|
+| `app/oberflaeche/formularbau.py` | legt fest, WAS wo steht. Nach der üblichen Einteilung (Atome, Moleküle, Templates) ist das die Template-Ebene — die anwendungsspezifischste von allen |
+| `app/oberflaeche/fensterzustand.py` | schreibt in die Registry und kennt einen Anwendungsnamen. In der Bibliothek brauchte es dafür eine modulweite Variable und eine `set_application()`-Funktion; hier steht schlicht `APP_SLUG` |
+| `app/oberflaeche/entprellung.py` | bremst Signale. Kein Widget, kein Aussehen |
+
+Was bleibt, ist die Zusage: **alle Anwendungen an dieser Bibliothek sehen
+gleich aus.** Der Preis steht in der anderen Richtung — eine Änderung an
+`COMPACT_HEIGHT` ändert jedes Fenster jeder dieser Anwendungen. Soll nur
+TRXing anders aussehen, gehört die Änderung nach
+`app/oberflaeche/darstellung.py` oder in eine Unterklasse hier; so entstand
+`EinspaltigesRaster` in `app/vakuum/tab.py`.
+
+Eine Ausnahme steht bewusst noch in der Bibliothek: `COMPACT_SPACING`,
+`COMPACT_SPACING_X` und `COMPACT_GROUP_SPACING`. Die Bibliothek liest sie
+selbst nicht — sie beschreiben, wieviel Luft *zwischen* den Elementen steht,
+und das Layout macht die Anwendung. Sie stehen dort, weil Abstände neben
+Farben und Schriften das sind, woraus ein gemeinsames Aussehen besteht: wer
+`COMPACT_HEIGHT` ändert, will fast immer auch sie anpassen. Dass sie wirken,
+prüft `tests/test_formularbau.py` hier — eine Zahl, die niemand liest,
+verstellt sich unbemerkt, und genau das war schon einmal der Fall.
 
 Die Vorbilder bleiben dabei unangetastet. Der bequeme Weg zu einer dichteren
 Oberfläche wäre, `HaloButton.HEIGHT` von 45 auf 26 zu setzen — und damit jedes
@@ -137,10 +153,11 @@ darum gebeten hat. Deshalb sind die kompakten Fassungen neue Klassen, und
 deshalb stehen die Maße der Vorbilder in `tests/test_compact.py` der
 Bibliothek als Zusage aufgeschrieben.
 
-Geprüft ist der Umzug am Bild: beide Reiter wurden vor und nach dem Umbau
-gerendert und sind **Bildpunkt für Bildpunkt identisch** — einschließlich der
-Vakuumzeichnung, in der dabei zwei Stellen auf `mono_font()` umgestellt
-wurden.
+Geprüft ist jeder dieser Umzüge am Bild: beide Reiter wurden vorher und
+nachher gerendert und sind **Bildpunkt für Bildpunkt identisch**. Damit das
+reproduzierbar ist, muss die Bildprobe die gemerkten Fenster- und
+Teilerstellungen vorher löschen — sonst vergleicht man zwei Läufe mit
+verschiedener Splitterstellung.
 
 Zwei Dinge sind auf dem Weg verschwunden, weil sie doppelt waren: `MONO_FAMILY`
 stand hier und in der Bibliothek Zeichen für Zeichen gleich, und die
@@ -282,7 +299,7 @@ und **Verhalten**:
 ```
 BEDIENSPALTE = [...]   eine Liste von Zeilen, im Quelltext des Tabs
    │                   Beschriftung, Einheit, Grenzen, Vorgaben
-   │ qt_controls_pyrs/formbuilder.py: baue()
+   │ app/oberflaeche/formularbau.py: baue()
    ▼
 self.ui.<name>         die gebauten Bedienelemente, ansprechbar über ihren Namen
    │

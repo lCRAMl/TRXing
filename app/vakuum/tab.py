@@ -42,16 +42,15 @@ from app.fach.ergebnis import Status, classify
 from app.fach.einheiten import m3s_to_m3h, mbar_to_pa, pa_to_mbar
 from app.vakuum.daten import RestrictorMode, RestrictorSpec
 from app.vakuum.daten import GripDirection, LeakageSpec, VacuumInput, VacuumPlateSpec, VacuumResult
-from qt_controls_pyrs import (
-    CompactResultGrid, Debouncer, StaleBanner, compact_combo
-)
-from qt_controls_pyrs.windowstate import restore_splitter, save_splitter, store
+from qt_controls_pyrs import CompactResultGrid, StaleBanner, compact_combo
+from app.oberflaeche.entprellung import Debouncer
+from app.oberflaeche.fensterzustand import restore_splitter, save_splitter, store
 from app.tabs import TabHost
 from app.oberflaeche.darstellung import PALETTE
 from app.fach.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
 from app.vakuum.zeichnung import Vacuum2DView
-from qt_controls_pyrs.formbuilder import (
+from app.oberflaeche.formularbau import (
     Ganzzahl, Gruppe, Hinweis, Oberflaeche, Schalter, Wahl, Zahl, baue
 )
 
@@ -70,6 +69,26 @@ SPLITTER_SIZES = (460, 830)
 
 #: Abschnitt, unter dem sich der Tab die Aufteilung merkt.
 SETTINGS_SECTION = "VacuumTab"
+
+class EinspaltigesRaster(CompactResultGrid):
+    """Ergebniswerte untereinander statt nebeneinander.
+
+    Die Bibliothek setzt zwei Wertepaare nebeneinander, weil das die Hoehe des
+    Blocks halbiert. Hier kostet das aber genau das, wofuer die Trennlinien da
+    sind: eine Gruppe endet mitten in einer Rasterzeile und die naechste
+    laeuft daneben weiter. "Benoetigte wirksame Sauger" stand neben
+    "Tatsaechliches Gewicht", obwohl das eine zur ersten und das andere zur
+    zweiten Gruppe gehoert. Vier Wertepaare in einer Reihe - zwei Rahmen mit
+    je zweien - liest niemand von links nach rechts.
+
+    Eine Unterklasse und kein Argument an CompactResultGrid: die Spaltenzahl
+    ist eine Entscheidung DIESER Anwendung ueber DIESE Anzeige, und die
+    Bibliothek soll das Aussehen eines Bedienelements bestimmen, nicht den
+    Aufbau einer Ergebnisseite.
+    """
+
+    COLUMNS = 1
+
 
 _STATUS_COLORS = {
     Status.SAFE: PALETTE.ok,
@@ -299,9 +318,8 @@ class VacuumTab(TabHost):
         # Wertepaare in einer Reihe liest niemand von links nach rechts.
         self.ui.result_row = QHBoxLayout()
         self.ui.result_row.setSpacing(6)
-        self.ui.results = CompactResultGrid("Ergebnis", columns=1)
-        self.ui.flow_results = CompactResultGrid(
-            "Vakuum, Kraft und Volumenstrom", columns=1)
+        self.ui.results = EinspaltigesRaster("Ergebnis")
+        self.ui.flow_results = EinspaltigesRaster("Vakuum, Kraft und Volumenstrom")
         self.ui.result_row.addWidget(self.ui.results)
         self.ui.result_row.addWidget(self.ui.flow_results)
         self.ui.view_layout.addLayout(self.ui.result_row)

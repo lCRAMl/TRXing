@@ -46,10 +46,11 @@ from PyQt6.QtWidgets import (
 from app.oberflaeche.darstellung import ViewMode
 from app.palette.daten import PalletResult, SharedLayer
 from qt_controls_pyrs import (
-    CompactButton, CompactDropdown, CompactRadioButton, Debouncer,
-    StaleBanner, WideResultGrid, compact_combo
+    CompactButton, CompactDropdown, CompactRadioButton, StaleBanner,
+    WideResultGrid, compact_combo
 )
-from qt_controls_pyrs.windowstate import restore_splitter, save_splitter, store
+from app.oberflaeche.entprellung import Debouncer
+from app.oberflaeche.fensterzustand import restore_splitter, save_splitter, store
 from app.palette.formular import PackageForm
 from app.tabs import TabHost
 from app.oberflaeche.darstellung import PALETTE
@@ -57,7 +58,7 @@ from app.fach.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
 from app.palette.szene3d import create_scene
 from app.palette.zeichnung import Pallet2DView
-from qt_controls_pyrs.formbuilder import (
+from app.oberflaeche.formularbau import (
     Ganzzahl, Gruppe, Hinweis, Oberflaeche, Schalter, Wahl, Zahl, baue
 )
 

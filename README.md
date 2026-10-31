@@ -63,7 +63,8 @@ app/                 __main__ . start . tabs . kontext    das Programm
   palette/           Palettierung: Lagen legen, stapeln   ] senkrecht
   vakuum/            Saugplatte: verteilen, Kraft rechnen ]  geschnitten
 
-  oberflaeche/       Farben, Meldungen, Hilfe,
+  oberflaeche/       Farben, Formularbau, Meldungen,
+                     Hilfe, Fensterzustand, Entprellung,  ]
                      hilfetexte/, darkstyle/, icons/      ]
   fach/              Paket, Einheiten, Geometrie, Muster, ] waagerecht
                      Katalog, Ergebnis, Zustand           ]  darunter
@@ -89,7 +90,7 @@ bei jedem Testlauf mit; der Hintergrund in
 ## Oberfläche bearbeiten (Beschreibungen)
 
 Die Anordnung jedes Tabs steht als **Beschreibung im Quelltext** — eine Liste
-von Zeilen, aus der `qt_controls_pyrs/formbuilder.py` die Bedienelemente baut:
+von Zeilen, aus der `app/oberflaeche/formularbau.py` die Bedienelemente baut:
 
 ```python
 BEDIENSPALTE = [
@@ -178,7 +179,7 @@ steht; Höhe darf scrollen.
 
 Die Umgebung eines Tabs — Teiler, Rollfläche, Zeichenfläche, 3D-Szene — steht
 weiterhin im Quelltext. Das sind Einzelstücke und keine Formularzeilen;
-`qt_controls_pyrs/formbuilder.py` baut Formulare, keine Fenster.
+`app/oberflaeche/formularbau.py` baut Formulare, keine Fenster.
 
 `tests/test_formularbau.py` vergleicht Beschreibung und Benutzung: jeder Name,
 den ein Tab unter `self.ui` anspricht, muss auch gebaut werden. Ohne diese
@@ -195,16 +196,17 @@ Von der Absicht zur Datei. Jede Zeile hat **genau eine** Stelle:
 | Reihenfolge der Felder, was nebeneinander steht, Gruppenaufteilung | dieselben Dateien | die Listenstruktur; eine innere Liste ist eine Zeile auf dem Schirm |
 | Beschriftung über statt neben dem Feld | dieselben Dateien | `Gruppe(…, oben=True)` |
 | Welche Zeilen die Ergebnisanzeige hat | dieselben Dateien | `ERGEBNISZEILEN`, `STROMZEILEN`, `ABGELEITET`; `None` ist eine Trennlinie |
-| Einen neuen Feldtyp (es gibt noch keinen Baustein dafür) | `qt_controls_pyrs/formbuilder.py` | eine Datenklasse und ein Zweig in `_zelle()` |
+| Einen neuen Feldtyp (es gibt noch keinen Baustein dafür) | `app/oberflaeche/formularbau.py` | eine Datenklasse und ein Zweig in `_zelle()` |
 | Teiler, Rollfläche, Zeichenfläche, 3D-Szene, Ansichtsleiste | `app/palette/tab.py`, `app/vakuum/tab.py` | `_build_layout()` |
 | **Größe der Bedienelemente** — Höhe einer Leiste, Luftrand, Textabstand innen | `qt_controls_pyrs/compact.py` | `COMPACT_HEIGHT`, `COMPACT_ROOM`, `COMPACT_PAD` |
-| **Abstand zweier Formularzeilen** (senkrecht) | `qt_controls_pyrs/compact.py` | `COMPACT_SPACING` |
-| **Abstand Beschriftung ↔ Feld** und zwischen zwei Feldern einer Zeile | `qt_controls_pyrs/compact.py` | `COMPACT_SPACING_X` |
-| **Abstand zweier Gruppenrahmen** | `qt_controls_pyrs/compact.py` | `COMPACT_GROUP_SPACING` |
+| **Abstand zweier Formularzeilen** (senkrecht) | `qt_controls_pyrs/compact.py`, gelesen in `app/oberflaeche/formularbau.py` | `COMPACT_SPACING` |
+| **Abstand Beschriftung ↔ Feld** und zwischen zwei Feldern einer Zeile | dieselbe Datei | `COMPACT_SPACING_X` |
+| **Abstand zweier Gruppenrahmen** | dieselbe Datei | `COMPACT_GROUP_SPACING` |
 | Rand und Abstand um die gesamte Tabfläche | `app/vakuum/tab.py`, `app/palette/tab.py` | `_build_layout()` — `root.setContentsMargins(6,6,6,6)`, `root.setSpacing(4)` |
 | Breite der Bedienspalte beim ersten Start | `app/vakuum/tab.py`, `app/palette/tab.py` | `SPLITTER_SIZES` — danach gilt, wohin der Benutzer den Griff zieht |
 | Wie schmal sich die Bedienspalte ziehen lässt | `app/vakuum/tab.py`, `app/palette/tab.py` | `_configure_layout()` — ergibt sich aus dem breitesten Inhalt |
-| Maße eines einzelnen Elementtyps (Pfeilspalte, Kästchengröße, Spaltenzahl des Ergebnisrasters) | `qt_controls_pyrs/compact.py` | die Konstanten der jeweiligen `Compact…`-Klasse |
+| Maße eines einzelnen Elementtyps (Pfeilspalte, Kästchengröße) | `qt_controls_pyrs/compact.py` | die Konstanten der jeweiligen `Compact…`-Klasse |
+| Spaltenzahl einer Ergebnisanzeige | dort, wo sie gebaut wird — z. B. `EinspaltigesRaster` in `app/vakuum/tab.py` | `COLUMNS` in einer eigenen Unterklasse |
 | Höhe der Statusleiste | `qt_controls_pyrs/compact.py` | `StatusBarButton` — eine Statusleiste ist so hoch wie ihr höchstes Element |
 | Einen Satz in der Hilfe, eine Formel, einen Quelltextverweis | `app/oberflaeche/hilfetexte/*.html` | eine Datei je Kapitel; `<<formel …>>` und `<<quelle …>>` sind die einzigen zwei Marken |
 | Ein neues Hilfekapitel | `app/oberflaeche/hilfetexte/` | eine Datei `08-name.html` mit `titel:` in der ersten Zeile — mehr nicht |
@@ -223,12 +225,18 @@ Feldgrößen und Rahmen gleich mit — ein Punkt weniger macht die ganze
 Oberfläche spürbar kompakter, ohne dass eine einzige Zahl von Hand nachgezogen
 werden muss.
 
-> **Die Bibliothek ist geteilt.** `QtControlsPyRS` bedient mehrere Anwendungen,
-> und sie sollen alle gleich aussehen — deshalb liegen `compact.py` und
-> `formbuilder.py` dort und nicht hier. Umgekehrt heißt das: eine Änderung an
-> `COMPACT_HEIGHT` ändert jedes Fenster jeder dieser Anwendungen. Soll nur
-> TRXing anders aussehen, gehört die Änderung nach
-> `app/oberflaeche/darstellung.py` oder in eine eigene Unterklasse hier.
+> **Die Bibliothek ist geteilt — und sie bestimmt nur das Aussehen.**
+> `QtControlsPyRS` bedient mehrere Anwendungen, und sie sollen alle gleich
+> aussehen: deshalb liegen die Bedienelemente und ihre Maße dort. Was
+> festlegt, **was wo steht**, gehört hierher — der Formularbau, der
+> Fensterzustand und die Entprellung lagen kurzzeitig dort und sind am
+> 2026-10-31 zurückgekommen.
+>
+> Umgekehrt heißt das: eine Änderung an `COMPACT_HEIGHT` ändert jedes Fenster
+> jeder dieser Anwendungen. Soll nur TRXing anders aussehen, gehört die
+> Änderung nach `app/oberflaeche/darstellung.py` oder in eine eigene
+> Unterklasse hier — so entstand `EinspaltigesRaster` in
+> `app/vakuum/tab.py`.
 >
 > Die Vorbilder (`HaloButton`, `NumberField`, …) bleiben dabei unangetastet:
 > `tests/test_compact.py` in der Bibliothek nagelt ihre Maße fest, damit
