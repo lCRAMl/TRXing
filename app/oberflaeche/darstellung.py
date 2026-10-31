@@ -358,7 +358,7 @@ ueberschreiben.
 
 __all__ = [
     "DARK", "LIGHT", "PALETTE", "Palette",
-    "apply_theme", "dark_palette", "dark_stylesheet", "darkstyle_dir", "stylesheet",
+    "apply_theme", "qt_palette", "dark_stylesheet", "darkstyle_dir", "stylesheet",
     "FONT_SIZE_OFFSET_PT",
 ]
 
@@ -393,7 +393,18 @@ MIN_FONT_POINT_SIZE = 6
 def stylesheet(palette: Palette = PALETTE) -> str:
     """Das Stylesheet der Anwendung."""
     return "\n".join([
-        "QWidget { color: " + palette.text + "; }",
+        # HIER STAND "QWidget { color: <text>; }" - und die Zeile war der
+        # Grund, warum im Vakuumtab kein Ergebniswert mehr farbig wurde.
+        #
+        # Eine Stylesheet-Regel, die color setzt, schlaegt in Qt jedes
+        # setPalette. Sie traf jedes Label im Fenster, also auch die, denen
+        # CompactResultGrid.set_value gerade Rot zugewiesen hatte. Gemessen:
+        # Palette #ef6a5a, auf dem Schirm #e9ebee. Nur das Fettstellen kam
+        # durch, weil daran kein Stylesheet ruehrt.
+        #
+        # Die Textfarbe kommt jetzt aus der Palette, die apply_theme in BEIDEN
+        # Fassungen setzt. Wer sie wieder hier hineinschreibt, nimmt dem
+        # Programm die Faehigkeit, einen einzelnen Wert einzufaerben.
         "QMainWindow, QDialog { background: " + palette.background + "; }",
         # Reiter, Gruppenrahmen, Eingabefelder, Zahlenfelder, Auswahlfelder und
         # Knoepfe stehen hier NICHT mehr. Sie kommen seit dem Wechsel auf
@@ -503,12 +514,16 @@ def dark_stylesheet() -> str:
     return text.replace(_RESOURCE_PREFIX, directory.as_posix() + "/") + HALO_OVERRIDES
 
 
-def dark_palette(palette: Palette = DARK) -> QPalette:
-    """Die Qt-Palette der dunklen Fassung.
+def qt_palette(palette: Palette = DARK) -> QPalette:
+    """Die Qt-Palette zu einer Fassung - der hellen wie der dunklen.
 
-    Dieselben Werte wie in app/oberflaeche/darstellung.py, nur in der Schreibweise
-    von Qt. Die Rollen, fuer die es dort keine Entsprechung gibt - Schatten,
-    heller Warntext, die ausgegrauten Zustaende -, stehen hier.
+    Dieselben Werte wie oben in dieser Datei, nur in der Schreibweise von Qt.
+    Die Rollen, fuer die es dort keine Entsprechung gibt - Schatten, heller
+    Warntext, die ausgegrauten Zustaende -, stehen hier.
+
+    Hiess bis zum 2026-10-31 dark_palette und galt nur der dunklen Fassung.
+    Seit die Palette in BEIDEN Fassungen gesetzt wird, waere der Name eine
+    Luege gewesen: dark_palette(LIGHT) ergibt eine helle Palette.
 
     Ausgegraut ist ausdruecklich mitgefuehrt. Ohne die Disabled-Eintraege zeigt
     Fusion ein gesperrtes Feld in derselben Farbe wie ein bedienbares, und der
@@ -527,8 +542,14 @@ def dark_palette(palette: Palette = DARK) -> QPalette:
     dark.setColor(QPalette.ColorRole.ToolTipText, QColor(palette.text))
     dark.setColor(QPalette.ColorRole.Text, QColor(palette.text))
     dark.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, disabled)
-    dark.setColor(QPalette.ColorRole.Dark, QColor(35, 35, 35))
-    dark.setColor(QPalette.ColorRole.Shadow, QColor(20, 20, 20))
+    # Rahmenkante und Schatten haben in der Palette oben keine Entsprechung.
+    # Die dunklen Werte sind genau die, die hier immer standen; die hellen
+    # sind Fusions eigene Vorgaben - in der hellen Fassung haetten (35,35,35)
+    # jedem Rahmen einen fast schwarzen Rand gegeben.
+    dark.setColor(QPalette.ColorRole.Dark,
+                  QColor(35, 35, 35) if palette.dark else QColor(160, 160, 160))
+    dark.setColor(QPalette.ColorRole.Shadow,
+                  QColor(20, 20, 20) if palette.dark else QColor(118, 118, 118))
     dark.setColor(QPalette.ColorRole.Button, QColor(palette.background))
     dark.setColor(QPalette.ColorRole.ButtonText, QColor(palette.text))
     dark.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, disabled)
@@ -544,21 +565,31 @@ def dark_palette(palette: Palette = DARK) -> QPalette:
 def apply_theme(app: QApplication, palette: Palette = PALETTE) -> bool:
     """Richtet Schrift, Stil und Palette der Anwendung ein.
 
-    Die Schriftgroesse (FONT_SIZE_OFFSET_PT) wird immer gesetzt, der Rest nur
-    in der dunklen Fassung. Gibt zurueck, ob die dunkle Fassung gesetzt wurde. In der hellen Fassung
-    bleibt alles, wie Windows es vorgibt - dort sind die Systemfarben schon die
-    richtigen, und der Windows-Stil zeichnet naeher am uebrigen Betriebssystem
-    als Fusion.
+    Schriftgroesse (FONT_SIZE_OFFSET_PT) und Palette werden immer gesetzt,
+    Stil und Stylesheet nur in der dunklen Fassung. Gibt zurueck, ob die
+    dunkle Fassung gesetzt wurde. In der hellen bleibt der Windows-Stil
+    stehen - der zeichnet naeher am uebrigen Betriebssystem als Fusion.
+
+    Warum die Palette auch hell gesetzt wird, obwohl Windows dort ohnehin
+    schon die richtigen Farben liefert: weil die Anwendung sonst eine Zeile
+    "QWidget { color: ... }" ins Stylesheet schreiben muesste, damit der Text
+    ueberhaupt die Farbe der Fassung traegt. Und eine solche Zeile schlaegt in
+    Qt JEDES setPalette an JEDEM Label im Fenster. Genau daran sind am
+    2026-10-31 die farbigen Ergebniswerte im Vakuumtab gescheitert: set_value
+    hat die Farbe gesetzt, die Palette trug sie, auf dem Schirm stand sie grau.
+    Die Palette kann die Zeile ersetzen, die Zeile die Palette nicht.
 
     Aufzurufen NACH der QApplication und VOR dem ersten Fenster: eine spaeter
     gesetzte Palette erreicht bereits erzeugte Widgets nur teilweise.
     """
-    # Die Schriftgroesse haengt nicht am Farbschema, sie gilt fuer beide
-    # Fassungen - deshalb vor der Abfrage darunter.
+    # Schriftgroesse und Palette haengen nicht am Farbschema, sie gelten fuer
+    # beide Fassungen - deshalb vor der Abfrage darunter.
     if FONT_SIZE_OFFSET_PT:
         font = QFont(app.font())
         font.setPointSize(max(MIN_FONT_POINT_SIZE, font.pointSize() + FONT_SIZE_OFFSET_PT))
         app.setFont(font)
+
+    app.setPalette(qt_palette(palette))
 
     if not palette.dark:
         return False
@@ -569,6 +600,5 @@ def apply_theme(app: QApplication, palette: Palette = PALETTE) -> bool:
     if fusion is not None:
         app.setStyle(fusion)
 
-    app.setPalette(dark_palette(palette))
     app.setStyleSheet(dark_stylesheet())
     return True

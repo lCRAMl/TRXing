@@ -151,11 +151,22 @@ def test_a_missing_folder_is_survivable(monkeypatch, tmp_path):
 
 # Anwenden ---------------------------------------------------------------------
 
-def test_the_light_fassung_leaves_the_application_alone(qt_app):
-    """Hell ist der Zustand, den Windows ohnehin vorgibt."""
-    before = qt_app.styleSheet()
-    assert theme.apply_theme(qt_app, LIGHT) is False
-    assert qt_app.styleSheet() == before
+def test_the_light_fassung_sets_no_stylesheet(qt_app):
+    """Hell bleibt der Stil, den Windows vorgibt - aber nicht die Farben.
+
+    Bis zum 2026-10-31 setzte die helle Fassung gar nichts und die Textfarbe
+    kam aus einer Stylesheet-Zeile. Die Zeile ist weg (siehe
+    test_a_single_value_can_be_coloured in tests/test_gui.py), die Palette
+    kommt dafuer in beiden Fassungen.
+    """
+    sheet_before = qt_app.styleSheet()
+    palette_before = QPalette(qt_app.palette())
+    try:
+        assert theme.apply_theme(qt_app, LIGHT) is False
+        assert qt_app.styleSheet() == sheet_before, "hell setzt kein Stylesheet"
+        assert qt_app.palette().color(QPalette.ColorRole.WindowText) == QColor(LIGHT.text)
+    finally:
+        qt_app.setPalette(palette_before)
 
 
 def test_the_dark_fassung_sets_style_palette_and_stylesheet(qt_app):
@@ -195,7 +206,7 @@ def test_disabled_controls_stay_distinguishable():
     """Ohne die Disabled-Eintraege zeichnet Fusion ein gesperrtes Feld wie ein
     bedienbares - der Unterschied zwischen "leer" und "nicht einstellbar" geht
     verloren."""
-    palette = theme.dark_palette(DARK)
+    palette = theme.qt_palette(DARK)
     normal = palette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Text)
     greyed = palette.color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text)
     assert normal != greyed

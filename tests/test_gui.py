@@ -629,6 +629,55 @@ def test_the_spacing_field_says_what_it_costs(window, qt_app):
     assert "stossen" in tab.ui.min_spacing_info.text()
 
 
+def test_a_single_value_can_be_coloured(window, qt_app):
+    """Ein Ergebniswert muss sich einfaerben lassen - auf dem Schirm.
+
+    Geprueft wird das BILD des Ergebnisrahmens, nicht die Palette seines
+    Labels. Genau darin lag der Fehler vom 2026-10-31: set_value hat die
+    Farbe gesetzt, die Palette trug sie, und auf dem Schirm stand der Wert
+    grau. Schuld war eine Zeile "QWidget { color: ... }" in
+    darstellung.stylesheet() - eine Stylesheet-Regel, die color setzt,
+    schlaegt in Qt jedes setPalette, und sie traf jedes Label im Fenster.
+
+    Eine Pruefung auf label.palette() waere die ganze Zeit gruen geblieben.
+    """
+    from PyQt6.QtGui import QColor
+
+    from app.oberflaeche.darstellung import PALETTE
+
+    grid = window._tab_manager.widget_for("vacuum").ui.results
+    soll = QColor(PALETTE.error)
+
+    def bildpunkte_in_der_farbe() -> int:
+        """Bildpunkte, die genau die verlangte Farbe tragen.
+
+        Gezaehlt wird die Farbe selbst und nicht "roetlich": ein Vergleich
+        zweier Gesamtzahlen waere wertlos, weil der Rahmen mit dem laengeren
+        Text auch breiter wird und sich damit jede Zahl aendert.
+        """
+        bild = grid.grab().toImage()
+        return sum(
+            QColor(bild.pixel(x, y)) == soll
+            for y in range(bild.height())
+            for x in range(bild.width())
+        )
+
+    grid.set_value("status", "Nicht ausreichend", "")
+    qt_app.processEvents()
+    ohne_farbe = bildpunkte_in_der_farbe()
+
+    grid.set_value("status", "Nicht ausreichend", PALETTE.error)
+    qt_app.processEvents()
+    mit_farbe = bildpunkte_in_der_farbe()
+
+    assert ohne_farbe == 0, "ohne Farbwunsch darf die Farbe nicht vorkommen"
+    assert mit_farbe > 20, (
+        "Der eingefaerbte Wert erscheint nicht in " + PALETTE.error + ": nur "
+        + str(mit_farbe) + " Bildpunkte tragen die Farbe. Eine Stylesheet-Regel, "
+        "die color setzt, schlaegt setPalette - siehe darstellung.stylesheet()."
+    )
+
+
 def test_the_help_styles_follow_the_palette():
     """Das Hilfefenster faerbt seine Tabellen aus der Palette.
 
