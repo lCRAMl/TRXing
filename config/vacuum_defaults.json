@@ -16,12 +16,24 @@
   ],
   "version": 1,
 
+  "_plate_comment": [
+    "Randabstand und Saugerabstand starten seit dem 2026-10-31 bei 0, vorher",
+    "bei 25 und 10 mm. Auf 800 x 600 mit einem SPB2 30 sind das 391 statt",
+    "234 Sauger - die 10 mm Abstand haben 157 gekostet.",
+    "",
+    "Zum Randabstand: 0 bedeutet nicht 0 mm bis zur Kante. Die Verteilung",
+    "hebt den Wert auf den halben Saugeraussendurchmesser an",
+    "(SuctionLayoutEngine._base_request in app/vakuum/anordnung.py), sonst",
+    "haengt der aeusserste Sauger ueber die Plattenkante. Bei einem SPB2 30",
+    "wirken deshalb 17 mm. An der Saugerzahl aendert dieser Wert allein",
+    "nichts - die 391 kommen vom Saugerabstand."
+  ],
   "plate": {
     "length_mm": 800,
     "width_mm": 600,
     "thickness_mm": 15,
-    "edge_margin_mm": 25,
-    "min_spacing_mm": 10
+    "edge_margin_mm": 0,
+    "min_spacing_mm": 0
   },
 
   "operation": {

@@ -308,10 +308,24 @@ def test_plate_smaller_than_one_cup(settings):
 
 
 def test_extreme_safety_factor(settings):
+    """Ein absurder Sicherheitsfaktor muss "nicht ausreichend" ergeben.
+
+    Die Platte steht hier ausgeschrieben und kommt NICHT aus der
+    Konfiguration. Vorher stand defaults.plate hier, und damit hing der Test
+    am Saugerabstand in config/vacuum_defaults.json: als der am 2026-10-31 von
+    10 mm auf 0 ging, passten 352 statt 216 wirksame Sauger auf dieselbe
+    Platte, die Tragfaehigkeit stieg von 15,86 auf 25,84 kg - und die 20 kg
+    Last waren ploetzlich "safe". Der Test hatte nichts Falsches gemessen, er
+    hatte sich nur seine Zahlen geborgt.
+
+    800 x 600 mit 25 mm Rand und 10 mm Saugerabstand ist die Geometrie, mit
+    der er bis dahin gelaufen ist.
+    """
     defaults = settings.get_vacuum_defaults()
     base = VacuumInput(
         package=PackageSpec(400.0, 300.0, 200.0, 5.0),
-        plate=defaults.plate, cup=settings.get_suction_cup("spb2_30"), package_count=4,
+        plate=VacuumPlateSpec(800.0, 600.0, edge_margin_mm=25.0, min_spacing_mm=10.0),
+        cup=settings.get_suction_cup("spb2_30"), package_count=4,
         pump=defaults.pump, leakage=defaults.leakage, restrictor=defaults.restrictor,
     )
     result = VacuumCalculator().calculate(replace(base, safety_factor=20.0))

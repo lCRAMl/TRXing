@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFontMetrics
-from PyQt6.QtWidgets import QLabel, QProgressBar, QPushButton, QStatusBar, QWidget
+from PyQt6.QtWidgets import QLabel, QProgressBar, QStatusBar, QWidget
 from app.technik.fehler import AppError, Severity
 from app.oberflaeche.darstellung import PALETTE
 import time
@@ -19,11 +19,9 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QDialog,
-    QDialogButtonBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
-    QPushButton,
     QTextEdit,
     QTreeWidget,
     QTreeWidgetItem,
@@ -246,13 +244,20 @@ class ProblemPanel(QDialog):
         clear.clicked.connect(self._clear)
         buttons.addWidget(clear)
         buttons.addStretch(1)
-        # Qt liefert die Beschriftung seiner Standardknoepfe aus eigenen
-        # Uebersetzungsdateien, die die Anwendung nicht mitnimmt - ohne diese
-        # Zeile steht in einem sonst deutschen Fenster "Close".
-        box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        box.button(QDialogButtonBox.StandardButton.Close).setText("Schliessen")
-        box.rejected.connect(self.reject)
-        buttons.addWidget(box)
+        # Ein HaloButton und kein QDialogButtonBox. Dem Knopfkasten uebergibt
+        # man eine ROLLE, kein Bedienelement - Qt baut sich daraufhin selbst
+        # einen gewoehnlichen QPushButton, und darkstyle.qss kennt keinen
+        # QPushButton. Der Knopf stand hier also nackt zwei Zentimeter neben
+        # "Liste leeren" und sah anders aus als jeder andere Knopf im Programm.
+        #
+        # Geleistet hat der Kasten dafuer nichts: Escape schliesst einen
+        # QDialog von sich aus, und die deutsche Beschriftung musste ihm erst
+        # abgerungen werden - seine Standardknoepfe kommen aus Qts eigenen
+        # Uebersetzungsdateien, die die Anwendung nicht mitnimmt, also stand
+        # in einem sonst deutschen Fenster "Close".
+        close = HaloButton("Schliessen")
+        close.clicked.connect(self.reject)
+        buttons.addWidget(close)
         layout.addLayout(buttons)
 
         self.refresh()

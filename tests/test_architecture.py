@@ -119,11 +119,81 @@ RINGE_MIT_GRUND: dict[str, str] = {
 #: der Grossteil der Tests braucht keine QApplication. Ein einziger
 #: Qt-Import an der falschen Stelle kippt das, ohne dass sofort etwas
 #: auffaellt - deshalb diese Liste.
+#:
+#: Sie ist die ROLLE "rechnend" und nur noch dafuer da. Die Qt-Grenze selbst
+#: liegt in QT_WIDGETS und QT_CORE weiter unten: eine Namensliste laesst jede
+#: neue Datei durch, eine Positivliste nicht.
 QT_FREE = (
     "einheiten.py", "ergebnis.py", "fehler.py", "pfade.py", "katalog.py",
     "vorgang.py", "geometrie.py", "paket.py", "legemuster.py",
     "daten.py", "rechnung.py", "stapel.py", "physik.py", "anordnung.py",
     "saugermuster.py",
+)
+
+
+#: Qt-Namensraeume, die als Qt gelten - auch die fremden Bindungen.
+QT_PAKETE = ("PyQt6", "PySide6", "PyQt5", "qtpy")
+
+#: Die Teile davon, die ein Fenster bauen oder zeichnen.
+QT_OBERFLAECHE = ("QtWidgets", "QtGui", "QtQuick", "QtQml", "QtWebEngineWidgets")
+
+
+#: Wer Qt anfassen darf - eine Positivliste, nach PFAD und nicht nach Namen.
+#:
+#: Warum eine Positivliste: vorher stand hier das Gegenteil, eine Liste von
+#: fuenfzehn Dateinamen, die Qt NICHT importieren durften. Alles, was nicht
+#: darin stand, durfte - eine neue kraefte.py in app/vakuum/ haette ab dem
+#: ersten Tag QtWidgets importieren koennen, und kein Test haette etwas
+#: gesagt. Sieben Dateien lagen tatsaechlich in diesem Niemandsland, darunter
+#: app/kontext.py, die den Programmzustand haelt.
+#:
+#: Jetzt ist die Grundstellung "kein Qt". Wer Qt braucht, steht hier - und wer
+#: hier steht, muss Qt auch wirklich benutzen, sonst raeumt
+#: test_the_qt_lists_have_no_stale_entries die Zeile weg.
+#:
+#: Warum nach Pfad: der Dateiname sagt die ROLLE (eine tab.py ist in jeder
+#: Scheibe eine tab.py). Hier geht es aber nicht um die Rolle, sondern um eine
+#: Grenze - und eine Grenze muss sagen, welche Datei gemeint ist, nicht welche
+#: Art von Datei.
+#:
+#: Pfade sind relativ zu app/ und mit Schraegstrich geschrieben.
+
+#: Darf das ganze Qt: baut Fenster, Bedienelemente oder Zeichnungen.
+QT_WIDGETS = (
+    "__main__.py",
+    "start.py",
+    "tabs.py",
+    "oberflaeche/darstellung.py",
+    "oberflaeche/entprellung.py",
+    "oberflaeche/fensterzustand.py",
+    "oberflaeche/formularbau.py",
+    "oberflaeche/hilfe.py",
+    "oberflaeche/meldungen.py",
+    "oberflaeche/icons/__init__.py",
+    "palette/formular.py",
+    "palette/szene3d.py",
+    "palette/tab.py",
+    "palette/zeichnung.py",
+    "vakuum/tab.py",
+    "vakuum/zeichnung.py",
+)
+
+#: Darf QtCore, aber kein Bedienelement und keine Zeichnung.
+#:
+#: Das ist die Grenze, die vorher nirgends stand. Diese vier Module brauchen
+#: QObject und pyqtSignal, weil ein Signal der einzige threadsichere Weg ist,
+#: ein Ergebnis aus einem Worker in den Oberflaechen-Thread zu bringen. Ein
+#: Bedienelement haben sie damit nicht zu kennen: sie liegen auf der anderen
+#: Seite der Tuer, die dienst.py aufmacht (Spezifikation 29).
+#:
+#: Wer hier ein QWidget importiert, hat die Tuer von innen aufgemacht - und
+#: genau das faellt sonst erst auf, wenn die Rechnung ohne laufendes Fenster
+#: nicht mehr zu testen ist.
+QT_CORE = (
+    "technik/nebenlaeufig.py",
+    "technik/rechenlauf.py",
+    "palette/dienst.py",
+    "vakuum/dienst.py",
 )
 
 
@@ -626,29 +696,97 @@ def test_the_subject_layer_reaches_into_the_slices_only_for_their_data() -> None
     )
 
 
-def test_the_calculating_modules_stay_qt_free() -> None:
-    """Die rechnenden Module duerfen Qt nicht kennen.
+def _qt_imports(path: pathlib.Path) -> list[tuple[str, int]]:
+    """Qt-Importe einer Datei, egal unter welcher Bindung."""
+    return [
+        (modul, zeile) for modul, zeile in _imports_of(path)
+        if modul.split(".")[0] in QT_PAKETE
+    ]
+
+
+def _app_relativ(path: pathlib.Path) -> str:
+    """Pfad relativ zu app/, wie er in QT_WIDGETS und QT_CORE steht."""
+    return str(path.relative_to(APP)).replace("\\", "/")
+
+
+def test_only_listed_modules_import_qt() -> None:
+    """Qt anfassen darf nur, wer in QT_WIDGETS oder QT_CORE steht.
+
+    Die Grundstellung ist "kein Qt". Das ist der Unterschied zur alten Regel,
+    die eine Liste von Dateien aufzaehlte, die Qt NICHT importieren durften:
+    dort war die Grundstellung "erlaubt", und jede neue Datei fiel durch das
+    Loch. Sieben lagen darin, als die Regel umgedreht wurde.
 
     Nicht aus Reinheit, sondern aus Geschwindigkeit: von den Tests laeuft der
     Grossteil ohne QApplication, und das geht nur, solange die Rechnung keine
-    mitzieht. Ein einziger Import an der falschen Stelle macht aus einer
-    Sekunde eine Minute - und faellt sonst erst auf, wenn die Suite schon
-    unertraeglich langsam ist.
-
-    Geprueft werden Module nach ihrem NAMEN, quer ueber alle Scheiben: eine
-    rechnung.py ist in jeder Scheibe eine rechnung.py.
+    mitzieht. Ein einziger Import an der falschen Stelle macht aus vierzehn
+    Sekunden Minuten - und faellt sonst erst auf, wenn der Lauf schon
+    unertraeglich lang ist.
     """
-    offenders: list[str] = []
+    erlaubt = set(QT_WIDGETS) | set(QT_CORE)
+    verstoesse: list[str] = []
     for path in sorted(APP.rglob("*.py")):
-        if path.name not in QT_FREE:
+        if "__pycache__" in path.parts or _app_relativ(path) in erlaubt:
             continue
-        for module, line in _imports_of(path):
-            if module.split(".")[0] in ("PyQt6", "PySide6", "PyQt5", "qtpy"):
-                offenders.append(
-                    str(path.relative_to(APP.parent)) + ":" + str(line) + " -> " + module
-                )
-    assert not offenders, (
-        "Diese rechnenden Module importieren Qt: " + ", ".join(offenders)
+        for modul, zeile in _qt_imports(path):
+            verstoesse.append(_relative(path) + ":" + str(zeile) + " -> " + modul)
+
+    assert not verstoesse, (
+        "Diese Module importieren Qt, ohne dafuer freigegeben zu sein:\n  "
+        + "\n  ".join(verstoesse)
+        + "\n\nEntweder gehoert das Qt dort nicht hin, oder der Pfad gehoert "
+          "in QT_WIDGETS beziehungsweise QT_CORE in dieser Datei - mit einem "
+          "Satz, warum."
+    )
+
+
+def test_the_service_layer_uses_qtcore_only() -> None:
+    """Hinter der Tuer gibt es keine Bedienelemente.
+
+    QT_CORE braucht QObject und pyqtSignal, weil ein Signal der einzige
+    threadsichere Weg aus einem Worker in den Oberflaechen-Thread ist. Ein
+    QWidget dort heisst, dass die Tuer von innen aufgemacht wurde - und dann
+    laesst sich die Rechnung ohne laufendes Fenster nicht mehr testen.
+    """
+    verstoesse: list[str] = []
+    for name in QT_CORE:
+        path = APP / name
+        for modul, zeile in _qt_imports(path):
+            teile = modul.split(".")
+            if len(teile) == 1:
+                grund = "der ganze Namensraum"
+            elif teile[1] in QT_OBERFLAECHE:
+                grund = teile[1]
+            else:
+                continue
+            verstoesse.append(
+                "app/" + name + ":" + str(zeile) + " -> " + modul + " (" + grund + ")"
+            )
+
+    assert not verstoesse, (
+        "Diese Module duerfen nur QtCore, nicht die Oberflaeche:\n  "
+        + "\n  ".join(verstoesse)
+    )
+
+
+def test_the_qt_lists_have_no_stale_entries() -> None:
+    """Eine Freigabe, die niemand mehr braucht, muss weg.
+
+    Sonst waechst die Liste nur noch und sagt irgendwann nichts mehr darueber,
+    wo Qt im Programm sitzt. Dasselbe Prinzip wie bei
+    test_every_documented_ring_still_exists.
+    """
+    fehlend = [name for name in QT_WIDGETS + QT_CORE if not (APP / name).is_file()]
+    assert not fehlend, (
+        "Diese Pfade stehen in der Qt-Freigabe, aber es gibt sie nicht "
+        "(mehr):\n  " + "\n  ".join(fehlend)
+    )
+
+    ohne_qt = [name for name in QT_WIDGETS + QT_CORE if not _qt_imports(APP / name)]
+    assert not ohne_qt, (
+        "Diese Module sind fuer Qt freigegeben, benutzen es aber nicht mehr - "
+        "Zeile in QT_WIDGETS beziehungsweise QT_CORE loeschen:\n  "
+        + "\n  ".join(ohne_qt)
     )
 
 

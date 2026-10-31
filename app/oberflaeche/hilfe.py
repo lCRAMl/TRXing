@@ -27,7 +27,6 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeySequence, QShortcut, QTextDocument
 from PyQt6.QtWidgets import (
     QDialog,
-    QDialogButtonBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -293,13 +292,16 @@ class FormulaHelpDialog(QDialog):
         splitter.setSizes([250, 810])
         layout.addWidget(splitter, stretch=1)
 
-        # Qt liefert die Beschriftung seiner Standardknoepfe aus eigenen
-        # Uebersetzungsdateien, die die Anwendung nicht mitnimmt - ohne diese
-        # Zeile steht in einem sonst deutschen Fenster "Close".
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        buttons.button(QDialogButtonBox.StandardButton.Close).setText("Schliessen")
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
+        # Ein HaloButton und kein QDialogButtonBox - warum, steht beim
+        # ProblemPanel in app/oberflaeche/meldungen.py, wo dieselbe Zeile
+        # stand. Die Fussleiste schiebt ihn nach rechts, wohin der Kasten ihn
+        # von sich aus gestellt hat.
+        close = HaloButton("Schliessen")
+        close.clicked.connect(self.reject)
+        fussleiste = QHBoxLayout()
+        fussleiste.addStretch(1)
+        fussleiste.addWidget(close)
+        layout.addLayout(fussleiste)
 
         QShortcut(QKeySequence.StandardKey.Find, self, self._focus_search)
         self._index.setCurrentRow(0)

@@ -219,13 +219,38 @@ ins Kompilat (`--add-data` in `AUTOBUILD.py`); fehlt der Eintrag, startet die
 gepackte Fassung ohne Hilfe — und zwar erst beim Klick auf das Menü, lange
 nach der Auslieferung. Dafür gibt es einen Test.
 
-### Die Qt-Freiheit ist kein Selbstzweck
+### Wo Qt sitzt — und wo nicht
 
-Von den rund 560 Tests braucht nur ein kleiner Teil eine `QApplication`. Der
-ganze Lauf dauert deshalb rund vierzehn Sekunden statt Minuten. Das hält genau
-so lange, wie die rechnenden Module kein Qt importieren — ein einziger Import
-an der falschen Stelle kippt es, ohne dass sofort etwas auffällt.
-`test_the_calculating_modules_stay_qt_free` passt darauf auf.
+20 der 42 Dateien fassen Qt an. Welche, steht nicht im Ordnernamen, sondern in
+zwei Listen in `tests/test_architecture.py`:
+
+| Liste | Module | darf |
+|---|---|---|
+| `QT_WIDGETS` | `__main__`, `start`, `tabs`, alles in `oberflaeche/`, dazu `tab`, `formular`, `zeichnung`, `szene3d` der Scheiben | das ganze Qt |
+| `QT_CORE` | `technik/nebenlaeufig`, `technik/rechenlauf`, `palette/dienst`, `vakuum/dienst` | nur `QtCore` |
+| — alle übrigen | | kein Qt |
+
+Die Grundstellung ist **kein Qt**. Das ist seit Oktober 2026 umgedreht: vorher
+zählte eine Liste fünfzehn Dateinamen auf, die Qt *nicht* importieren durften,
+und alles andere durfte. Eine neue `kraefte.py` in `app/vakuum/` hätte am
+ersten Tag `QtWidgets` importieren können, ohne dass ein Test etwas gesagt
+hätte; sieben Dateien lagen tatsächlich in diesem Niemandsland, darunter
+`app/kontext.py`, die den Programmzustand hält.
+
+`QT_CORE` ist die zweite Grenze, die vorher nirgends stand. Diese vier Module
+brauchen `QObject` und `pyqtSignal`, weil ein Signal der einzige threadsichere
+Weg aus einem Worker in den Oberflächen-Thread ist — ein Bedienelement haben
+sie damit nicht zu kennen. Sie liegen auf der anderen Seite der Tür, die
+`dienst.py` aufmacht.
+
+Drei Tests passen darauf auf: `test_only_listed_modules_import_qt`,
+`test_the_service_layer_uses_qtcore_only` und — damit die Freigabe nicht nur
+wächst — `test_the_qt_lists_have_no_stale_entries`.
+
+Der Grund ist nicht Reinheit, sondern Geschwindigkeit: von den rund 580 Tests
+braucht nur ein kleiner Teil eine `QApplication`, der ganze Lauf dauert
+deshalb rund vierzehn Sekunden statt Minuten. Ein einziger Import an der
+falschen Stelle kippt das, ohne dass sofort etwas auffällt.
 
 ### Eine Tür je Scheibe
 
