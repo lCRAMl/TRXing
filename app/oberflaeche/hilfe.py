@@ -32,7 +32,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
-    QPushButton,
     QSplitter,
     QTextBrowser,
     QVBoxLayout,
