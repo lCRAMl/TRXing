@@ -12,7 +12,7 @@ Ein Aufruf, drei Schritte:
   3. Die Konfigurationsdateien danebenlegen und den Bauplatz aufraeumen.
 
 Seit Oktober 2026 gibt es keinen Zwischenschritt fuer Layoutdateien mehr: die
-Oberflaeche wird in app/oberflaeche/formularbau.py aus Beschreibungen gebaut, nicht aus
+Oberflaeche wird in qt_controls_pyrs/formbuilder.py aus Beschreibungen gebaut, nicht aus
 .ui-Dateien erzeugt.
 
 **Die Falle dieses Rechners:** PyQt6 und PySide6 liegen in derselben

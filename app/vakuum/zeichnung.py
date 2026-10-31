@@ -26,7 +26,8 @@ from PyQt6.QtWidgets import QSizePolicy, QWidget
 from app.vakuum.daten import ContactClass
 from app.vakuum.daten import VacuumResult
 from app.oberflaeche.darstellung import toned
-from app.oberflaeche.darstellung import MONO_FAMILY, PALETTE
+from app.oberflaeche.darstellung import PALETTE
+from qt_controls_pyrs import mono_font
 
 #: Rand um die Plattenzeichnung. Oben steht statt dessen die Legende.
 MARGIN_PX = 52
@@ -329,9 +330,7 @@ class Vacuum2DView(QWidget):
         # Die Beschriftung steht darueber: in der Luecke selbst waere kein
         # Platz, sie ist ja gerade das, was bemasst wird.
         text = format(luft_mm, ".1f").replace(".", ",") + " mm"
-        schrift = QFont(MONO_FAMILY.split(",")[0].strip())
-        schrift.setStyleHint(QFont.StyleHint.Monospace)
-        schrift.setPointSize(8)
+        schrift = mono_font(point_size=8)
         painter.setFont(schrift)
         breite = painter.fontMetrics().horizontalAdvance(text)
         mitte = (x1 + x2) / 2.0
@@ -408,8 +407,7 @@ class Vacuum2DView(QWidget):
         # Zahlen in fester Laufweite, wie ueberall in der Anwendung: die
         # Stellen stehen dann untereinander und lassen sich vergleichen.
         label_font = QFont(painter.font())
-        value_font = QFont(MONO_FAMILY.split(",")[0].strip())
-        value_font.setPointSize(label_font.pointSize())
+        value_font = mono_font(point_size=label_font.pointSize())
 
         rows = (
             (outer_r, -LEGEND_LINE_PX, "Aussenmass unter Vakuum", cup.outer_diameter_mm),

@@ -63,8 +63,8 @@ app/                 __main__ . start . tabs . kontext    das Programm
   palette/           Palettierung: Lagen legen, stapeln   ] senkrecht
   vakuum/            Saugplatte: verteilen, Kraft rechnen ]  geschnitten
 
-  oberflaeche/       Farben, Bedienelemente, Formularbau,
-                     Meldungen, Hilfe, darkstyle/, icons/ ]
+  oberflaeche/       Farben, Meldungen, Hilfe,
+                     darkstyle/, icons/                   ]
   fach/              Paket, Einheiten, Geometrie, Muster, ] waagerecht
                      Katalog, Ergebnis, Zustand           ]  darunter
   technik/           Hintergrundarbeit, Protokoll, Pfade  ]
@@ -89,7 +89,7 @@ bei jedem Testlauf mit; der Hintergrund in
 ## Oberfläche bearbeiten (Beschreibungen)
 
 Die Anordnung jedes Tabs steht als **Beschreibung im Quelltext** — eine Liste
-von Zeilen, aus der `app/oberflaeche/formularbau.py` die Bedienelemente baut:
+von Zeilen, aus der `qt_controls_pyrs/formbuilder.py` die Bedienelemente baut:
 
 ```python
 BEDIENSPALTE = [
@@ -118,17 +118,17 @@ Wer die Einheit änderte, musste zwei Dateien anfassen.
 
 | Baustein | wird zu | wofür |
 |---|---|---|
-| `Zahl` | `NumberField` | Maß mit Einheit und Platz für eine Meldung |
-| `Ganzzahl` | `IntField` | Stückzahl mit Einheit |
-| `Wahl` | `KompaktDropdown` | Auswahlfeld; gefüllt wird es vom Tab |
-| `Text` | `KompaktLineEdit` | einzeilige Eingabe |
-| `Schalter` | `KompaktCheckBox` | Kästchen, mit `angehakt` und `hinweis` |
-| `Auswahlknopf` | `KompaktRadioButton` | genau einer von mehreren |
-| `Knopf` | `KompaktButton` | mit `vorgabe`, `aktiv`, `sichtbar`; in den Tabs zurzeit nicht benutzt — gerechnet wird nach jeder Eingabe |
+| `Zahl` | `CompactNumberField` | Maß mit Einheit und Platz für eine Meldung |
+| `Ganzzahl` | `CompactIntField` | Stückzahl mit Einheit |
+| `Wahl` | `CompactDropdown` | Auswahlfeld; gefüllt wird es vom Tab |
+| `Text` | `CompactLineEdit` | einzeilige Eingabe |
+| `Schalter` | `CompactCheckBox` | Kästchen, mit `angehakt` und `hinweis` |
+| `Auswahlknopf` | `CompactRadioButton` | genau einer von mehreren |
+| `Knopf` | `CompactButton` | mit `vorgabe`, `aktiv`, `sichtbar`; in den Tabs zurzeit nicht benutzt — gerechnet wird nach jeder Eingabe |
 | `Hinweis` | `QLabel` (`role="note"`) | Erklärung unter einer Zeile |
-| `Raster` | `ResultGrid` | Ergebniswerte; Zeilen trägt der Tab nach |
+| `Raster` | `CompactResultGrid` | Ergebniswerte; Zeilen trägt der Tab nach |
 | `Platz` | `QWidget` | Platzhalter für Zeichenfläche oder 3D-Szene |
-| `Gruppe` | `KompaktGroupBox` | Rahmen mit Überschrift und Zeilen darin; `oben=True` setzt die Beschriftung über das Feld statt daneben |
+| `Gruppe` | `CompactGroupBox` | Rahmen mit Überschrift und Zeilen darin; `oben=True` setzt die Beschriftung über das Feld statt daneben |
 | `Zeile` | `QHBoxLayout` | mehrere Elemente nebeneinander, ohne Rahmen |
 
 ### Das Gerüst beider Tabs
@@ -178,7 +178,7 @@ steht; Höhe darf scrollen.
 
 Die Umgebung eines Tabs — Teiler, Rollfläche, Zeichenfläche, 3D-Szene — steht
 weiterhin im Quelltext. Das sind Einzelstücke und keine Formularzeilen;
-`app/oberflaeche/formularbau.py` baut Formulare, keine Fenster.
+`qt_controls_pyrs/formbuilder.py` baut Formulare, keine Fenster.
 
 `tests/test_formularbau.py` vergleicht Beschreibung und Benutzung: jeder Name,
 den ein Tab unter `self.ui` anspricht, muss auch gebaut werden. Ohne diese
@@ -195,18 +195,30 @@ Von der Absicht zur Datei. Jede Zeile hat **genau eine** Stelle:
 | Reihenfolge der Felder, was nebeneinander steht, Gruppenaufteilung | dieselben Dateien | die Listenstruktur; eine innere Liste ist eine Zeile auf dem Schirm |
 | Beschriftung über statt neben dem Feld | dieselben Dateien | `Gruppe(…, oben=True)` |
 | Welche Zeilen die Ergebnisanzeige hat | dieselben Dateien | `ERGEBNISZEILEN`, `STROMZEILEN`, `ABGELEITET`; `None` ist eine Trennlinie |
-| Einen neuen Feldtyp (es gibt noch keinen Baustein dafür) | `app/oberflaeche/formularbau.py` | eine Datenklasse und ein Zweig in `_zelle()` |
+| Einen neuen Feldtyp (es gibt noch keinen Baustein dafür) | `qt_controls_pyrs/formbuilder.py` | eine Datenklasse und ein Zweig in `_zelle()` |
 | Teiler, Rollfläche, Zeichenfläche, 3D-Szene, Ansichtsleiste | `app/palette/tab.py`, `app/vakuum/tab.py` | `_build_layout()` |
-| **Höhe, Innenabstand, Zeilenabstand aller Bedienelemente** | `app/oberflaeche/bedienelemente.py` | `KOMPAKT_HOEHE`, `KOMPAKT_RAND`, `KOMPAKT_PAD`, `KOMPAKT_ABSTAND` |
-| Maße eines einzelnen Elementtyps (Pfeilspalte, Kästchengröße, Spaltenzahl des Ergebnisrasters) | `app/oberflaeche/bedienelemente.py` | die Konstanten der jeweiligen `Kompakt…`-Klasse |
-| Höhe der Statusleiste | `app/oberflaeche/bedienelemente.py` | `LeistenKnopf` — eine Statusleiste ist so hoch wie ihr höchstes Element |
+| **Höhe, Innenabstand, Zeilenabstand aller Bedienelemente** | `qt_controls_pyrs/compact.py` | `COMPACT_HEIGHT`, `COMPACT_ROOM`, `COMPACT_PAD`, `COMPACT_SPACING` |
+| Maße eines einzelnen Elementtyps (Pfeilspalte, Kästchengröße, Spaltenzahl des Ergebnisrasters) | `qt_controls_pyrs/compact.py` | die Konstanten der jeweiligen `Compact…`-Klasse |
+| Höhe der Statusleiste | `qt_controls_pyrs/compact.py` | `StatusBarButton` — eine Statusleiste ist so hoch wie ihr höchstes Element |
 | Farben, Schriftgröße, Stylesheet | `app/oberflaeche/darstellung.py` | `PALETTE`, `FONT_SIZE_OFFSET_PT`, `stylesheet()`, `HALO_OVERRIDES` |
-| Wie ein Element **gezeichnet** wird (Halo, Animation, Pfeile) | `QtControlsPyRS` | die Klasse dort; `Kompakt…` erbt und ändert nur Zahlen |
+| Wie ein Element **gezeichnet** wird (Halo, Animation, Pfeile) | `QtControlsPyRS` | die Klasse dort; `Compact…` erbt und ändert nur Zahlen |
 
 Die Faustregel dahinter: **was ein Feld bedeutet**, steht in der Beschreibung;
-**wie dicht** die Oberfläche gesetzt ist, in `app/oberflaeche/bedienelemente.py`; **wie sie
-aussieht**, in `app/oberflaeche/darstellung.py` und in der Bibliothek; **was ein Tab tut**,
-im Tab.
+**wie dicht** die Oberfläche gesetzt ist, in der Bibliothek; **wie sie
+aussieht**, in `app/oberflaeche/darstellung.py` und in der Bibliothek; **was
+ein Tab tut**, im Tab.
+
+> **Die Bibliothek ist geteilt.** `QtControlsPyRS` bedient mehrere Anwendungen,
+> und sie sollen alle gleich aussehen — deshalb liegen `compact.py` und
+> `formbuilder.py` dort und nicht hier. Umgekehrt heißt das: eine Änderung an
+> `COMPACT_HEIGHT` ändert jedes Fenster jeder dieser Anwendungen. Soll nur
+> TRXing anders aussehen, gehört die Änderung nach
+> `app/oberflaeche/darstellung.py` oder in eine eigene Unterklasse hier.
+>
+> Die Vorbilder (`HaloButton`, `NumberField`, …) bleiben dabei unangetastet:
+> `tests/test_compact.py` in der Bibliothek nagelt ihre Maße fest, damit
+> niemand den bequemen Weg nimmt und `HaloButton.HEIGHT` von 45 auf 26 setzt —
+> das würde Fenster verändern, die gerade niemand offen hat.
 
 > **Eine Falle, die zweimal zugeschlagen hat.** `setMinimumWidth()` und jede
 > Kastenangabe im Stylesheet (`margin`, `padding`, auch mit Wert `0`) sind

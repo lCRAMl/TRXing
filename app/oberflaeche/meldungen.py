@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from app.technik.fehler import AppError, ErrorReporter, Severity
-from app.oberflaeche.bedienelemente import LeistenKnopf, mono_font
+from qt_controls_pyrs import StatusBarButton, mono_font
 from PyQt6.QtCore import QObject, pyqtSignal
 from app.technik.fehler import AppError, ErrorReporter
 from qt_controls_pyrs import HaloButton
@@ -55,7 +55,7 @@ der laufenden Berechnung, und die Namen sind unterschiedlich lang. Ohne feste
 Breite verschiebt jeder Wechsel die Anzeigen daneben - die Leiste zappelt.
 
 Die Hoehe der Leiste ist die Hoehe ihres hoechsten Elements. Jeder Knopf darin
-ist deshalb ein LeistenKnopf und kein gewoehnlicher - siehe dort, warum das
+ist deshalb ein StatusBarButton und kein gewoehnlicher - siehe dort, warum das
 einmal anderthalb Zentimeter gekostet hat.
 
 Hier steht auch der Abbruch. Gerechnet wird nach jeder Eingabe von selbst, ein
@@ -116,7 +116,7 @@ class StatusBar(QStatusBar):
         # Nur sichtbar, solange etwas laeuft. Ein dauerhaft sichtbarer, aber
         # gesperrter Abbruch beantwortet die Frage "laeuft gerade was?" falsch:
         # er sieht aus wie ein Bedienelement und ist meistens keines.
-        self._cancel = LeistenKnopf("Abbrechen")
+        self._cancel = StatusBarButton("Abbrechen")
         self._cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         self._cancel.setToolTip("Bricht die laufende Berechnung ab")
         self._cancel.setVisible(False)
@@ -127,7 +127,7 @@ class StatusBar(QStatusBar):
         self._config.setStyleSheet("color: " + PALETTE.text_muted + ";")
         self.addPermanentWidget(self._config)
 
-        self._problems = LeistenKnopf("Keine Probleme")
+        self._problems = StatusBarButton("Keine Probleme")
         self._problems.setFlat(True)
         self._problems.setCursor(Qt.CursorShape.PointingHandCursor)
         self._problems.clicked.connect(self.problems_clicked.emit)

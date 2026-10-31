@@ -42,16 +42,16 @@ from app.fach.ergebnis import Status
 from app.fach.einheiten import m3s_to_m3h, mbar_to_pa, pa_to_mbar
 from app.vakuum.daten import RestrictorMode, RestrictorSpec
 from app.vakuum.daten import GripDirection, LeakageSpec, VacuumInput, VacuumPlateSpec, VacuumResult
-from app.oberflaeche.bedienelemente import restore_splitter, save_splitter, store
-from app.oberflaeche.bedienelemente import (
-    Debouncer, ResultGrid, StaleBanner, compact_combo
+from qt_controls_pyrs import (
+    CompactResultGrid, Debouncer, StaleBanner, compact_combo
 )
+from qt_controls_pyrs.windowstate import restore_splitter, save_splitter, store
 from app.tabs import TabHost
 from app.oberflaeche.darstellung import PALETTE
 from app.fach.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
 from app.vakuum.zeichnung import Vacuum2DView
-from app.oberflaeche.formularbau import (
+from qt_controls_pyrs.formbuilder import (
     Ganzzahl, Gruppe, Hinweis, Oberflaeche, Schalter, Wahl, Zahl, baue
 )
 
@@ -265,8 +265,8 @@ class VacuumTab(TabHost):
         # Die beiden Ergebnisraster nebeneinander unter der Zeichnung.
         self.ui.result_row = QHBoxLayout()
         self.ui.result_row.setSpacing(6)
-        self.ui.results = ResultGrid("Ergebnis")
-        self.ui.flow_results = ResultGrid("Vakuum, Kraft und Volumenstrom")
+        self.ui.results = CompactResultGrid("Ergebnis")
+        self.ui.flow_results = CompactResultGrid("Vakuum, Kraft und Volumenstrom")
         self.ui.result_row.addWidget(self.ui.results)
         self.ui.result_row.addWidget(self.ui.flow_results)
         self.ui.view_layout.addLayout(self.ui.result_row)

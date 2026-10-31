@@ -266,8 +266,13 @@ DARK = Palette(
 #: Auskunft.
 PALETTE = DARK if prefers_dark() else LIGHT
 
-#: Schrift fuer Zahlenausgaben.
-MONO_FAMILY = "Consolas, 'DejaVu Sans Mono', monospace"
+#: Schrift fuer Zahlenausgaben: steht in der Bibliothek.
+#:
+#: Hier stand dieselbe Zeichenkette ein zweites Mal, Zeichen fuer Zeichen
+#: gleich - und dazu in app/oberflaeche/bedienelemente.py eine zweite Fassung
+#: von mono_font(), die sie zerlegte. Drei Stellen fuer eine Schriftart. Wer
+#: sie braucht, nimmt qt_controls_pyrs.mono_font(): damit sehen die Zahlen in
+#: jedem Programm an dieser Bibliothek gleich aus, was der Sinn der Sache ist.
 
 
 # ---------------------------------------------------------------------------
@@ -352,7 +357,7 @@ ueberschreiben.
 """
 
 __all__ = [
-    "DARK", "LIGHT", "MONO_FAMILY", "PALETTE", "Palette",
+    "DARK", "LIGHT", "PALETTE", "Palette",
     "apply_theme", "dark_palette", "dark_stylesheet", "darkstyle_dir", "stylesheet",
     "FONT_SIZE_OFFSET_PT",
 ]
@@ -453,19 +458,19 @@ def darkstyle_dir() -> Path:
 #: Fuellung der Gruppenrahmen weg, Qts eigene Anzeiger auf Null, und der
 #: Reiterbereich ohne Strich.
 HALO_OVERRIDES = """
-KompaktGroupBox, ResultGrid {
+CompactGroupBox, CompactResultGrid {
     background: none;
     border: none;
     margin-top: 0px;
 }
-KompaktGroupBox::title, ResultGrid::title {
+CompactGroupBox::title, CompactResultGrid::title {
     background: none;
     border: none;
     padding: 0px;
     margin: 0px;
 }
-KompaktCheckBox::indicator, KompaktRadioButton::indicator,
-KompaktGroupBox::indicator, ResultGrid::indicator {
+CompactCheckBox::indicator, CompactRadioButton::indicator,
+CompactGroupBox::indicator, CompactResultGrid::indicator {
     width: 0px;
     height: 0px;
     image: none;

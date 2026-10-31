@@ -147,10 +147,14 @@ ROLLEN: dict[str, tuple[str, ...]] = {
     # Die Oberflaeche im weiteren Sinn - alles, was Qt anfasst, ohne zu
     # zeichnen. Fuer die Regel "hier wird nicht gerechnet" ist das der
     # richtige Umfang: frueher war es der ganze Ordner app/gui.
+    #
+    # bedienelemente.py und formularbau.py fehlen seit Oktober 2026: sie waren
+    # fachfrei und liegen jetzt als compact.py und formbuilder.py in
+    # qt_controls_pyrs, wo mehrere Anwendungen sie teilen. Was sie an Regeln
+    # brauchen, prueft die Bibliothek selbst.
     "oberflaeche": ("tab.py", "formular.py", "dienst.py", "start.py",
                     "tabs.py", "kontext.py", "rechenlauf.py",
-                    "bedienelemente.py", "meldungen.py", "hilfe.py",
-                    "darstellung.py"),
+                    "meldungen.py", "hilfe.py", "darstellung.py"),
 
     # Datentragend. Eingefrorene Objekte mit Einheitensuffix, kein Verhalten.
     #

@@ -33,10 +33,12 @@ from __future__ import annotations
 from PyQt6.QtWidgets import QHBoxLayout, QWidget
 
 from app.fach.paket import PackageSpec
-from app.oberflaeche.bedienelemente import Debouncer, ResultGrid
+from qt_controls_pyrs import CompactResultGrid, Debouncer
 from app.fach.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
-from app.oberflaeche.formularbau import Gruppe, Oberflaeche, Schalter, Text, Zahl, baue
+from qt_controls_pyrs.formbuilder import (
+    Gruppe, Oberflaeche, Schalter, Text, Zahl, baue
+)
 
 
 #: Das Formular als Beschreibung.
@@ -118,7 +120,7 @@ class PackageForm(QWidget):
         felder, self.ui = baue(FORMULAR, self.ui)
         aussen.addWidget(felder, 1)
 
-        self.ui.derived = ResultGrid("Abgeleitete Werte")
+        self.ui.derived = CompactResultGrid("Abgeleitete Werte")
         aussen.addWidget(self.ui.derived)
 
     def _build_result_rows(self) -> None:

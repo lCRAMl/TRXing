@@ -45,11 +45,11 @@ from PyQt6.QtWidgets import (
 
 from app.oberflaeche.darstellung import ViewMode
 from app.palette.daten import PalletResult, SharedLayer
-from app.oberflaeche.bedienelemente import restore_splitter, save_splitter, store
-from app.oberflaeche.bedienelemente import (
-    BreitesRaster, Debouncer, KompaktButton, KompaktDropdown,
-    KompaktRadioButton, StaleBanner, compact_combo
+from qt_controls_pyrs import (
+    CompactButton, CompactDropdown, CompactRadioButton, Debouncer,
+    StaleBanner, WideResultGrid, compact_combo
 )
+from qt_controls_pyrs.windowstate import restore_splitter, save_splitter, store
 from app.palette.formular import PackageForm
 from app.tabs import TabHost
 from app.oberflaeche.darstellung import PALETTE
@@ -57,7 +57,7 @@ from app.fach.vorgang import AppStateSnapshot, StateChange
 from app.kontext import AppContext
 from app.palette.szene3d import create_scene
 from app.palette.zeichnung import Pallet2DView
-from app.oberflaeche.formularbau import (
+from qt_controls_pyrs.formbuilder import (
     Ganzzahl, Gruppe, Hinweis, Oberflaeche, Schalter, Wahl, Zahl, baue
 )
 
@@ -226,13 +226,13 @@ class PalletTab(TabHost):
 
         self.ui.view_bar = QHBoxLayout()
         self.ui.view_bar.setSpacing(8)
-        self.ui.button_2d = KompaktRadioButton("2D Draufsicht")
+        self.ui.button_2d = CompactRadioButton("2D Draufsicht")
         self.ui.button_2d.setChecked(True)   # die Draufsicht ist die Vorgabe
-        self.ui.button_3d = KompaktRadioButton("3D Ansicht")
+        self.ui.button_3d = CompactRadioButton("3D Ansicht")
         self.ui.layer_caption = QLabel("Ebene")
-        self.ui.layer_box = KompaktDropdown()
+        self.ui.layer_box = CompactDropdown()
         self.ui.layer_box.setMinimumWidth(110)
-        self.ui.reset_camera = KompaktButton("Ansicht zuruecksetzen")
+        self.ui.reset_camera = CompactButton("Ansicht zuruecksetzen")
         # Erscheint erst mit der 3D-Ansicht - in der Draufsicht gibt es
         # keine Kamera zurueckzusetzen.
         self.ui.reset_camera.setVisible(False)
@@ -253,7 +253,7 @@ class PalletTab(TabHost):
 
         # Das Ergebnis unter der Zeichnung, ausserhalb der Rollflaeche: es
         # bleibt stehen, auch wenn die Eingaben nach unten weglaufen.
-        self.ui.results = BreitesRaster("Ergebnis")
+        self.ui.results = WideResultGrid("Ergebnis")
         self.ui.view_layout.addWidget(self.ui.results)
 
         self.ui.splitter.addWidget(self.ui.view_panel)

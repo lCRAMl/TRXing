@@ -44,8 +44,8 @@ Fehlende Elemente dort (Reihenfolge nach Dringlichkeit):
   5 Slider mit mehreren Griffen   6 Diagramm-Widget   7 log. Skala
   nachrangig: ProgressBar, Splitter, ScrollArea, StackedWidget,
               TreeWidget, ListWidget, TextBrowser
-  Umgekehrt gehoeren aus TRXing in die Lib: NumberField, IntField,
-  ResultGrid, StaleBanner.
+  Umgekehrt gehoeren aus TRXing in die Lib: CompactNumberField, CompactIntField,
+  CompactResultGrid, StaleBanner.
 
 
 ===============================================================================
@@ -66,7 +66,7 @@ app/
     vorgang.py           Gemeinsamer Zustand, Revisionszaehler
     geometrie.py         Kreis/Rechteck, Ueberdeckung
     paket.py             Paketdaten und Eingabeformular
-    bedienelemente.py    NumberField, IntField, ResultGrid, Debouncer,
+    bedienelemente.py    CompactNumberField, CompactIntField, CompactResultGrid, Debouncer,
                          Statuszeile, Problemliste
     darstellung.py       Farben, Stylesheet, Hell/Dunkel
     hilfe.py             Hilfetexte und Formeldialog
@@ -173,7 +173,7 @@ Legende:  [ ] offen   [~] laeuft   [x] fertig und Testsuite gruen
        beiden Scheiben importieren einander NICHT.
 
 [x] 8  Oberflaechenhuelle
-       gui/common/widgets + gui/status/* -> app/oberflaeche/bedienelemente.py
+       gui/common/widgets + gui/status/* -> qt_controls_pyrs/compact.py
        gui/help/*                        -> app/oberflaeche/hilfe.py
        gui/theme + visualization/{colors,theme} -> app/oberflaeche/darstellung.py
        gui/{main_window,tab_manager,module_registry} + application.py

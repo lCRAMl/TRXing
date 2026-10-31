@@ -1,9 +1,9 @@
-"""Die Oberflaeche wird aus Beschreibungen gebaut - das muss geprueft bleiben.
+"""Beschreibung und Benutzung muessen zusammenpassen.
 
-Ersetzt tests/test_ui_files.py, das die .ui-Dateien und ihre erzeugten
-Gegenstuecke bewachte. Die gibt es seit Oktober 2026 nicht mehr; was damals
-das Erzeugen sicherte, sichert hier der Vergleich zwischen Beschreibung und
-Benutzung.
+Die Anordnung der Tabs steht als Beschreibung im Quelltext, aus der
+qt_controls_pyrs.formbuilder die Bedienelemente baut. Frueher lag sie in
+.ui-Dateien, aus denen pyuic6 die ui_*.py erzeugte; was damals das Erzeugen
+sicherte, sichert hier der Vergleich zwischen Beschreibung und Benutzung.
 
 Der wichtigste Test ist test_jeder_benutzte_name_wird_gebaut. Beim Umstellen
 sind drei Dinge lautlos verlorengegangen, die alle derselben Art sind - ein
@@ -16,6 +16,12 @@ fehlte:
 
 Der erste fiel beim Starten auf, die beiden anderen erst beim Hinsehen. Diese
 Tests fangen die erste Art sofort und die anderen beiden gezielt.
+
+Dass die BAUSTEINE bauen, was sie versprechen, prueft die Bibliothek selbst -
+tests/test_formbuilder.py in QtControlsPyRS. Hier geht es nur noch um die
+Formulare DIESER Anwendung: dass jeder Name, den ein Tab anspricht, auch
+beschrieben ist, und dass die Eigenschaften ankommen, die beim Umstellen
+einmal verloren waren.
 """
 
 from __future__ import annotations
@@ -24,93 +30,8 @@ import ast
 import pathlib
 
 import pytest
-from PyQt6.QtWidgets import QCheckBox, QLabel, QPushButton, QRadioButton, QWidget
-
-from app.oberflaeche.bedienelemente import IntField, KompaktDropdown, NumberField, ResultGrid
-from app.oberflaeche.formularbau import (
-    Ganzzahl, Gruppe, Hinweis, Knopf, Oberflaeche, Platz, Raster, Schalter,
-    Text, Wahl, Zahl, Zeile, baue
-)
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-
-
-# ----------------------------------------------------------------------
-# Die Bausteine bauen, was sie versprechen
-# ----------------------------------------------------------------------
-
-def test_jeder_baustein_wird_zu_seinem_bedienelement(qtbot):
-    beschreibung = [
-        Gruppe("Probe", [
-            [Zahl("zahl", "Zahl", "mm", dict(min=1.0, max=9.0, stellen=2, wert=3.0))],
-            [Ganzzahl("stueck", "Stueck", "Stueck", dict(min=0, max=50, wert=7))],
-            [Wahl("auswahl", "Auswahl")],
-            [Text("text", "Text", platzhalter="hier")],
-            [Schalter("schalter", "Schalter")],
-            [Hinweis("ein Hinweis", name="hinweis")],
-        ]),
-        Zeile([Knopf("knopf", "Knopf")]),
-        Raster("raster", "Ergebnis"),
-        Platz("platz"),
-    ]
-    widget, ui = baue(beschreibung)
-    qtbot.addWidget(widget)
-
-    assert isinstance(ui.zahl, NumberField)
-    assert ui.zahl.value() == pytest.approx(3.0)
-    assert ui.zahl.unit() == "mm"
-    assert ui.zahl.spin.decimals() == 2
-
-    assert isinstance(ui.stueck, IntField)
-    assert ui.stueck.value() == 7
-
-    assert isinstance(ui.auswahl, KompaktDropdown)
-    assert isinstance(ui.text.placeholderText(), str)
-    assert ui.text.placeholderText() == "hier"
-    assert isinstance(ui.schalter, QCheckBox)
-    assert isinstance(ui.hinweis, QLabel)
-    assert isinstance(ui.knopf, QPushButton)
-    assert isinstance(ui.raster, ResultGrid)
-    assert isinstance(ui.platz, QWidget)
-
-
-def test_vorgaben_gehen_nicht_verloren(qtbot):
-    """Angehakt, gesperrt, unsichtbar, Erklaerungstext - alles stand in der XML."""
-    widget, ui = baue([
-        Gruppe("Probe", [
-            [Schalter("an", "An", angehakt=True, hinweis="erklaert")],
-            [Schalter("aus", "Aus")],
-        ]),
-        Zeile([
-            Knopf("vorgabe", "Berechnen", vorgabe=True),
-            Knopf("gesperrt", "Abbrechen", aktiv=False),
-            Knopf("versteckt", "Kamera", sichtbar=False),
-        ]),
-    ])
-    qtbot.addWidget(widget)
-
-    assert ui.an.isChecked() and ui.an.toolTip() == "erklaert"
-    assert not ui.aus.isChecked()
-    assert ui.vorgabe.isDefault()
-    assert not ui.gesperrt.isEnabled()
-    assert not ui.versteckt.isVisible()
-
-
-def test_lange_eintraege_ziehen_die_spalte_nicht_auseinander(qtbot):
-    """Die Breitenbremse der Auswahlfelder, wie frueher als sizeAdjustPolicy."""
-    widget, ui = baue([Gruppe("Probe", [[Wahl("auswahl", "Auswahl", zeichen=12)]])])
-    qtbot.addWidget(widget)
-
-    ui.auswahl.addItems(["kurz", "Rueckschlagventil (schliesst bei offenem Sauger)"])
-    assert ui.auswahl.minimumContentsLength() == 12
-
-
-def test_ein_unbekannter_name_sagt_welche_es_gibt(qtbot):
-    widget, ui = baue([Gruppe("Probe", [[Zahl("laenge", "Laenge", "mm")]])])
-    qtbot.addWidget(widget)
-
-    with pytest.raises(AttributeError, match="laenge"):
-        _ = ui.gibtesnicht
 
 
 # ----------------------------------------------------------------------

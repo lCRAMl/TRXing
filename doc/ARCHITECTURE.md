@@ -34,8 +34,7 @@ Werkzeugkasten, der Gemeinbesitz und der Unterbau.
                                      │
    ┌─────────────────────────────────▼──────────────────────────────────┐
    │ app/oberflaeche/   Werkzeugkasten — kennt keinen Gegenstand        │
-   │   darstellung · bedienelemente · formularbau · meldungen · hilfe   │
-   │   darkstyle/ · icons/                                              │
+   │   darstellung · meldungen · hilfe · darkstyle/ · icons/            │
    ├────────────────────────────────────────────────────────────────────┤
    │ app/fach/          Gemeinbesitz — was beide Scheiben brauchen      │
    │   paket · einheiten · geometrie · legemuster · ergebnis · vorgang  │
@@ -96,7 +95,7 @@ und der ist in jeder Scheibe derselbe: eine `rechnung.py` ist überall eine
 | rechnend | `daten`, `rechnung`, `physik`, `anordnung`, `stapel`, `saugermuster`, `legemuster`, `geometrie`, `paket`, `einheiten`, `ergebnis`, `katalog`, `pfade`, `fehler`, `vorgang` | Qt importieren, Dateien anfassen |
 | zeichnend | `zeichnung`, `szene3d` | in die Rechenteile greifen |
 | bedienend | `tab`, `formular` | in die Rechenteile greifen |
-| Oberfläche | dazu `dienst`, `start`, `tabs`, `kontext`, `rechenlauf`, `bedienelemente`, `meldungen`, `hilfe`, `darstellung` | `math`, `numpy`, `scipy` importieren |
+| Oberfläche | dazu `dienst`, `start`, `tabs`, `kontext`, `rechenlauf`, `meldungen`, `hilfe`, `darstellung` | `math`, `numpy`, `scipy` importieren |
 
 Ausnahmen, jeweils mit Grund: `katalog.py` liest die JSON-Kataloge, `pfade.py`
 sagt wo sie liegen, `fehler.py` legt die Protokolldatei an. `dienst.py` darf
@@ -107,18 +106,44 @@ bei jedem Testlauf mit. Jede Rolle wird dort zusätzlich daraufhin geprüft,
 dass sie wirklich Dateien trifft: eine Regel, die ins Leere läuft, ist
 schlimmer als keine.
 
-### Die Bedienelemente kommen aus einer Bibliothek
+### Die Oberfläche kommt aus einer geteilten Bibliothek
 
 Seit Oktober 2026 benutzt die Oberfläche **qt_controls_pyrs**, ein
 Schwesterprojekt im Nachbarordner. Von dort kommen die Reiter, die
 Gruppenrahmen, die Auswahl-, Eingabe- und Zahlenfelder, die Knöpfe, Kästchen
-und Auswahlknöpfe — und die zusammengesetzten Teile `NumberField`,
-`IntField`, `ResultGrid` und `StaleBanner`, die vorher hier zuhause waren.
+und Auswahlknöpfe sowie `StaleBanner`.
 
-Durchgereicht werden sie über `app/oberflaeche/bedienelemente.py` und nicht direkt
-importiert. Der Grund steht dort: die Beschreibungen und die Tabs greifen auf diesen Modulpfad zu statt auf den
-XML ein, und der soll nicht an einem Bibliotheksnamen hängen, der sich ändern
-kann.
+Seit dem Umbau Ende Oktober liegt dort auch der **Werkzeugkasten**, der vorher
+hier zuhause war — er war fachfrei, und mehrere Anwendungen brauchen ihn:
+
+| in der Bibliothek | war vorher | was es ist |
+|---|---|---|
+| `compact.py` | `app/bedienelemente.py` | die dichter gesetzten `Compact…`-Fassungen, `StatusBarButton`, `WideResultGrid`, `compact_combo` |
+| `formbuilder.py` | `app/formularbau.py` | ein Formular als Liste von Zeilen beschreiben statt als .ui-Datei zeichnen |
+| `windowstate.py` | ein Teil von `app/bedienelemente.py` | Fenstergröße und Teilerstellung zwischen zwei Starts merken |
+| `debouncer.py` | ein Teil von `app/bedienelemente.py` | schnelle Änderungen zu einem Aufruf sammeln |
+
+Das sind 850 Zeilen weniger hier und eine Zusage mehr: **alle Anwendungen an
+dieser Bibliothek sehen gleich aus.** Der Preis steht in der anderen Richtung —
+eine Änderung an `COMPACT_HEIGHT` ändert jedes Fenster jeder dieser
+Anwendungen. Soll nur TRXing anders aussehen, gehört die Änderung nach
+`app/oberflaeche/darstellung.py` oder in eine Unterklasse hier.
+
+Die Vorbilder bleiben dabei unangetastet. Der bequeme Weg zu einer dichteren
+Oberfläche wäre, `HaloButton.HEIGHT` von 45 auf 26 zu setzen — und damit jedes
+Fenster jeder Anwendung beim nächsten Update zu verändern, ohne dass jemand
+darum gebeten hat. Deshalb sind die kompakten Fassungen neue Klassen, und
+deshalb stehen die Maße der Vorbilder in `tests/test_compact.py` der
+Bibliothek als Zusage aufgeschrieben.
+
+Geprüft ist der Umzug am Bild: beide Reiter wurden vor und nach dem Umbau
+gerendert und sind **Bildpunkt für Bildpunkt identisch** — einschließlich der
+Vakuumzeichnung, in der dabei zwei Stellen auf `mono_font()` umgestellt
+wurden.
+
+Zwei Dinge sind auf dem Weg verschwunden, weil sie doppelt waren: `MONO_FAMILY`
+stand hier und in der Bibliothek Zeichen für Zeichen gleich, und die
+Umbruchbreite 240 stand an drei Stellen, von denen eine niemand benutzte.
 
 **Das Stylesheet musste dafür abspecken.** Diese Elemente zeichnen sich selbst,
 Rahmen und Füllung inbegriffen. Eine Stylesheet-Regel daneben ist nicht
@@ -212,7 +237,7 @@ und **Verhalten**:
 ```
 BEDIENSPALTE = [...]   eine Liste von Zeilen, im Quelltext des Tabs
    │                   Beschriftung, Einheit, Grenzen, Vorgaben
-   │ app/oberflaeche/formularbau.py: baue()
+   │ qt_controls_pyrs/formbuilder.py: baue()
    ▼
 self.ui.<name>         die gebauten Bedienelemente, ansprechbar über ihren Namen
    │
