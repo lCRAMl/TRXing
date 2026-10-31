@@ -4,11 +4,11 @@ Diese Datei ist der Wiederaufsetzpunkt. Wird die Sitzung unterbrochen oder
 VS Code geschlossen, steht hier, was fertig ist und wo es weitergeht.
 NACH JEDEM SCHRITT AKTUALISIEREN.
 
-Letzte Aktualisierung: 2026-10-31
-Stand:                 Umbau fertig. Danach Dateistruktur aufgeraeumt
-                       (drei Schritte, siehe unten).
-Tests:                 561 gruen (Zahl sank nur, weil die alten
-                       Schichtregeln als Parametrisierung entfielen)
+Letzte Aktualisierung: 2026-11-01
+Stand:                 Umbau fertig. Dateistruktur aufgeraeumt, danach alles
+                       auf englische Namen und alles Qt unter app/gui/
+                       (siehe "2026-11-01" unten).
+Tests:                 588 gruen
 
 
 ===============================================================================
@@ -411,6 +411,46 @@ gleiche Pruefsumme. Der Ordner braucht --add-data; dafuer gibt es einen Test.
 Stand danach: TRXing 558 gruen, QtControlsPyRS 376 gruen bei einem alten roten
 Test (test_mittelung_beruhigt_das_bild, Audiospektrum, aelter als diese
 Arbeit). Jeder neue Test gegengeprueft: ohne seine Regel faellt er.
+
+
+2026-11-01  ENGLISCHE NAMEN UND EIN gui-ORDNER
+===============================================================================
+Vier Schritte, jeder einzeln committet und gruen.
+
+1. Qt-Grenze umgedreht. Vorher zaehlte QT_FREE fuenfzehn Dateinamen auf, die
+   Qt NICHT importieren durften - Grundstellung "erlaubt", und sieben Dateien
+   lagen im Niemandsland. Jetzt stehen in QT_WIDGETS und QT_CORE die Pfade,
+   die duerfen; alles andere darf nicht. QT_CORE ist neu und trennt
+   "QtCore wegen pyqtSignal" von "Bedienelemente".
+
+2. Der Schliessen-Knopf im Probleme- und im Hilfefenster war ein nackter
+   QPushButton, weil QDialogButtonBox eine ROLLE bekommt und sich den Knopf
+   selbst baut. Jetzt HaloButton. Startwerte Randabstand und Saugerabstand
+   auf 0 (391 statt 234 Sauger auf 800x600 mit SPB2 30).
+
+3. Ergebniswerte wurden nicht mehr farbig. Ursache war EINE Zeile in
+   theme.stylesheet(): "QWidget { color: ... }". Eine Stylesheet-Regel, die
+   color setzt, schlaegt jedes setPalette - und CompactResultGrid.set_value
+   faerbt ueber die Palette. apply_theme setzt die Palette jetzt in beiden
+   Fassungen, die Zeile ist weg. Gemessen wird im Test das BILD des Rahmens.
+
+4. Alle Dateien und Ordner auf Englisch, Kommentare bleiben deutsch:
+     oberflaeche->gui  fach->domain  technik->infra  palette->pallet
+     vakuum->vacuum  start->application  tabs->tab_registry  kontext->context
+     darstellung->theme  meldungen->notifications  hilfe->help_dialog
+     daten->models  rechnung->calculator  dienst->service  ...
+   Danach alles Qt unter app/gui/, mit pallet/ und vacuum/ als Unterordner.
+   Die Scheiben enthalten nur noch Rechnung.
+
+ZWEI FALLEN, die beide zugeschnappt sind - fuer das naechste Mal:
+   app.start   steckt in app.startup()     -> wurde zu app.applicationup()
+   app.palette steckt in qt_app.palette()  -> wurde zu qt_app.pallet()
+   Dazu ICON_FILE in AUTOBUILD.py, das seinen Pfad aus Einzelteilen baut und
+   von keiner Pfadersetzung getroffen wird. Diesmal vorher von Hand gesehen.
+
+GEWONNEN: zwei Paketringe sind weg. "(programm) <-> pallet" und
+"(programm) <-> vacuum" gab es, weil die Tabs in den Scheiben lagen. Von vier
+dokumentierten Ringen sind drei geblieben.
 
 
 WAS ALS NAECHSTES ANSTEHT
