@@ -307,8 +307,35 @@ LAUFENDE NOTIZEN
             still nur noch ein Drittel geprueft hat.
 
 
+2026-10-31  Fuenf Meldungen aus dem Betrieb abgearbeitet.
+
+            1. Die Ueberschrift jedes Rahmens lag auf der ersten Zeile. Die
+               Ursache sitzt in der Bibliothek und ist dort beschrieben;
+               ausgeloest hat sie HALO_OVERRIDES, das eine Kastenangabe
+               braucht und damit die Raender des Rahmens loescht. Zehn von
+               zehn Rahmen waren betroffen.
+            2. "Berechnen" und "Abbrechen" sind aus beiden Bedienspalten
+               verschwunden. Der Abbruch steht in der Statusleiste neben dem
+               Fortschritt und zeigt sich nur, solange gerechnet wird.
+            3. Startzeit: aus der Quelle 1,7 s. Die 5-10 s der kompilierten
+               Fassung sind das Entpacken des --onefile-Archivs bei JEDEM
+               Start (PyQt6 217 MB, vtkmodules 51 MB). NOCH OFFEN - die
+               Entscheidung --onedir / Startbild / 3D raus steht aus.
+            4. Statusleiste 82 -> 29 Bildpunkte. Sie ist so hoch wie ihr
+               hoechstes Element, und das war ein HaloButton mit 45+32.
+            5. README: Tabelle "Wo stelle ich was ein".
+
+            Nebenbei gefunden und mitrepariert: drei Breitenfehler derselben
+            Art in der Bibliothek, alle "Vorgabe statt Untergrenze" (siehe
+            dortigen Commit). Sichtbar waren sie als ":glich" statt "so viele
+            wie moeglich" und "Stuec" statt "Stueck".
+
+
 WAS ALS NAECHSTES ANSTEHT
 ===============================================================================
+Zuerst die offene Entscheidung aus Punkt 3 oben: wie die kompilierte Fassung
+gebaut wird. AUTOBUILD.py steht auf --onefile.
+
 Die neuen Funktionen, in dieser Reihenfolge vorgeschlagen:
 
   1. QtControlsPyRS einbinden. Fehlende Elemente dort stehen oben.
