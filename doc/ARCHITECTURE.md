@@ -34,7 +34,8 @@ Werkzeugkasten, der Gemeinbesitz und der Unterbau.
                                      │
    ┌─────────────────────────────────▼──────────────────────────────────┐
    │ app/oberflaeche/   Werkzeugkasten — kennt keinen Gegenstand        │
-   │   darstellung · meldungen · hilfe · darkstyle/ · icons/            │
+   │   darstellung · meldungen · hilfe                                 │
+   │   hilfetexte/ · darkstyle/ · icons/                               │
    ├────────────────────────────────────────────────────────────────────┤
    │ app/fach/          Gemeinbesitz — was beide Scheiben brauchen      │
    │   paket · einheiten · geometrie · legemuster · ergebnis · vorgang  │
@@ -156,6 +157,50 @@ die Reiter deshalb entfallen; `HALO_OVERRIDES` räumt zusätzlich hinter
 
 Wer Farben ändern will, ändert sie an der Widgetklasse (`ACCENT`,
 `OUTLINE_ALPHA`, …) oder in einer Unterklasse — nicht im Stylesheet.
+
+### Die Hilfetexte liegen als Dateien daneben
+
+`app/oberflaeche/hilfe.py` war mit 1160 Zeilen die größte Datei des Projekts,
+und 890 davon waren HTML: die sieben Kapitel standen als
+Zeichenkettenkonstanten im Modul. Jetzt liegen sie in
+`app/oberflaeche/hilfetexte/`, eine Datei je Kapitel, und das Modul ist 394
+Zeilen lang.
+
+Prosa war der Text allerdings nie. In ihm steckten **46 Formelblöcke und 22
+Quelltextverweise**, als Funktionsaufrufe mit Pluszeichen zusammengesetzt:
+
+```python
+_PALLET = """…""" + _source("app/palette/stapel.py", "analyze()") + """…"""
+```
+
+Die beiden Funktionen sind geblieben; die Dateien rufen sie über genau zwei
+Marken auf:
+
+```
+<<formel
+F_halt = n_wirksam * F_sauger * mu
+>>
+<<quelle app/palette/stapel.py | analyze()>>
+```
+
+**Die Maskierung in `_formula()` ist der Grund, warum die Formel eine Marke
+ist und kein fertiges HTML.** Ein Vergleich wie `pi <= pi_krit` zerlegt sonst
+das ganze Dokument: die Anzeige liest das Kleinerzeichen als Beginn eines
+HTML-Elements und verschluckt alles bis zum nächsten *größer-als* — samt
+Formel und der Formatierung dahinter. Wer einen Satz ändert, soll das nicht
+von Hand nachziehen müssen. `tests/test_help.py` prüft, dass in keinem
+`<pre>`-Block ein rohes `<` übrigbleibt.
+
+Titel und Reihenfolge stecken im Dateinamen und in der ersten Zeile:
+`03-pallet.html` beginnt mit `titel: 3. Palettierung`. Eine
+Inhaltsverzeichnisdatei daneben wäre eine zweite Stelle, an der die
+Reihenfolge steht — und damit eine, die nicht mitgepflegt wird.
+
+Geprüft ist der Umzug am Ergebnis: das fertige Dokument ist mit 43776 Zeichen
+**zeichengleich** mit dem von vorher, gleiche Prüfsumme. Der Ordner muss mit
+ins Kompilat (`--add-data` in `AUTOBUILD.py`); fehlt der Eintrag, startet die
+gepackte Fassung ohne Hilfe — und zwar erst beim Klick auf das Menü, lange
+nach der Auslieferung. Dafür gibt es einen Test.
 
 ### Die Qt-Freiheit ist kein Selbstzweck
 

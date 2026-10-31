@@ -1,0 +1,107 @@
+titel: 7. Programmatischer Aufbau
+
+<h1>Programmatischer Aufbau</h1>
+
+<h2>Schichten</h2>
+<p>Jede Schicht greift nur nach unten. Die Regeln sind nicht nur beschrieben,
+sondern werden bei jedem Testlauf am Quelltext geprueft.</p>
+<<formel
+  GUI                Fenster, Tabs, Bedienelemente
+   |  DTOs
+  SERVICES           oeffentliche Schnittstelle fuer die Oberflaeche
+   |
+  JOBS / CONFIG      Hintergrundausfuehrung / Konfigurationsdaten
+   |
+  ENGINES            die Fachlogik - Qt-frei, ohne Dateizugriff
+   |
+  DTO                unveraenderliche Datenobjekte
+   |
+  CORE               Einheiten, Fehler, Abbruch, Anfragenummern
+>>
+<table>
+<tr><th>Schicht</th><th>darf nicht importieren</th></tr>
+<tr><td>core</td><td>alles aus app, Qt</td></tr>
+<tr><td>dto</td><td>Qt, alles darueber</td></tr>
+<tr><td>engines</td><td>Qt, config, services, jobs, gui &ndash; und keine Datei oeffnen</td></tr>
+<tr><td>services</td><td>QtWidgets, QtGui, gui</td></tr>
+<tr><td>visualization</td><td>engines, services, gui</td></tr>
+<tr><td>gui</td><td>engines, json, Rechenbibliotheken</td></tr>
+</table>
+<<quelle tests/test_architecture.py | prueft diese Tabelle per AST am Quelltext>>
+
+<h2>Ablauf einer Berechnung</h2>
+<<formel
+Benutzer aendert eine Eingabe
+  -> Tab sammelt sie entprellt (200-300 ms)
+  -> Tab baut ein DTO und ruft den Service
+  -> Service zieht eine Anfragenummer und baut einen Job
+  -> JobManager gibt ihn in den Thread-Pool
+  -> Engine rechnet, Qt-frei, abbrechbar
+  -> Ergebnis-DTO kommt als Qt-Signal zurueck
+  -> Service prueft die Anfragenummer
+  -> Tab zeigt an
+>>
+<p>Der Oberflaechen-Thread wartet an keiner Stelle auf ein Ergebnis. Es gibt
+kein <code>future.result()</code>.</p>
+
+<h2>Schutz vor veralteten Ergebnissen</h2>
+<p>Bei entprellter Eingabe laufen mehrere Berechnungen zeitlich ueberlappend
+und kommen nicht zwangslaeufig in der Startreihenfolge zurueck &ndash; eine
+kleine Palette rechnet schneller als die grosse davor. Zwei Mechanismen, die
+zusammengehoeren:</p>
+<<formel
+CancellationToken   bricht ab, was noch laeuft
+RequestGate         verwirft, was ueberholt wurde
+>>
+<p>Der Abbruch allein genuegt nicht: zwischen &bdquo;abgebrochen&ldquo; und
+&bdquo;Ergebnis liegt bereits im Signalpuffer&ldquo; gibt es ein Zeitfenster,
+das sich nicht schliessen laesst. Die Torpruefung beim Empfang schliesst es.</p>
+<<formel
+Anfrage 41 startet
+Anfrage 42 startet
+Anfrage 41 endet   ->  Ergebnis verwerfen
+Anfrage 42 endet   ->  Ergebnis anzeigen
+>><<quelle app/technik/nebenlaeufig.py | RequestGate und CancellationToken>>
+
+<h2>Nachrechnen statt melden</h2>
+<p>Aenderungen an den Paketdaten loesen in beiden Tabs eine neue Berechnung
+aus. Solange ein Tab verdeckt ist, wird die Aenderung nur vorgemerkt und beim
+Aufschlagen nachgeholt &ndash; Rechenzeit fuer Ergebnisse, die niemand ansieht,
+waere verschenkt.</p>
+<p>Der zentrale Zustand fuehrt dafuer einen Zaehler, den jede fachliche
+Aenderung erhoeht. Jedes Ergebnis merkt sich den Stand, unter dem es entstand;
+weichen beide ab, ist die Anzeige ueberholt.</p>
+<<quelle app/fach/vorgang.py | AppState.revision, INVALIDATES>>
+
+<h2>Reproduzierbarkeit</h2>
+<p>Gleiche Eingabe, gleiches Ergebnis &ndash; sonst waere ein Palettierplan als
+Arbeitsunterlage wertlos. Dafuer noetig:</p>
+<ul>
+<li>Alle Musterergebnisse werden stabil sortiert (erst nach y, dann nach x).</li>
+<li>Bei Gleichstand zweier Kandidaten gewinnt immer der zuerst gepruefte.</li>
+<li>Der optionale CP-SAT-Loeser laeuft mit einem Suchfaden und einem
+deterministischen Rechenbudget statt eines Zeitlimits nach Uhr. Beides kostet
+Loesungsqualitaet; Reproduzierbarkeit ist hier wichtiger.</li>
+</ul>
+
+<h2>Leistung</h2>
+<table>
+<tr><th>Stelle</th><th>Massnahme</th><th>Wirkung</th></tr>
+<tr><td>Lastkaskade</td><td>Rasterindex statt jeder-gegen-jeden</td><td>75 s &rarr; 0,9 s bei 148800 Paketen</td></tr>
+<tr><td>Lastkaskade</td><td>entfaellt ohne Grenzwert</td><td>vollstaendig</td></tr>
+<tr><td>3D-Netz</td><td>Eckpunkte in zwei numpy-Operationen</td><td>36 s &rarr; 0,10 s bei 52800 Paketen</td></tr>
+<tr><td>3D-Ansicht</td><td>nur die sichtbare Huelle ab 4000 Koerpern</td><td>52800 &rarr; 8340 Koerper</td></tr>
+</table>
+
+<h2>Herkunft der Werte</h2>
+<p>Jeder Kennwert der Vakuumrechnung traegt seine Quelle. Die Oberflaeche zeigt
+sie im Abschnitt <i>Annahmen</i>:</p>
+<table>
+<tr><th>Klasse</th><th>Bedeutung</th><th>Beispiel</th></tr>
+<tr><td>Datenblatt</td><td>vom Hersteller angegeben</td><td>Saugkraft, Abreisskraft, Geometrie</td></tr>
+<tr><td>Konfiguration</td><td>Benutzer- oder Anlagenangabe</td><td>Permeabilitaet, Sicherheitsfaktor, Strombegrenzer</td></tr>
+<tr><td>Modellannahme</td><td>Annahme des Rechenmodells</td><td>Ausflussbeiwert, Pumpenkennlinie ohne Stuetzpunkte</td></tr>
+</table>
+<div class="note">Die theoretischen Saugkraefte des Datenblatts gelten bei
+glatter, trockener Oberflaeche und enthalten ausdruecklich <b>keinen</b>
+Sicherheitsfaktor. Er wird gesondert angesetzt.</div>

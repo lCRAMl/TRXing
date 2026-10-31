@@ -1,0 +1,163 @@
+titel: 3. Palettierung
+
+<h1>Tab 1 &ndash; Palettierung</h1>
+
+<h2>Nutzbare Palettenflaeche</h2>
+<p>Ueberstand erweitert die Ladeflaeche, Randabstand verkleinert sie. Beide
+wirken je Seite, also doppelt:</p>
+<<formel
+L_nutz = L_Palette + 2 * (Ueberstand - Randabstand)
+B_nutz = B_Palette + 2 * (Ueberstand - Randabstand)
+>><<quelle app/palette/daten.py | PalletSpec.usable_length_mm / .usable_width_mm>>
+
+<h2>Aufbau einer Lage</h2>
+<p>Alle Muster fuellen ein Rechteck mit gleichen Rechtecken. Das Rechteck ist
+bei der Palettierung die Palettenflaeche, beim Vakuumtab die Plattenflaeche
+&ndash; dieselbe Rechenschicht, deshalb ist ein Muster dort wiederverwendbar.</p>
+
+<h3>Rastermass mit Spalt</h3>
+<<formel
+Rastermass       t_x = l + s        (s = Spalt zwischen Paketen)
+                 t_y = b + s
+
+Spalten          n_x = floor((L_nutz + s) / t_x)
+Reihen           n_y = floor((B_nutz + s) / t_y)
+
+Stueck je Lage   n   = n_x * n_y
+>>
+<p>Das <code>+ s</code> im Zaehler ist kein Rundungstrick: der letzte Nachbar
+in einer Reihe braucht rechts von sich keinen Spalt mehr.</p>
+
+<h3>Beide Ausrichtungen</h3>
+<p>Jedes Muster rechnet das Raster zweimal &ndash; einmal mit dem Paket laengs,
+einmal quer &ndash; und nimmt das dichtere Ergebnis. Bei 400 &times; 300&nbsp;mm
+auf 1200 &times; 800&nbsp;mm:</p>
+<<formel
+laengs:  floor(1200/400) * floor(800/300) = 3 * 2 = 6
+quer:    floor(1200/300) * floor(800/400) = 4 * 2 = 8   <-- gewaehlt
+>>
+
+<h3>Guillotine-Verfahren</h3>
+<p>Hauptraster in einer Ausrichtung, danach die beiden Reststreifen rechts und
+oben mit der um 90 Grad gedrehten Ausrichtung nachfuellen:</p>
+<<formel
+Rest rechts   L_rest = L_nutz + s - n_x * t_x
+Rest oben     B_rest = B_nutz + s - n_y * t_y
+
+in beiden Streifen erneut ein Raster, Kanten vertauscht
+>>
+
+<h3>Laeuferverband</h3>
+<p>Jede zweite Reihe um eine halbe Paketlaenge versetzt. Gesetzt werden nur
+vollstaendige Pakete &ndash; am versetzten Reihenende bleibt eine halbe
+Paketlaenge frei. Genau das macht den Verband aus: die Stoesse der Reihen liegen
+nicht uebereinander.</p>
+<<formel
+Versatz Reihe r    v = (r ungerade) ? t_x / 2 : 0
+Position           x = v + k * t_x     solange  x + l <= L_nutz
+>>
+
+<h3>Wechselnde Ausrichtung: warum bandweise</h3>
+<p>Schachbrett, Windrad, Spirale und Randverband mischen zwei Ausrichtungen
+innerhalb einer Lage. Feldweise &ndash; also von Paket zu Paket &ndash; geht
+das nur bei quadratischer Grundflaeche ohne Luecke auf:</p>
+<<formel
+Paket 400 x 300 mm
+
+  laengs:  Hoehe im Band = 300 mm
+  quer:    Hoehe im Band = 400 mm
+
+  nebeneinander im selben Band  ->  100 mm bleiben zwangslaeufig frei
+>>
+<div class="warn">Eine Luecke mitten in der Ladung ist kein Schoenheitsfehler:
+die Pakete verrutschen darin beim Transport. Bei rechteckigen Paketen wechselt
+die Ausrichtung deshalb <b>bandweise</b> &ndash; jedes Band besteht aus vollen
+Reihen einer Ausrichtung, die Baender liegen unmittelbar aufeinander. Frei
+bleibt allenfalls ein Streifen am Aussenrand, und der ist bei keiner
+Paketgroesse zu vermeiden.</div>
+<p>Bei quadratischen Paketen bleibt der feldweise Wechsel erhalten &ndash; dort
+geht er exakt auf. Welche Wechselfolge ein Muster verwendet:</p>
+<table>
+<tr><th>Muster</th><th>Band k gedreht, wenn</th></tr>
+<tr><td>Schachbrett</td><td>k ungerade</td></tr>
+<tr><td>Windrad</td><td>(k div 2) ungerade &ndash; je zwei Baender gemeinsam</td></tr>
+<tr><td>Spiralverband</td><td>min(k, n&minus;1&minus;k) ungerade &ndash; von aussen nach innen</td></tr>
+<tr><td>Randverband</td><td>k weder erstes noch letztes Band &ndash; Kern gedreht</td></tr>
+</table>
+<p>Der Ringstapel ist die Ausnahme: sein freier Kern ist die Definition des
+Musters, nicht ein Mangel.</p>
+<<quelle app/fach/legemuster.py | alle Muster; alternating_bands() in base.py>>
+
+<h2>Stapelaufbau</h2>
+<p>Die Grundlage wird nach oben wiederholt. Drei Modi:</p>
+<table>
+<tr><th>Modus</th><th>Lage k</th><th>Verwendung</th></tr>
+<tr><td>identical</td><td>immer die Grundlage</td><td>Saeulen-, Blockstapel</td></tr>
+<tr><td>mirror</td><td>ungerade Lagen um 180 Grad um die eigene Mitte gedreht</td><td>Verband</td></tr>
+<tr><td>rotate90</td><td>ungerade Lagen aus einer um 90 Grad gedrehten Lage</td><td>Kreuzverband</td></tr>
+</table>
+<p>Gespiegelt wird um die <b>eigene</b> Mitte der Lage, nicht um den
+Palettenursprung &ndash; sonst wanderte jede zweite Lage an den
+gegenueberliegenden Rand und der Stapel bekaeme eine Schraeglage:</p>
+<<formel
+x' = x_min + x_max - x - l
+y' = y_min + y_max - y - b
+>><<quelle app/palette/stapel.py | repeat(), mirror_footprints()>>
+
+<h2>Lagenzahl</h2>
+<p>Drei Grenzen, die kleinste gewinnt:</p>
+<<formel
+aus der Hoehe        n_H = floor(H_max / h)
+aus der Palettenlast n_G = floor(G_max / (n_Lage * m))
+aus der Stapellast   n_S = floor(F_max / m) + 1
+
+                     n   = min(n_H, n_G, n_S)
+>>
+<p>Welche Grenze gegriffen hat, steht im Ergebnis unter
+<i>Begrenzt durch</i>. Anschliessend wird die tatsaechliche Lastkaskade
+gerechnet und der Stapel gekuerzt, falls dabei ein Paket ueberlastet wird
+&ndash; n_S ist nur eine Schranke, keine Garantie.</p>
+
+<h2>Lastkaskade</h2>
+<p>Die einfache Regel &bdquo;so viele Pakete darueber&ldquo; stimmt exakt fuer
+den Saeulenstapel. Im Verband liegt ein Paket auf mehreren Nachbarn auf und gibt
+seine Last anteilig weiter &ndash; das ist der eigentliche Zweck eines
+Verbands.</p>
+<p>Gerechnet wird von oben nach unten. Jedes Paket q gibt sein Eigengewicht plus
+alles, was es bereits traegt, an die Pakete p darunter weiter, im Verhaeltnis
+der Ueberdeckung der Standflaechen:</p>
+<<formel
+Abgabe von q       F_q = m_q + getragen(q)
+
+Ueberdeckung       A_pq = Flaeche(Standflaeche p geschnitten mit q)
+
+getragen(p)  +=   F_q * A_pq / Summe(A_iq ueber alle i darunter)
+>>
+<p>Liegt unter einem Paket gar nichts (Muster mit freiem Kern), geht seine Last
+direkt auf die Palette.</p>
+<h3>Bewertung</h3>
+<<formel
+Auslastung     p = getragen / F_max * 100 %
+
+     p <= 80 %      in Ordnung
+80 < p <= 100 %     grenzwertig
+     p >  100 %     ueberlastet
+>>
+<p>Genau 100&nbsp;% zaehlt als grenzwertig, nicht als ueberlastet: die
+angegebene Stapellast ist die zulaessige Hoechstlast, ihr Erreichen also
+erlaubt.</p>
+<div class="note"><b>Grenzen des Modells:</b> Brueckenbildung und Steifigkeit
+der Kartons bleiben unberuecksichtigt. Eine Kiste, die zwischen zwei Nachbarn
+spannt, traegt in Wirklichkeit anders. Das exakt zu rechnen erforderte eine
+Strukturanalyse; verwendet wird die uebliche statische Naeherung.</div>
+<<quelle app/palette/stapel.py | analyze()>>
+
+<h2>Ausnutzung</h2>
+<<formel
+Flaeche    eta_A = (n_Lage * l * b) / (L_nutz * B_nutz)
+
+Raum       eta_V = (n_gesamt * l * b * h) / (L_nutz * B_nutz * H_Stapel)
+
+Gesamthoehe      H = n_Lagen * h  +  Bauhoehe der Palette
+Gesamtgewicht    G = n_gesamt * m
+>><<quelle app/palette/rechnung.py | _build_result()>>

@@ -97,6 +97,7 @@ ALWAYS_COLLECT = ("qt_controls_pyrs",)
 DATA_FILES = (
     ("app/oberflaeche/darkstyle", "app/oberflaeche/darkstyle"),
     ("app/oberflaeche/icons", "app/oberflaeche/icons"),
+    ("app/oberflaeche/hilfetexte", "app/oberflaeche/hilfetexte"),
 )
 
 #: Symbol der fertigen Programmdatei. Dieselbe Datei, die die Anwendung zur

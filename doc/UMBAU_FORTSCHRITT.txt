@@ -4,8 +4,9 @@ Diese Datei ist der Wiederaufsetzpunkt. Wird die Sitzung unterbrochen oder
 VS Code geschlossen, steht hier, was fertig ist und wo es weitergeht.
 NACH JEDEM SCHRITT AKTUALISIEREN.
 
-Letzte Aktualisierung: 2026-10-26
-Stand:                 Schritte 1-10 abgeschlossen. UMBAU FERTIG.
+Letzte Aktualisierung: 2026-10-31
+Stand:                 Umbau fertig. Danach Dateistruktur aufgeraeumt
+                       (drei Schritte, siehe unten).
 Tests:                 561 gruen (Zahl sank nur, weil die alten
                        Schichtregeln als Parametrisierung entfielen)
 
@@ -329,6 +330,87 @@ LAUFENDE NOTIZEN
             Art in der Bibliothek, alle "Vorgabe statt Untergrenze" (siehe
             dortigen Commit). Sichtbar waren sie als ":glich" statt "so viele
             wie moeglich" und "Stuec" statt "Stueck".
+
+
+
+2026-10-31  DATEISTRUKTUR AUFGERAEUMT (drei Schritte, alle fertig)
+===============================================================================
+Ausgangspunkt war die Rueckmeldung: "mir gefaellt die verteilung in den
+dateien nicht auch der aufbau der dateistruktur gefaellt mir nicht."
+
+Befund: nicht die Scheiben waren das Problem, die Wurzel von app/ war es. 21
+Dateien und 7556 Zeilen - mehr als beide Scheiben zusammen (6785) -
+alphabetisch sortiert, also nach Buchstaben statt nach Zweck. einheiten.py
+stand zwischen darstellung.py und ergebnis.py.
+
+Von fuenf vorgeschlagenen Optionen wollte der Benutzer 1, 2 und 3.
+
+
+SCHRITT 1  Die Wurzel gruppiert: 21 Dateien werden 5
+-------------------------------------------------------------------------------
+    app/oberflaeche/   Werkzeugkasten (kennt keinen Gegenstand)
+    app/fach/          Gemeinbesitz beider Scheiben, incl. katalog.py
+    app/technik/       Unterbau, einseitig unten
+    app/              __main__, start, tabs, kontext - das Programm
+
+Zwei Entscheidungen gegen den ersten Entwurf, beide vom Ringtest erzwungen:
+start/tabs/kontext bleiben in der Wurzel (als Unterpaket erzeugten sie zwei
+Ringe mit den Scheiben), und katalog.py ist Fach statt Technik (sonst greift
+die unterste Lage nach oben).
+
+Der Ringtest prueft jetzt MEHR als vorher - die vier Pakete und zusaetzlich
+die Wurzel. Vier Zweiwege-Abhaengigkeiten sind dabei zum Vorschein gekommen,
+die es schon gab; flach in einem Ordner konnte kein Test sie sehen. Sie stehen
+mit Grund und Heilmittel in RINGE_MIT_GRUND. Zwei Ursachen:
+
+  - katalog.py liest in die Datenobjekte beider Scheiben. Heilmittel ist
+    Option 4 aus dem Vorschlag (katalog.py dritteln) - NICHT gewaehlt.
+  - tabs.py und kontext.py sind Vertrag UND Registratur in einer Datei.
+    Heilmittel waere, den Vertrag abzutrennen; kostet aber die scharfe Regel
+    fuer app/oberflaeche/, weil TabHost app.fach.vorgang braucht.
+
+Falle: pfade.py zaehlte von __file__ zwei Ebenen nach oben, in app/technik/
+sind drei noetig. Genau diese Zahl war beim letzten Umbau schon einmal falsch.
+Der seitdem vorhandene Test hat gehalten. Nachgeprueft am laufenden Programm:
+6 Paletten, 24 Sauger, 13 Muster, used_builtin leer.
+
+
+SCHRITT 2  Werkzeugkasten an die Bibliothek abgegeben: 852 Zeilen weniger
+-------------------------------------------------------------------------------
+bedienelemente.py und formularbau.py sind weg. In QtControlsPyRS (0.3.0):
+
+    compact.py      die Compact-Fassungen, StatusBarButton, WideResultGrid
+    formbuilder.py  Formulare als Beschreibung (deutsche Bausteine behalten)
+    windowstate.py  Fenstergroesse und Teilerstellung merken
+    debouncer.py    schnelle Aenderungen sammeln
+
+Absicht laut Benutzer: "die QtControlsPyRS wird auch von anderen programmen
+genutzt, jedoch mit der intention immer genau so auszusehen." Deshalb KEINE
+geaenderten Vorgaben an den Vorbildern, sondern neue Klassen daneben -
+tests/test_compact.py dort nagelt die Masse aller elf Vorbilder fest.
+
+Kein Aliasmodul in TRXing. TRXing spricht die Namen der Bibliothek.
+
+Nachgeprueft am Bild: beide Reiter vor und nach dem Umbau gerendert,
+BILDPUNKT FUER BILDPUNKT IDENTISCH.
+
+
+SCHRITT 3  Hilfetexte in Dateien: hilfe.py von 1160 auf 394 Zeilen
+-------------------------------------------------------------------------------
+Die sieben Kapitel liegen in app/oberflaeche/hilfetexte/, eine Datei je
+Kapitel, Titel in der ersten Zeile, Reihenfolge im Dateinamen.
+
+Prosa war der Text nie: 46 Formelbloecke und 22 Quelltextverweise steckten als
+Funktionsaufrufe darin. Die Dateien rufen sie ueber zwei Marken auf,
+<<formel ...>> und <<quelle pfad | detail>>. Die Maskierung in _formula() ist
+der Grund dafuer - "pi <= pi_krit" zerlegt ohne sie das ganze Dokument.
+
+Nachgeprueft: das fertige Dokument ist mit 43776 Zeichen zeichengleich,
+gleiche Pruefsumme. Der Ordner braucht --add-data; dafuer gibt es einen Test.
+
+Stand danach: TRXing 558 gruen, QtControlsPyRS 376 gruen bei einem alten roten
+Test (test_mittelung_beruhigt_das_bild, Audiospektrum, aelter als diese
+Arbeit). Jeder neue Test gegengeprueft: ohne seine Regel faellt er.
 
 
 WAS ALS NAECHSTES ANSTEHT

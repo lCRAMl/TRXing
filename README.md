@@ -64,7 +64,7 @@ app/                 __main__ . start . tabs . kontext    das Programm
   vakuum/            Saugplatte: verteilen, Kraft rechnen ]  geschnitten
 
   oberflaeche/       Farben, Meldungen, Hilfe,
-                     darkstyle/, icons/                   ]
+                     hilfetexte/, darkstyle/, icons/      ]
   fach/              Paket, Einheiten, Geometrie, Muster, ] waagerecht
                      Katalog, Ergebnis, Zustand           ]  darunter
   technik/           Hintergrundarbeit, Protokoll, Pfade  ]
@@ -200,6 +200,8 @@ Von der Absicht zur Datei. Jede Zeile hat **genau eine** Stelle:
 | **Höhe, Innenabstand, Zeilenabstand aller Bedienelemente** | `qt_controls_pyrs/compact.py` | `COMPACT_HEIGHT`, `COMPACT_ROOM`, `COMPACT_PAD`, `COMPACT_SPACING` |
 | Maße eines einzelnen Elementtyps (Pfeilspalte, Kästchengröße, Spaltenzahl des Ergebnisrasters) | `qt_controls_pyrs/compact.py` | die Konstanten der jeweiligen `Compact…`-Klasse |
 | Höhe der Statusleiste | `qt_controls_pyrs/compact.py` | `StatusBarButton` — eine Statusleiste ist so hoch wie ihr höchstes Element |
+| Einen Satz in der Hilfe, eine Formel, einen Quelltextverweis | `app/oberflaeche/hilfetexte/*.html` | eine Datei je Kapitel; `<<formel …>>` und `<<quelle …>>` sind die einzigen zwei Marken |
+| Ein neues Hilfekapitel | `app/oberflaeche/hilfetexte/` | eine Datei `08-name.html` mit `titel:` in der ersten Zeile — mehr nicht |
 | Farben, Schriftgröße, Stylesheet | `app/oberflaeche/darstellung.py` | `PALETTE`, `FONT_SIZE_OFFSET_PT`, `stylesheet()`, `HALO_OVERRIDES` |
 | Wie ein Element **gezeichnet** wird (Halo, Animation, Pfeile) | `QtControlsPyRS` | die Klasse dort; `Compact…` erbt und ändert nur Zahlen |
 

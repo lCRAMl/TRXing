@@ -180,3 +180,94 @@ def test_help_is_reachable_from_the_menu(qt_app, tmp_path):
     finally:
         window.close()
         application.shutdown()
+
+
+# ----------------------------------------------------------------------
+# Die Kapitel liegen als Dateien daneben
+# ----------------------------------------------------------------------
+
+def test_every_chapter_file_is_well_formed():
+    """Titelzeile und Dateiname sind der ganze Vertrag einer Kapiteldatei.
+
+    Geprueft an den Dateien und nicht am Ergebnis: ein Kapitel ohne
+    Titelzeile wuerde sonst erst beim Oeffnen der Hilfe auffallen, und die
+    Meldung stuende dann weit von der Ursache.
+    """
+    from app.oberflaeche.hilfe import hilfetexte_dir
+
+    dateien = sorted(hilfetexte_dir().glob("*.html"))
+    assert len(dateien) >= 7, "Es fehlen Kapiteldateien: " + str(dateien)
+
+    for datei in dateien:
+        erste = datei.read_text(encoding="utf-8").split("\n", 1)[0]
+        assert erste.startswith("titel:"), datei.name + ": " + repr(erste[:40])
+        assert erste[len("titel:"):].strip(), datei.name + ": Titel ist leer"
+        nummer, strich, marke = datei.stem.partition("-")
+        assert strich and nummer.isdigit() and marke, (
+            datei.name + ": erwartet wird die Form 01-marke.html"
+        )
+
+
+def test_the_chapter_order_comes_from_the_file_names():
+    """01- bis 07-: die Reihenfolge steht an einer Stelle, nicht an zwei."""
+    from app.oberflaeche.hilfe import hilfetexte_dir, sections
+
+    aus_dateien = [d.stem.partition("-")[2]
+                   for d in sorted(hilfetexte_dir().glob("*.html"))]
+    assert [s.anchor for s in sections()] == aus_dateien
+
+
+def test_formulas_stay_escaped():
+    """Die Maskierung ist kein Schmuck, sondern hat einen Fehler behoben.
+
+    Ein Vergleich wie "pi <= pi_krit" zerlegt ohne Maskierung das ganze
+    Dokument: die Anzeige liest das Kleinerzeichen als Beginn eines
+    HTML-Elements und verschluckt alles bis zum naechsten groesser-als - samt
+    Formel und der Formatierung dahinter. Beim Umzug der Texte in Dateien
+    haette man das leicht verlieren koennen, indem man die Formeln als
+    fertiges HTML hinschreibt.
+    """
+    from app.oberflaeche.hilfe import full_document, hilfetexte_dir
+
+    roh = "\n".join(d.read_text(encoding="utf-8")
+                    for d in hilfetexte_dir().glob("*.html"))
+    assert "<=" in roh, "In den Quelldateien steht kein unmaskierter Vergleich"
+
+    dokument = full_document()
+    assert "&lt;=" in dokument, "Die Vergleiche sind nicht maskiert"
+    # In einem <pre>-Block darf kein rohes Kleinerzeichen mehr stehen.
+    for block in dokument.split("<pre>")[1:]:
+        formel = block.split("</pre>")[0]
+        assert "<" not in formel, "Unmaskiertes < in einer Formel: " + formel[:60]
+
+
+def test_a_chapter_without_a_title_line_says_so():
+    """Eine klare Meldung statt eines Kapitels mit HTML als Ueberschrift."""
+    import pathlib as _pathlib
+
+    from app.oberflaeche.hilfe import _lies_kapitel
+
+    import tempfile
+    with tempfile.TemporaryDirectory() as ordner:
+        datei = _pathlib.Path(ordner) / "01-probe.html"
+        datei.write_text("<h1>Ohne Titelzeile</h1>\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="titel:"):
+            _lies_kapitel(datei)
+
+
+def test_the_help_texts_travel_with_the_package():
+    """Das Bauskript nimmt den Ordner mit.
+
+    Bleibt der --add-data-Eintrag weg, startet die gepackte Fassung ohne
+    Hilfe - und zwar erst beim Klick auf das Menue, lange nach der
+    Auslieferung.
+    """
+    import AUTOBUILD
+
+    from app.oberflaeche.hilfe import HILFETEXTE_DIRNAME
+
+    ziele = [ziel for _quelle, ziel in AUTOBUILD.DATA_FILES]
+    assert any(z.endswith(HILFETEXTE_DIRNAME) for z in ziele), (
+        "AUTOBUILD.DATA_FILES nimmt " + HILFETEXTE_DIRNAME
+        + " nicht mit: " + str(ziele)
+    )
