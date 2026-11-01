@@ -22,6 +22,10 @@ from app.vacuum.models import SuctionCupSpec
 from app.vacuum.models import GripDirection
 from app.domain.geometry import Footprint
 from app.vacuum.models import ContactClass, CupContact, SuctionCupSpec, SuctionPlacement
+from app.vacuum.models import PackageVerdict
+# Die Ampel aus den Grenzwerten - umbenannt, weil classify() in diesem Modul
+# schon die Kontaktklassen der Sauger vergibt.
+from app.domain.results import classify as classify_status
 from app.domain.geometry import circle_fits_in_rect, circle_rect_overlap_area_mm2
 from typing import Protocol
 from app.domain.units import lpm_to_m3s
@@ -379,6 +383,64 @@ def bearing_count(summary: ContactSummary, count_partial_as_sealed: bool = False
     return summary.sealed_count
 
 
+def per_package(
+    contacts: tuple[CupContact, ...],
+    package_count: int,
+    cup: SuctionCupSpec,
+    vacuum_pa: float,
+    package_mass_kg: float,
+    safety_factor: float,
+    acceleration_ms2: float = 0.0,
+    gravity_ms2: float = GRAVITY_MS2,
+    grip: GripDirection = GripDirection.HORIZONTAL,
+    friction_factor: float = 0.5,
+    count_partial_as_sealed: bool = False,
+) -> tuple[PackageVerdict, ...]:
+    """Dieselbe Kraftbilanz, aber je Paket statt fuer die ganze Platte.
+
+    Gerechnet wird mit demselben evaluate() wie die Gesamtbilanz - nur mit den
+    Saugern UEBER DIESEM Paket und der Masse EINES Pakets. Damit kann das
+    Einzelurteil der Gesamtbilanz nicht aus einem anderen Rechenweg
+    widersprechen; es widerspricht ihr aus dem einzigen Grund, aus dem es das
+    soll: die Platte reicht keine Kraft von einem Paket zum naechsten weiter.
+
+    Das Vakuum ist dagegen fuer alle gleich - es gibt nur eine Platte und
+    einen Erzeuger. Ein offener Sauger ueber Paket 1 senkt deshalb auch die
+    Haltekraft ueber Paket 8.
+    """
+    tragend = [0] * max(0, package_count)
+    for contact in contacts:
+        index = contact.package_index
+        if index < 0 or index >= len(tragend):
+            continue
+        if contact.contact is ContactClass.SEALED or (
+                count_partial_as_sealed and contact.contact is ContactClass.PARTIAL):
+            tragend[index] += 1
+
+    verdicts: list[PackageVerdict] = []
+    for index, anzahl in enumerate(tragend):
+        kraefte = evaluate(
+            cup=cup,
+            sealed_count=anzahl,
+            vacuum_pa=vacuum_pa,
+            mass_kg=package_mass_kg,
+            safety_factor=safety_factor,
+            acceleration_ms2=acceleration_ms2,
+            gravity_ms2=gravity_ms2,
+            grip=grip,
+            friction_factor=friction_factor,
+        )
+        verdicts.append(PackageVerdict(
+            index=index,
+            bearing_count=anzahl,
+            holding_n=kraefte.total_holding_n,
+            required_n=kraefte.required_n,
+            max_mass_kg=kraefte.max_mass_kg,
+            status=classify_status(kraefte.max_mass_kg, package_mass_kg),
+        ))
+    return tuple(verdicts)
+
+
 # ---------------------------------------------------------------------------
 # leakage.py
 # ---------------------------------------------------------------------------
@@ -626,3 +688,98 @@ def pump_flow_m3s(pump: PumpSpec, vacuum_pa: float) -> float:
     if vacuum_pa >= pump.max_vacuum_pa:
         return 0.0
     return pump.nominal_flow_m3s * (1.0 - vacuum_pa / pump.max_vacuum_pa)
+
+
+def demand_m3s(
+    cup: SuctionCupSpec,
+    restrictor: RestrictorSpec,
+    leakage: LeakageSpec,
+    vacuum_pa: float,
+    ambient_pa: float,
+    effective_area_mm2: float,
+    bearing_count: int,
+    leaking_count: int,
+) -> tuple[float, float, float]:
+    """Volumenstrombedarf beim gegebenen Unterdruck.
+
+    Zurueck kommen (offene Sauger, Karton, Summe) - getrennt, weil
+    Spezifikation 21 genau diese Aufteilung anzeigen will.
+
+    Steht hier und nicht im Rechner, weil ZWEI Rechnungen sie brauchen: der
+    Arbeitspunkt der Platte und der Vakuumverlauf ueber der Zeit. Zweimal
+    dieselbe Formel hiesse, dass die beiden Tabs einander widersprechen
+    koennen, sobald jemand eine von beiden anfasst.
+    """
+    per_open = open_cup_flow_m3s(cup, restrictor, vacuum_pa, ambient_pa)
+    open_flow = per_open * max(0, leaking_count)
+    workpiece = workpiece_flow_m3s(leakage, vacuum_pa, effective_area_mm2, bearing_count)
+    return open_flow, workpiece, open_flow + workpiece
+
+
+#: Halbierungsschritte der Arbeitspunktsuche.
+#:
+#: Fuenfzig Schritte halbieren den Suchbereich auf das 10^-15fache - weit
+#: unterhalb jeder Messbarkeit und immer noch in Mikrosekunden gerechnet.
+BALANCE_ITERATIONS = 50
+
+
+def balance_vacuum_pa(pump: PumpSpec, ceiling_pa: float, demand) -> float:
+    """Der Unterdruck, bei dem Angebot und Bedarf gleich sind.
+
+    `demand` ist eine Funktion vacuum_pa -> m3/s. Bei null Unterdruck ist
+    Angebot minus Bedarf positiv (kein Druckgefaelle, also keine Leckage), bei
+    der Obergrenze negativ; der Nulldurchgang dazwischen ist der Arbeitspunkt.
+
+    Wie demand_m3s() hier und nicht im Rechner: der Vakuumverlauf braucht
+    denselben Punkt, nur bei einer anderen Frequenz. Mit zwei Bisektionen
+    koennte die Kurve in einen anderen Endwert laufen, als die Platte daneben
+    anzeigt.
+    """
+    low, high = 0.0, max(0.0, ceiling_pa)
+    for _ in range(BALANCE_ITERATIONS):
+        middle = (low + high) / 2.0
+        if pump_flow_m3s(pump, middle) >= demand(middle):
+            low = middle
+        else:
+            high = middle
+    return low
+
+
+#: Bezugsfrequenz der Datenblattangaben.
+REFERENCE_FREQUENCY_HZ = 50.0
+
+
+def pump_at_frequency(
+    pump: PumpSpec, frequency_hz: float, reference_hz: float = REFERENCE_FREQUENCY_HZ
+) -> PumpSpec:
+    """Derselbe Erzeuger an einem Frequenzumrichter.
+
+    Die Aehnlichkeitsgesetze sagen: Volumenstrom proportional zur Drehzahl,
+    Druckdifferenz zum Quadrat. Das ERSTE stimmt, das zweite nicht - gegen die
+    Datenblaetter gerechnet (28 Geraete mit Angaben fuer 50 und 60 Hz):
+
+        Saugvermoegen 60/50   Mittel 1,200   erwartet 1,200   stimmt
+        Vakuum        60/50   Mittel 0,941   erwartet 1,440   stimmt NICHT
+
+    Das Endvakuum SINKT leicht mit der Drehzahl, statt quadratisch zu steigen:
+    beim Seitenkanalgeblaese begrenzt die Spaltrueckstroemung und nicht die
+    Drehzahl. Ueber der Bezugsfrequenz wird das Endvakuum deshalb beim
+    Datenblattwert GEDECKELT; mit dem reinen Quadratgesetz laegen die
+    Evakuierzeiten bei 60 Hz um Faktor 1,5 daneben.
+
+    Unterhalb der Bezugsfrequenz gilt das Quadratgesetz: dort ist die Drehzahl
+    die Grenze, und die Spaltrueckstroemung spielt keine Rolle.
+    """
+    if reference_hz <= 0.0:
+        return pump
+    verhaeltnis = max(0.0, frequency_hz) / reference_hz
+    druckfaktor = min(1.0, verhaeltnis * verhaeltnis)
+    return PumpSpec(
+        name=pump.name,
+        nominal_flow_m3s=pump.nominal_flow_m3s * verhaeltnis,
+        max_vacuum_pa=pump.max_vacuum_pa * druckfaktor,
+        curve_points=tuple(
+            (vakuum * druckfaktor, strom * verhaeltnis)
+            for vakuum, strom in pump.curve_points
+        ),
+    )

@@ -93,3 +93,32 @@ Verhaeltnis   v = m_max / m_tatsaechlich
 <p>Die Einstufung leitet sich aus diesen Zahlen ab, nicht aus einer Heuristik
 der Oberflaeche.</p>
 <<quelle app/domain/results.py | classify()>>
+
+<h2>Jedes Paket einzeln</h2>
+<p>Die Bilanz oben summiert: alle Haltekraefte gegen alle Massen. Darin
+steckt eine Annahme, die nicht stimmt &ndash; dass die Platte Kraft von
+einem Paket zum naechsten weiterreichen koennte. Sie kann es nicht. Jedes
+Paket haengt an genau den Saugern ueber ihm.</p>
+<p>Der Unterschied ist nicht klein. Mit den Vorgabewerten und acht Paketen
+(Platte 800&nbsp;x&nbsp;600&nbsp;mm, Paket 400&nbsp;x&nbsp;300&nbsp;mm,
+SPB2&nbsp;30) liegen vier Pakete bei x&nbsp;=&nbsp;&minus;400 und
+x&nbsp;=&nbsp;800 und damit vollstaendig ausserhalb der Platte:</p>
+<<formel
+Summenrechnung   5068 N aus 352 Saugern  gegen  40 kg     ->  Sicher
+
+je Paket         Paket 1    0 Sauger      0 N  gegen 98 N ->  Nicht ausreichend
+                 Paket 2   88 Sauger   1267 N  gegen 98 N ->  Sicher
+                 ...
+>>
+<p>Deshalb rechnet die Anwendung dieselbe Kraftbilanz ein zweites Mal
+&ndash; je Paket, mit den Saugern darueber und der Masse eines Pakets. Das
+Vakuum ist dabei fuer alle gleich: es gibt nur eine Platte und einen
+Erzeuger, ein offener Sauger ueber Paket 1 senkt also auch die Haltekraft
+ueber Paket 8.</p>
+<p>Das Gesamturteil ist danach das <em>schlechteste</em> dieser Urteile,
+nie ein Mittelwert: ein Paket, das faellt, faellt. In der Zeichnung traegt
+der Rahmen jedes Pakets die Farbe seines eigenen Urteils &ndash; gruen
+heisst &quot;die Sauger ueber diesem Paket heben es&quot;, nicht &quot;die
+Platte schafft die Summe&quot;. Die Zeile <em>Pakete, davon tragend</em>
+nennt die Zahl, und das Protokoll nennt die Pakete beim Namen.</p>
+<<quelle app/vacuum/physics.py | per_package()>>

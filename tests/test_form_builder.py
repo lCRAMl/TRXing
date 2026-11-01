@@ -28,13 +28,13 @@ import ast
 import pathlib
 
 import pytest
-from PyQt6.QtWidgets import QCheckBox, QLabel, QPushButton, QWidget
+from PyQt6.QtWidgets import QCheckBox, QPushButton, QWidget
 
 from qt_controls_pyrs import (
     CompactDropdown, CompactIntField, CompactNumberField, CompactResultGrid
 )
 from app.gui.form_builder import (
-    Auswahlknopf, Ganzzahl, Gruppe, Hinweis, Knopf, Platz, Raster, Schalter,
+    Auswahlknopf, Ganzzahl, Gruppe, Knopf, Platz, Raster, Schalter,
     Text, Wahl, Zahl, Zeile, baue
 )
 
@@ -53,7 +53,6 @@ def test_jeder_baustein_wird_zu_seinem_bedienelement(qtbot):
             [Wahl("auswahl", "Auswahl")],
             [Text("text", "Text", platzhalter="hier")],
             [Schalter("schalter", "Schalter")],
-            [Hinweis("ein Hinweis", name="hinweis")],
         ]),
         Zeile([Knopf("knopf", "Knopf")]),
         Raster("raster", "Ergebnis"),
@@ -73,7 +72,6 @@ def test_jeder_baustein_wird_zu_seinem_bedienelement(qtbot):
     assert isinstance(ui.auswahl, CompactDropdown)
     assert ui.text.placeholderText() == "hier"
     assert isinstance(ui.schalter, QCheckBox)
-    assert isinstance(ui.hinweis, QLabel)
     assert isinstance(ui.knopf, QPushButton)
     assert isinstance(ui.raster, CompactResultGrid)
     assert isinstance(ui.platz, QWidget)
@@ -162,19 +160,78 @@ def test_eine_zeile_ohne_rahmen_dehnt_auf_wunsch(qtbot):
     assert knoepfe[1].geometry().right() < 400
 
 
-def test_ein_hinweis_hat_eine_mindestbreite(qtbot):
-    """Ohne sie bricht ein langer Hinweis in eine Saeule von zwei Woertern um."""
-    from qt_controls_pyrs import COMPACT_WRAP_WIDTH
+def test_eine_zelle_allein_in_ihrer_zeile_nimmt_die_ganze_breite(qtbot):
+    """Sonst steht das Auswahlfeld in der halben Spalte und rechts ist nichts.
 
+    Gemessen am Vakuumtab, bevor das galt: "Bauform des Rasters" war 232 von
+    441 Bildpunkten breit. Teurer war die Rueckwirkung - die Zeile
+    "Saugeranzahl" steht allein, ihr Feld verlangte 232 Bildpunkte und legte
+    damit Spalte 0 fest; dazu kamen 130 fuer eine zweite Spalte, die in dieser
+    Zeile leer blieb. Die Spalte brauchte 362 statt 232.
+    """
     widget, ui = baue([Gruppe("Probe", [
-        [Hinweis("Ein ziemlich langer Erklaerungstext, der umbrechen soll, "
-                 "aber nicht zu einer Saeule werden darf.", name="h")],
-    ])])
+        [Zahl("links", "Links", "mm"), Zahl("rechts", "Rechts", "mm")],
+        [Wahl("allein", "Allein")],
+    ], oben=True)])
     qtbot.addWidget(widget)
+    widget.resize(600, 200)
+    widget.show()
+    qtbot.waitExposed(widget)
 
-    assert ui.h.wordWrap()
-    assert ui.h.minimumWidth() == COMPACT_WRAP_WIDTH
-    assert ui.h.property("role") == "note"
+    assert ui.allein.width() > ui.links.width(), (
+        "Das Auswahlfeld steht allein in seiner Zeile und muss breiter sein "
+        "als ein Feld, das sich die Zeile teilt"
+    )
+    # Es reicht bis an das rechte Feld heran - also ueber beide Spalten.
+    assert ui.allein.geometry().right() >= ui.rechts.geometry().right() - 1
+
+
+def test_zwei_kaestchen_in_einer_zeile_werden_beide_gebaut(qtbot):
+    """Bis zum 2026-11-01 wurde das zweite still verschluckt.
+
+    Ein Kaestchen bringt seine Beschriftung selbst mit, braucht also keinen
+    Kopf - und an dieser Stelle stand ein break. Das zweite Kaestchen der
+    Zeile wurde deshalb nie gebaut; sein Name fehlte in der Oberflaeche, und
+    auffallen konnte das erst beim ersten Zugriff, weit weg von der Ursache.
+    """
+    widget, ui = baue([Gruppe("Probe", [
+        [Schalter("links", "Links", angehakt=True), Schalter("rechts", "Rechts")],
+    ], oben=True)])
+    qtbot.addWidget(widget)
+    widget.resize(600, 120)
+    widget.show()
+    qtbot.waitExposed(widget)
+
+    assert ui.links.isChecked() and not ui.rechts.isChecked()
+    assert ui.rechts.x() > ui.links.x(), "beide muessen nebeneinander stehen"
+
+
+def test_zwei_felder_einer_zeile_stossen_aneinander(qtbot):
+    """Laenge und Breite ohne Luecke - mit Beschriftung OBEN.
+
+    Steht die Beschriftung daneben, bleibt der Abstand: dort wechseln sich
+    Beschriftung und Feld in den Spalten ab, und ohne Abstand klebte die
+    Beschriftung des zweiten Paares am Feld des ersten.
+    """
+    from qt_controls_pyrs import COMPACT_SPACING_X
+
+    oben, ui_oben = baue([Gruppe("Oben", [
+        [Zahl("a", "A", "mm"), Zahl("b", "B", "mm")],
+    ], oben=True)])
+    qtbot.addWidget(oben)
+    oben.resize(600, 200)
+    oben.show()
+    qtbot.waitExposed(oben)
+
+    luecke = ui_oben.b.x() - ui_oben.a.geometry().right() - 1
+    assert luecke == 0, "Zwischen den beiden Feldern stehen " + str(luecke) + " Bildpunkte"
+
+    daneben, _ui = baue([Gruppe("Daneben", [
+        [Zahl("a", "A", "mm"), Zahl("b", "B", "mm")],
+    ])])
+    qtbot.addWidget(daneben)
+    raster = daneben.layout().itemAt(0).widget().layout()
+    assert raster.horizontalSpacing() == COMPACT_SPACING_X
 
 
 # ----------------------------------------------------------------------

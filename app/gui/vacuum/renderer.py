@@ -20,9 +20,10 @@ from __future__ import annotations
 import math
 
 from PyQt6.QtCore import QPointF, QRectF, Qt
-from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPen
+from PyQt6.QtGui import QBrush, QColor, QFont, QFontMetricsF, QPainter, QPen
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
+from app.domain.results import Status
 from app.vacuum.models import ContactClass
 from app.vacuum.models import VacuumResult
 from app.gui.theme import toned
@@ -52,6 +53,23 @@ _CONTACT_COLORS = {
     ContactClass.PARTIAL: PALETTE.cup_partial,
     ContactClass.OPEN: PALETTE.cup_open,
 }
+
+#: Farbe des Paketrahmens nach dem Urteil ueber dieses eine Paket.
+#:
+#: Dieselben drei Farben wie die Zeile "Bewertung" - und dieselbe Quelle: das
+#: Urteil steht im Ergebnis, hier wird es nur nachgeschlagen
+#: (Spezifikation 37). Gruen heisst "die Sauger ueber DIESEM Paket heben es",
+#: nicht "die Platte schafft die Summe".
+_VERDICT_COLORS = {
+    Status.SAFE: PALETTE.ok,
+    Status.MARGINAL: PALETTE.warning,
+    Status.INSUFFICIENT: PALETTE.error,
+}
+
+#: Der Urteilsrahmen wird NACH den Saugern gezeichnet und ist deshalb
+#: kraeftiger als der frueher duenne Paketrand: bei 88 Saugern auf einem Paket
+#: liegt sonst mehr Sauger als Rahmen auf der Kante.
+VERDICT_PEN_WIDTH = 2.4
 
 #: Strich der Aussenkontur - hier stossen zwei Sauger aneinander.
 #:
@@ -150,6 +168,7 @@ class Vacuum2DView(QWidget):
         painter.drawRect(plate_rect)
 
         self._draw_cups(painter, result, origin_x, origin_y, height_px, scale)
+        self._draw_package_verdicts(painter, result, origin_x, origin_y, height_px, scale)
         self._draw_spacing_mark(painter, result, origin_x, origin_y, height_px, scale)
         painter.setOpacity(1.0)
         self._draw_dimensions(painter, result, origin_x, origin_y, width_px, height_px)
@@ -161,23 +180,76 @@ class Vacuum2DView(QWidget):
         origin_y: float, height_px: float, scale: float,
     ) -> None:
         painter.setBrush(QBrush(QColor(PALETTE.package_fill)))
-        painter.setPen(QPen(QColor(PALETTE.package_edge), 1.4))
-        font = QFont(painter.font())
-        font.setPointSize(8)
-        painter.setFont(font)
+        painter.setPen(Qt.PenStyle.NoPen)
+        for x_mm, y_mm, length_mm, width_mm in result.package_rects:
+            painter.drawRect(self._package_rect(
+                x_mm, y_mm, length_mm, width_mm, origin_x, origin_y, height_px, scale,
+            ))
+
+    @staticmethod
+    def _package_rect(
+        x_mm: float, y_mm: float, length_mm: float, width_mm: float,
+        origin_x: float, origin_y: float, height_px: float, scale: float,
+    ) -> QRectF:
+        """Ein Paketrechteck in Bildpunkten. Y zeigt im Bild nach unten."""
+        return QRectF(
+            origin_x + x_mm * scale,
+            origin_y + height_px - (y_mm + width_mm) * scale,
+            length_mm * scale,
+            width_mm * scale,
+        )
+
+    def _draw_package_verdicts(
+        self, painter: QPainter, result: VacuumResult, origin_x: float,
+        origin_y: float, height_px: float, scale: float,
+    ) -> None:
+        """Der Rahmen jedes Pakets in der Farbe seines Urteils.
+
+        Nach den Saugern gezeichnet, nicht davor: der Rahmen liegt auf der
+        Kante des Pakets, und genau dort stehen die Sauger, die ueber das
+        Urteil entscheiden. Darunter waere er streckenweise verdeckt.
+
+        Ohne Urteile im Ergebnis - etwa bei einem Lauf aus einer aelteren
+        Fassung - bleibt es beim neutralen Rand. Der Renderer entscheidet
+        nichts selbst.
+        """
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        schrift = QFont(painter.font())
+        schrift.setPointSize(8)
+        painter.setFont(schrift)
+        metrik = QFontMetricsF(schrift)
 
         for index, (x_mm, y_mm, length_mm, width_mm) in enumerate(result.package_rects):
-            rect = QRectF(
-                origin_x + x_mm * scale,
-                origin_y + height_px - (y_mm + width_mm) * scale,
-                length_mm * scale,
-                width_mm * scale,
+            verdict = result.verdict_of(index)
+            farbe = (_VERDICT_COLORS.get(verdict.status, PALETTE.package_edge)
+                     if verdict is not None else PALETTE.package_edge)
+            rect = self._package_rect(
+                x_mm, y_mm, length_mm, width_mm, origin_x, origin_y, height_px, scale,
             )
+            painter.setPen(QPen(QColor(farbe), VERDICT_PEN_WIDTH))
             painter.drawRect(rect)
-            if rect.width() > 40 and rect.height() > 20:
-                painter.setPen(QColor(PALETTE.text))
-                painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "Paket " + str(index + 1))
-                painter.setPen(QPen(QColor(PALETTE.package_edge), 1.4))
+
+            if rect.width() <= 40 or rect.height() <= 20:
+                continue
+            # Die Beschriftung ebenfalls ueber den Saugern, und mit Untergrund:
+            # darunter stand sie frueher zwischen 88 Saugerkreisen und war
+            # nicht zu lesen. Die Warnung im Protokoll nennt die Pakete aber
+            # bei ihrer Nummer ("Paket 1, 4, 5, 8") - wer sie dort liest, muss
+            # sie in der Zeichnung wiederfinden.
+            text = "Paket " + str(index + 1)
+            breite = metrik.horizontalAdvance(text)
+            hoehe = metrik.height()
+            schild = QRectF(
+                rect.center().x() - breite / 2.0 - 4.0,
+                rect.center().y() - hoehe / 2.0,
+                breite + 8.0, hoehe,
+            )
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(QColor(PALETTE.canvas)))
+            painter.drawRect(schild)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.setPen(QColor(farbe))
+            painter.drawText(schild, Qt.AlignmentFlag.AlignCenter, text)
 
     def _draw_cups(
         self, painter: QPainter, result: VacuumResult, origin_x: float,

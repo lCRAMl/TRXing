@@ -48,7 +48,7 @@
   "operation": {
     "default_cup_id": "spb2_30",
     "arrangement": "grid_spread",
-    "target_vacuum_pa": 60000,
+    "target_vacuum_pa": 39000,
     "ambient_pa": 101325,
     "safety_factor": 2.0,
     "acceleration_ms2": 0.0,
@@ -59,10 +59,64 @@
     "solve_operating_point": true
   },
 
+  "_volume_comment": [
+    "Das Systemvolumen des dritten Tabs. Ohne diese Angaben gibt es keine",
+    "Zeitachse: die Evakuierzeit haengt am Volumen, nicht an der",
+    "Plattenflaeche.",
+    "",
+    "Keiner der vier Werte stammt aus einem Datenblatt - es sind",
+    "Anlagenangaben (Spezifikation 25). Die Vorbelegung ist mit dem Benutzer",
+    "abgestimmt: 80 mm Saugkasten, 10 m Schlauch, DN 100. Zur Groesse des",
+    "Schlauchs: 510 m3/h durch DN 100 sind rund 18 m/s Stroemung, durch",
+    "DN 63 waeren es 45 m/s - DN 100 ist die uebliche Auslegung.",
+    "",
+    "Der Schlauchdurchmesser geht NUR ins Volumen ein; ein Druckverlust im",
+    "Schlauch wird nicht gerechnet. Ein dickerer Schlauch macht die Platte in",
+    "diesem Modell also langsamer, nicht schneller.",
+    "",
+    "extra_volume_l ist der Platz fuer das Innere der Sauger. Schmalz nennt",
+    "kein Balgvolumen, deshalb steht hier 0 und nicht eine Schaetzung.",
+    "",
+    "frequency_hz ist die Stellung des Umrichters beim Start. Die Grenzen",
+    "25 und 100 Hz stehen im Formular (app/gui/evacuation/tab.py): unterhalb",
+    "25 Hz kuehlt ein eigengekuehlter Motor nicht mehr, oberhalb 60 Hz gibt",
+    "es keine Datenblattwerte mehr - gerechnet wird dort weiter, das",
+    "Endvakuum bleibt aber beim Datenblattwert gedeckelt."
+  ],
+  "system_volume": {
+    "box_height_mm": 80,
+    "hose_length_m": 10,
+    "hose_diameter_mm": 100,
+    "extra_volume_l": 0,
+    "frequency_hz": 50
+  },
+
+  "_pump_comment": [
+    "Der Erzeuger ist seit dem 2026-11-01 ein ARBEITSPUNKT aus der",
+    "Schmalz-Uebersicht und keine erfundene Maschine mehr. Vorher standen",
+    "hier 0,0083 m3/s (29,88 m3/h) bei 850 mbar - ein Geraet, das es in der",
+    "Liste nicht gibt.",
+    "",
+    "Vorgabe ist jetzt der haeufigste der 14 Arbeitspunkte: 510 m3/h bei",
+    "390 mbar, den sich drei Geraete teilen. 390 mbar ist zugleich das",
+    "haeufigste Endvakuum (5 Geraete), 510 m3/h das haeufigste Saugvermoegen",
+    "(5). Die Liste steht in SCHMALZ_OPERATING_POINTS (app/vacuum/models.py).",
+    "",
+    "Folge fuer die Vorgaberechnung: das erreichte Vakuum faellt von 529 auf",
+    "382 mbar, das hoechste Paketgewicht von 49,84 auf 35,95 kg. Beides ist",
+    "richtiger als vorher - ein Seitenkanalgeblaese schafft keine 850 mbar.",
+    "",
+    "nominal_flow_m3s = 510 / 3600. Die acht Stellen sind noetig, damit das",
+    "Feld im Formular 510,00 anzeigt und der Arbeitspunkt wiedererkannt wird.",
+    "",
+    "target_vacuum_pa in 'operation' geht mit: kein Geraet der Liste schafft",
+    "mehr als 445 mbar, ein Sollwert von 600 mbar erzeugte bei jeder Rechnung",
+    "eine Warnung."
+  ],
   "pump": {
-    "name": "Vakuumerzeuger (Vorgabe)",
-    "nominal_flow_m3s": 0.0083,
-    "max_vacuum_pa": 85000,
+    "name": "Seitenkanalgeblaese (Vorgabe)",
+    "nominal_flow_m3s": 0.14166667,
+    "max_vacuum_pa": 39000,
     "curve_points": []
   },
 

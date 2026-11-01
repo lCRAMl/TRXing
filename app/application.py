@@ -34,21 +34,17 @@ from app.domain.state import AppState
 from app.domain.state import PackageService
 from app.pallet.service import PalletService
 from app.vacuum.service import VacuumService
-from typing import Protocol, runtime_checkable
-from PyQt6.QtWidgets import QWidget
 from app.context import AppContext
 from PyQt6.QtCore import QByteArray, Qt, QUrl
 from PyQt6.QtGui import QAction, QCloseEvent, QDesktopServices, QKeySequence
-from PyQt6.QtWidgets import QMainWindow, QMessageBox, QTabWidget
+from PyQt6.QtWidgets import QMainWindow, QMessageBox
 from app import APP_NAME, version_label
 from app.infra.errors import AppError, Severity
-from app.gui.window_state import (
-    restore_splitter, save_splitter, store
-)
+from app.gui.window_state import store
 from app.gui.notifications import ErrorBridge
 from app.gui.notifications import ProblemPanel
 from app.gui.notifications import StatusBar
-from app.tab_registry import CalculationModule, ModuleRegistry, TabManager
+from app.tab_registry import ModuleRegistry, TabManager
 from qt_controls_pyrs import HaloTabWidget
 from app.gui.theme import stylesheet
 

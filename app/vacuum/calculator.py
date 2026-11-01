@@ -42,7 +42,7 @@ from __future__ import annotations
 import time
 
 from app.infra.jobs import CancellationToken, never
-from app.domain.results import Status, classify
+from app.domain.results import Status, classify, worst
 from app.domain.results import CalculationTrace, new_trace
 from app.domain.units import m3s_to_m3h, pa_to_mbar
 from app.domain.results import CalculationMeta
@@ -61,9 +61,6 @@ from app.vacuum.physics import ForceResult
 
 ALGORITHM_VERSION = "1.0"
 MODULE_ID = "vacuum"
-
-#: Schritte der Bisektion fuer den Arbeitspunkt.
-SOLVER_ITERATIONS = 50
 
 #: Bis zu dieser Abweichung gelten Faltendurchmesser und Datenblattkraft als
 #: uebereinstimmend - dann gibt es nichts zu vermerken.
@@ -206,12 +203,52 @@ class VacuumCalculator:
 
         warnings.extend(self._warnings(request, summary, breakdown, forces, achieved_pa, bearing))
 
+        verdicts = physics.per_package(
+            contacts=summary.contacts,
+            package_count=len(packages),
+            cup=request.cup,
+            vacuum_pa=achieved_pa,
+            package_mass_kg=request.package.weight_kg,
+            safety_factor=request.safety_factor,
+            acceleration_ms2=request.acceleration_ms2,
+            gravity_ms2=request.gravity_ms2,
+            grip=request.grip,
+            friction_factor=request.friction_factor,
+            count_partial_as_sealed=request.count_partial_as_sealed,
+        )
+        schwach = tuple(v for v in verdicts if not v.holds)
+        trace.step(
+            "paketbilanz",
+            str(len(verdicts) - len(schwach)) + " von " + str(len(verdicts))
+            + " Paketen werden von ihren eigenen Saugern gehalten",
+        )
+
         actual_mass = request.package.weight_kg * len(packages)
-        status = (
+        gesamt = (
             classify(forces.max_mass_kg, actual_mass)
             if actual_mass > 0
             else (Status.SAFE if forces.max_mass_kg > 0 else Status.INSUFFICIENT)
         )
+        # Die Gesamtbilanz darf nicht besser ausfallen als das schlechteste
+        # Paket. Sie summiert Haltekraft und Masse ueber alle Pakete und
+        # nimmt damit an, die Platte reiche Kraft weiter - gemessen am
+        # Vorgabefall mit acht Paketen meldete sie "Sicher", waehrend vier
+        # Pakete ausserhalb der Platte an null Saugern hingen.
+        status = worst(gesamt, *(verdict.status for verdict in verdicts))
+
+        if schwach:
+            namen = ", ".join(str(v.index + 1) for v in schwach[:8])
+            if len(schwach) > 8:
+                namen += ", ..."
+            warnings.append(
+                str(len(schwach)) + " von " + str(len(verdicts))
+                + " Paketen werden von den Saugern darueber nicht gehalten"
+                + " (Paket " + namen + "). Je Paket noetig: "
+                + format(verdicts[0].required_n, ".1f")
+                + " N. Die Gesamtbilanz sagt das nicht - sie summiert alle"
+                + " Sauger und alle Pakete und nimmt damit an, die Platte"
+                + " reiche Kraft von einem Paket zum naechsten weiter."
+            )
 
         required_cups = physics.required_cup_count(
             actual_mass, request.cup, achieved_pa, request.safety_factor,
@@ -234,6 +271,7 @@ class VacuumCalculator:
             placements=suction.placements,
             contacts=summary.contacts,
             package_rects=package_rects,
+            package_verdicts=verdicts,
             arrangement_id=request.arrangement_id,
             pitch_x_mm=suction.pitch_x_mm,
             pitch_y_mm=suction.pitch_y_mm,
@@ -270,15 +308,16 @@ class VacuumCalculator:
         Zurueck kommen (offene Sauger, Karton, Summe) - getrennt, weil
         Spezifikation 21 genau diese Aufteilung anzeigen will.
         """
-        per_open = physics.open_cup_flow_m3s(
-            request.cup, request.restrictor, vacuum_pa, request.ambient_pa
+        return physics.demand_m3s(
+            cup=request.cup,
+            restrictor=request.restrictor,
+            leakage=request.leakage,
+            vacuum_pa=vacuum_pa,
+            ambient_pa=request.ambient_pa,
+            effective_area_mm2=summary.effective_area_mm2,
+            bearing_count=bearing,
+            leaking_count=leaking,
         )
-        open_flow = per_open * max(0, leaking)
-
-        from app.vacuum.physics import workpiece_flow_m3s
-
-        workpiece = workpiece_flow_m3s(request.leakage, vacuum_pa, summary.effective_area_mm2, bearing)
-        return open_flow, workpiece, open_flow + workpiece
 
     def _breakdown_at(
         self, request: VacuumInput, summary: ContactSummary, bearing: int, leaking: int,
@@ -325,19 +364,12 @@ class VacuumCalculator:
             )
             return ceiling, at_target
 
-        # Bisektion: Angebot minus Bedarf ist bei null Unterdruck positiv (kein
-        # Druckgefaelle, also keine Leckage) und beim Sollwert negativ. Der
-        # Nulldurchgang dazwischen ist der Arbeitspunkt.
-        low, high = 0.0, ceiling
-        for _ in range(SOLVER_ITERATIONS):
-            middle = (low + high) / 2.0
-            _, _, demand = self._demand_m3s(request, summary, bearing, leaking, middle)
-            if physics.pump_flow_m3s(request.pump, middle) >= demand:
-                low = middle
-            else:
-                high = middle
-
-        achieved = low
+        # Die Bisektion steht in physics.balance_vacuum_pa() - derselbe
+        # Nulldurchgang, den der Vakuumverlauf auf dem dritten Tab sucht.
+        achieved = physics.balance_vacuum_pa(
+            request.pump, ceiling,
+            lambda vakuum: self._demand_m3s(request, summary, bearing, leaking, vakuum)[2],
+        )
         breakdown = self._breakdown_at(request, summary, bearing, leaking, achieved)
         trace.step(
             "arbeitspunkt",

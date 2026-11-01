@@ -52,9 +52,14 @@ AIR_KAPPA = 1.4
 STANDARD_TEMPERATURE_K = 293.15
 
 #: Erlaubte Einheitensuffixe fuer DTO-Felder. Wird vom Architekturtest gelesen.
+#:
+#: _l und _hz sind am 2026-11-01 dazugekommen, mit dem Vakuumverlauf: ein
+#: Zusatzvolumen gibt man in Litern an und eine Umrichterfrequenz in Hertz.
+#: Beide sind Einheiten wie die uebrigen - die Liste war nur noch nicht
+#: soweit. Ein Feld OHNE Suffix bleibt genauso verboten wie vorher.
 FIELD_SUFFIXES: tuple[str, ...] = (
-    "_mm", "_mm2", "_mm3", "_cm3", "_m", "_m2", "_m3",
-    "_kg", "_n", "_pa", "_m3s", "_s", "_ms2",
+    "_mm", "_mm2", "_mm3", "_cm3", "_m", "_m2", "_m3", "_l",
+    "_kg", "_n", "_pa", "_m3s", "_s", "_ms2", "_hz",
     "_ratio", "_pct", "_deg", "_count", "_factor", "_k",
 )
 

@@ -117,11 +117,6 @@ def missing_modules() -> tuple[str, ...]:
     return tuple(name for name in _REQUIRED_MODULES if importlib.util.find_spec(name) is None)
 
 
-def backend_available() -> bool:
-    """Ob die 3D-Bibliothek vollstaendig installiert ist."""
-    return not missing_modules()
-
-
 def create_scene(parent: QWidget | None = None) -> Scene3D:
     """Erzeugt die 3D-Ansicht - oder die Ersatzansicht, wenn das nicht geht.
 

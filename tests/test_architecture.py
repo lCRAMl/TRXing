@@ -82,6 +82,12 @@ FORBIDDEN: dict[str, tuple[str, ...]] = {
     "gui/pallet": ("app.vacuum", "app.gui.vacuum"),
     "gui/vacuum": ("app.pallet", "app.gui.pallet"),
 
+    # Der Vakuumverlauf ist die DRITTE Ansicht derselben Scheibe: er darf
+    # app.vacuum kennen, aber weder die Palettierung noch den Vakuumtab. Das
+    # Ergebnis holt er sich ueber den Dienst (published_plate), nicht aus dem
+    # Nachbartab - sonst haetten zwei Tabs eine Meinung zur selben Platte.
+    "gui/evacuation": ("app.pallet", "app.gui.pallet", "app.gui.vacuum"),
+
     # Das Fach weiss nichts von der Anzeige und nichts vom Zusammenbau.
     #
     # Die Scheiben fehlen hier bewusst: catalog.py liest die JSON-Kataloge in
@@ -197,6 +203,9 @@ QT_WIDGETS = (
     "gui/pallet/tab.py",
     "gui/pallet/renderer.py",
     "gui/vacuum/tab.py",
+    # Der dritte Tab. Formular, Teiler und Diagramm - dieselbe Rolle
+    # wie die beiden anderen Tabs, deshalb dieselbe Freigabe.
+    "gui/evacuation/tab.py",
     "gui/vacuum/renderer.py",
 )
 

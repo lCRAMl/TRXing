@@ -46,6 +46,38 @@ def save_splitter(splitter: QSplitter, section: str, key: str = "splitter") -> N
     store(section).setValue(key, splitter.saveState())
 
 
+def fit_controls_column(
+    splitter: QSplitter,
+    scroll,
+    controls,
+    view_width: int,
+    section: str,
+    key: str = "splitter",
+) -> int:
+    """Die Bedienspalte so breit machen, wie ihr Inhalt sie macht.
+
+    Drei Tabs brauchen genau dasselbe, und zwar aus zwei Gruenden in einem:
+
+    * Eine Rollflaeche gibt die Mindestbreite ihres Inhalts nicht nach aussen
+      weiter. Ohne diese Zeile laesst sich der Griff des Teilers so weit nach
+      links ziehen, dass Beschriftungen und Werte abgeschnitten werden. Die
+      Breite des senkrechten Rollbalkens kommt dazu, sonst fehlt genau sie,
+      sobald er erscheint.
+    * Dieselbe Zahl ist die Anfangsbreite. Eine feste Zahl waere bei jeder
+      Formularaenderung wieder falsch - die alten 460 und 600 Bildpunkte
+      waren am Formular von vorgestern gemessen.
+
+    Zieht der Benutzer den Griff, gilt seine Aufteilung, auch beim naechsten
+    Start. Zurueck kommt die gemessene Breite, damit ein Test sie nachsehen
+    kann, ohne sie nachzurechnen.
+    """
+    breite = (controls.minimumSizeHint().width()
+              + scroll.verticalScrollBar().sizeHint().width())
+    scroll.setMinimumWidth(breite)
+    restore_splitter(splitter, section, (breite, view_width), key=key)
+    return breite
+
+
 def restore_splitter(
     splitter: QSplitter,
     section: str,

@@ -147,6 +147,31 @@ def test_vacuum_defaults_are_complete(settings):
     assert defaults.safety_factor >= 1.0
     assert defaults.grip is GripDirection.HORIZONTAL
     assert defaults.pump.nominal_flow_m3s > 0
+
+
+def test_the_default_pump_is_one_of_the_operating_points(settings):
+    """Die Anwendung startet auf einem Geraet, das es wirklich gibt.
+
+    Bis zum 2026-11-01 stand in der Konfiguration ein Erzeuger mit 29,88 m3/h
+    bei 850 mbar - ein Seitenkanalgeblaese schafft keine 850 mbar, und in der
+    Schmalz-Liste kommt dieser Punkt nicht vor.
+    """
+    from app.domain.units import m3s_to_m3h, pa_to_mbar
+    from app.vacuum.models import SCHMALZ_OPERATING_POINTS
+
+    defaults = settings.get_vacuum_defaults()
+    strom = m3s_to_m3h(defaults.pump.nominal_flow_m3s)
+    vakuum = pa_to_mbar(defaults.pump.max_vacuum_pa)
+
+    assert any(abs(strom - s) < 0.005 and abs(vakuum - v) < 0.5
+               for s, v in SCHMALZ_OPERATING_POINTS), (
+        "Die Vorgabe " + format(strom, ".2f") + " m3/h bei "
+        + format(vakuum, ".0f") + " mbar ist kein Arbeitspunkt der Liste"
+    )
+    assert defaults.target_vacuum_pa <= defaults.pump.max_vacuum_pa, (
+        "Das Sollvakuum verlangt mehr, als der Erzeuger kann - das ergaebe "
+        "bei JEDER Rechnung eine Warnung"
+    )
     assert len(defaults.leakage_presets) >= 4
     assert any(p.spec.model is LeakageModel.FLOW_PER_AREA for p in defaults.leakage_presets)
 

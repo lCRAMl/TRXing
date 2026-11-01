@@ -15,10 +15,12 @@ import math
 
 import pytest
 
+from dataclasses import replace
+
 from app.vacuum.models import SCHMALZ_RASTER, VacuumPlateSpec
 from app.vacuum import cup_patterns
 from app.vacuum.cup_patterns import ArrangementRequest
-from app.vacuum.layout import SuctionLayoutEngine
+from app.vacuum.layout import MIN_PITCH_RATIO, SuctionLayoutEngine
 
 PLATES = [
     (750.0, 550.0, 44.0),    # Regelfall
@@ -362,6 +364,110 @@ def test_a_given_raster_is_thinned_by_leaving_places_empty(settings):
         tuple((p.center_x_mm, p.center_y_mm) for p in layout.placements)
     ) == pytest.approx(45.0, abs=1e-6)
     assert any("nicht aufgeweitet" in note for note in layout.notes), layout.notes
+
+
+def test_the_raster_pitch_has_a_lower_bound(settings):
+    """Die Haelfte des Aussenmasses, hoechstens das kleinste Rastermass."""
+    engine = SuctionLayoutEngine()
+    kleinste_bauform = min(pitch for _code, pitch in SCHMALZ_RASTER)
+
+    for cup in settings.get_suction_cups():
+        erwartet = min(MIN_PITCH_RATIO * cup.outer_diameter_mm, kleinste_bauform)
+        assert engine.min_pitch_mm(cup) == pytest.approx(erwartet, abs=1e-9), cup.id
+
+    # Die beiden Enden des Katalogs, von Hand nachgerechnet.
+    assert engine.min_pitch_mm(settings.get_suction_cup("spb1_10")) == pytest.approx(5.65)
+    assert engine.min_pitch_mm(settings.get_suction_cup("spb1_80")) == pytest.approx(20.0)
+
+
+def test_every_build_form_stays_selectable_for_every_cup(settings):
+    """Der Grund, warum die Grenze zwei Teile hat.
+
+    Mit der halben Aussenmassregel allein laege die Grenze fuer einen SPB1 80
+    bei 44 mm - die Bauform 20T waere damit fuer ihn nicht mehr einstellbar,
+    und das waere die Ablehnung durch die Hintertuer, die hier ausdruecklich
+    nicht mehr gewollt ist.
+    """
+    engine = SuctionLayoutEngine()
+    gesperrt = [
+        (cup.id, code)
+        for cup in settings.get_suction_cups()
+        for code, pitch_mm in SCHMALZ_RASTER
+        if pitch_mm < engine.min_pitch_mm(cup) - 1e-9
+    ]
+    assert not gesperrt, "Die Grenze sperrt vorhandene Bauformen: " + str(gesperrt)
+
+
+def test_a_pitch_below_the_bound_is_refused_not_adjusted(settings):
+    """Abgelehnt, nicht stillschweigend angehoben.
+
+    Ein Anheben waere genau das Antasten des Rastermasses, das an keiner
+    Stelle passieren soll - dann stuende im Feld eine Zahl und auf der Platte
+    eine andere.
+    """
+    engine = SuctionLayoutEngine()
+    cup = settings.get_suction_cup("spb2_30")
+    grenze = engine.min_pitch_mm(cup)
+    plate = VacuumPlateSpec(800.0, 600.0, edge_margin_mm=0.0,
+                            raster_pitch_mm=grenze - 1.0)
+
+    anzahl, hinweise = engine.capacity_with_notes(cup, plate, "hexagonal")
+    assert anzahl == 0
+    assert "unterschreitet" in " ".join(hinweise), hinweise
+
+    # Auch UNTERHALB der Grenze bleibt das Rastermass, was es ist. Sonst zeigt
+    # die Oberflaeche einen angehobenen Wert an, waehrend die Rechnung ablehnt -
+    # zwei verschiedene Zahlen fuer dasselbe Feld. Gefunden durch eine
+    # Gegenprobe, die ohne diese Zeile gruen blieb.
+    assert engine.pitch_mm(cup, plate) == pytest.approx(grenze - 1.0, abs=1e-9)
+    assert engine.clearance_mm(cup, plate) == pytest.approx(
+        grenze - 1.0 - cup.outer_diameter_mm, abs=1e-9
+    )
+
+    layout = engine.distribute(cup, plate, arrangement_id="hexagonal")
+    assert layout.count == 0
+    assert layout.notes
+
+    # Knapp darueber wird gerechnet - sonst waere die Grenze an der falschen
+    # Stelle und der Test bewiese nichts.
+    gerade_noch = replace(plate, raster_pitch_mm=grenze)
+    assert engine.capacity(cup, gerade_noch, "hexagonal") > 0
+    assert engine.pitch_too_small_note(cup, gerade_noch) == ""
+
+
+def test_the_bound_keeps_the_number_of_positions_in_check(settings):
+    """Wofuer die Grenze da ist, in Zahlen.
+
+    Geprueft wird die Positionszahl und nicht die Dauer: die Zahl folgt aus der
+    Geometrie und ist auf jedem Rechner dieselbe, die Dauer nicht. Ohne Grenze
+    sind auf dieser Platte ueber acht Millionen Positionen erreichbar, und der
+    Aufruf laeuft bei jedem Tastendruck im Eingabefeld.
+    """
+    engine = SuctionLayoutEngine()
+    groesste = VacuumPlateSpec(3000.0, 3000.0, edge_margin_mm=0.0)
+
+    schlimmster = 0
+    for cup in settings.get_suction_cups():
+        plate = replace(groesste, raster_pitch_mm=engine.min_pitch_mm(cup))
+        schlimmster = max(schlimmster, engine.capacity(cup, plate, "hexagonal"))
+
+    assert schlimmster < 400_000, (
+        "Die Grenze laesst zu viele Positionen zu: " + str(schlimmster)
+    )
+
+
+def test_an_automatic_pitch_is_never_below_the_bound(settings):
+    """Die Grundstellung kann die Grenze nicht verletzen.
+
+    Sie ist Aussenmass plus lichter Abstand, also mindestens das Aussenmass -
+    und die Grenze liegt bei der Haelfte davon. Ohne diese Zusage koennte ein
+    Sauger beim blossen Umschalten auf "automatisch" abgelehnt werden.
+    """
+    engine = SuctionLayoutEngine()
+    for cup in settings.get_suction_cups():
+        plate = VacuumPlateSpec(800.0, 600.0, min_spacing_mm=0.0)
+        assert engine.pitch_mm(cup, plate) >= engine.min_pitch_mm(cup)
+        assert engine.pitch_too_small_note(cup, plate) == ""
 
 
 def test_without_a_given_pitch_the_cup_decides(settings):

@@ -151,6 +151,24 @@ def classify(actual: float, required: float, marginal_margin_ratio: float = 0.1)
     return Status.INSUFFICIENT
 
 
+#: Von der besten zur schlechtesten Bewertung. Die Reihenfolge IST die Aussage
+#: und steht deshalb hier bei Status und nicht bei einem ihrer Benutzer.
+_SCHLECHTER = (Status.SAFE, Status.MARGINAL, Status.INSUFFICIENT)
+
+
+def worst(*stati: Status) -> Status:
+    """Die schlechteste der genannten Bewertungen.
+
+    Ohne Angabe SAFE: auf eine leere Liste von Befunden ist "nichts zu
+    beanstanden" die richtige Antwort.
+
+    Gebraucht, wo eine Gesamtbewertung aus Einzelbewertungen entsteht - die
+    Vakuumplatte stuft ihr Urteil auf das schlechteste Paket herab. Ein
+    Mittelwert waere dort falsch: ein Paket, das faellt, faellt.
+    """
+    return max(stati, key=_SCHLECHTER.index, default=Status.SAFE)
+
+
 # ---------------------------------------------------------------------------
 # trace.py
 # ---------------------------------------------------------------------------

@@ -40,9 +40,21 @@ Spaetere Funktionen (NACH dem Umbau, hier nur als Merkposten):
     (die heutige SB-Familie erreicht nur rund 400 mbar rel.)
 
 Eigene Widget-Bibliothek QtControlsPyRS: erst NACH dem Umbau einbinden.
-Fehlende Elemente dort (Reihenfolge nach Dringlichkeit):
-  1 SpinBox double+int   2 GroupBox   3 RadioButton   4 LineEdit
-  5 Slider mit mehreren Griffen   6 Diagramm-Widget   7 log. Skala
+
+STAND 2026-11-01, nachgesehen statt geglaubt: die alte Liste war ueberholt.
+SpinBox (double+int), GroupBox, RadioButton und LineEdit GIBT ES dort laengst
+(CompactSpinBox, HaloGroupBox, HaloRadioButton, HaloLineEdit; 66 Exporte).
+Tatsaechlich fehlten nur drei Dinge:
+
+  1 Slider           angelegt am 2026-11-01 als HaloSlider
+  2 Diagramm-Widget  fehlt noch - gebraucht fuer den Vakuumverlauf
+  3 log. Skala       fehlt noch - nur fuer die Vakuumskala (Punkt 1 oben);
+                     halospectrum.py rechnet schon mit log10 und waere der
+                     Ausgangspunkt
+
+Der urspruengliche Punkt "Slider mit mehreren Griffen" ist hinfaellig: der
+Frequenzumrichter wird stufenlos mit EINEM Griff und einem Zahlenfeld
+eingestellt, nicht mit Abschnitten.
   nachrangig: ProgressBar, Splitter, ScrollArea, StackedWidget,
               TreeWidget, ListWidget, TextBrowser
   Umgekehrt gehoeren aus TRXing in die Lib: CompactNumberField, CompactIntField,
@@ -505,6 +517,30 @@ ENTSCHIEDEN (vom Benutzer):
                          Preis: zwei Sauger bei festem 30T vergleichen geht
                          nur mit erneuter Wahl der Bauform
 
+UNTERGRENZE DES RASTERMASSES. Weil es frei einstellbar ist, braucht es eine
+Bremse - die Positionszahl waechst mit dem Quadrat des Kehrwerts, und
+capacity() laeuft SYNCHRON bei jedem Tastendruck im Feld. Gemessen mit SPB1 10
+auf 3000 x 3000:
+
+     11,30 mm        80 937 Positionen       7 ms   (stossen aneinander)
+      5,65 mm       323 219 Positionen      36 ms   (die Grenze)
+      1,13 mm     8 080 475 Positionen     926 ms   (vorher erlaubt)
+
+   kleinstes Rastermass = min( MIN_PITCH_RATIO * Dmax(S) , kleinste Bauform )
+                        = min( 0,5 * Dmax(S) , 20 mm )
+
+Der zweite Teil ist noetig, nicht huebsch: mit der Prozentregel allein laege
+die Grenze fuer einen SPB1 80 bei 44 mm, und 20T waere fuer ihn gesperrt - also
+die Ablehnung durch die Hintertuer, die gerade abgeschafft wurde. Ein reiner
+Prozentsatz bremst die Rechnung ohnehin nur halb: die Positionszahl haengt am
+ABSOLUTEN Mass. Teuer sind die kleinen Sauger, und genau die regelt der
+Prozentsatz; bei den grossen greift der Boden von 20 mm.
+
+Abgelehnt wird, nicht angehoben. Ein stilles Anheben waere das Antasten des
+Rastermasses, das an keiner Stelle passieren soll - dann stuende im Feld eine
+Zahl und auf der Platte eine andere. Die Oberflaeche setzt die Untergrenze am
+Eingabefeld, die Engine lehnt den anderen Weg ab (Konfiguration).
+
 DIE WARNUNG BRAUCHTE KEINE NEUE MECHANIK. Der Weg stand schon:
    layout.distribute()  ->  notes
    calculator.py:162    ->  result.warnings
@@ -549,3 +585,329 @@ Die neuen Funktionen, in dieser Reihenfolge vorgeschlagen:
   5. Pumpenempfehlung ueber den vorhandenen Arbeitspunktloeser.
   6. Drittes Tab: Vakuumverlauf ueber der Zeit. Braucht vorher eine neue
      Eingabe - das Systemvolumen -, sonst gibt es keine Zeitachse.
+
+
+ENTSCHIEDEN AM 2026-11-01 (Benutzer), fuer die Punkte 3 bis 6
+-------------------------------------------------------------------------------
+PUMPEN. Kein Pumpenkatalog. Aus doc/pumps.html (41 Geraete) bleiben 14
+unterschiedliche Arbeitspunkte bei 50 Hz; sie kommen als EIN Auswahlfeld
+hinein, Saugvermoegen und Vakuum als Paar - denn sie gehoeren je Geraet
+zusammen. Zwei getrennte Felder koennten Kombinationen erzeugen, die es nicht
+gibt: 510 m3/h gibt es bei 200 UND bei 390 mbar.
+
+FREQUENZ. Gegenprobe der Aehnlichkeitsgesetze an den 28 Geraeten mit Angaben
+fuer 50 und 60 Hz:
+
+     Saugvermoegen 60/50   Mittel 1,200   erwartet 1,200   stimmt
+     Vakuum        60/50   Mittel 0,941   erwartet 1,440   stimmt NICHT
+
+Das Endvakuum SINKT leicht mit der Drehzahl, statt quadratisch zu steigen -
+beim Seitenkanalgeblaese begrenzt die Spaltrueckstroemung, nicht die Drehzahl.
+Gerechnet wird deshalb: Kennlinie nach den Aehnlichkeitsgesetzen skalieren,
+das Endvakuum aber beim Datenblattwert deckeln. Mit dem reinen Quadratgesetz
+laegen die Evakuierzeiten bei 60 Hz um Faktor 1,5 daneben.
+
+VOLUMEN. Systemvolumen aus Plattenflaeche x Saugkastenhoehe plus
+Schlauchvolumen. Saugkastenhoehe, Schlauchlaenge und Schlauchdurchmesser
+werden Eingabefelder auf dem dritten Tab, mit typischen Werten vorbelegt.
+
+PAKETURTEIL (Vakuumtab). Je gezeichnetem Paket wird aus den Saugern darueber
+ermittelt, ob sie es heben, und der Rahmen entsprechend gefaerbt. Zusaetzlich
+wird das GESAMTURTEIL herabgestuft, solange ein Paket nicht traegt. Gemessen
+mit den Standardwerten und 8 Paketen: vier Pakete bekommen 0 Sauger, vier je
+99 - und die Gesamtbewertung meldet trotzdem SICHER.
+
+HINWEISE. Die 5 Hinweiszeilen im Formular fallen weg; die 14 Kurzinfos an den
+Feldern (hinweis=, erscheinen beim Darueberfahren) bleiben - sie kosten
+keinen Platz.
+
+
+GEBAUT AM 2026-11-01: ABSCHNITT 2, DIE BEDIENSPALTE
+-------------------------------------------------------------------------------
+Gemessen im echten Fenster, vorher und nachher:
+
+                        vorher   nachher
+     Palettierung         419       317   Bildpunkte
+     Vakuumplatte         441       311
+     Auswahlfelder     104..232     volle Spaltenbreite
+
+Drei Regeln bringen das, keine einzige feste Zahl:
+
+1. EINE ZELLE ALLEIN IN IHRER ZEILE NIMMT DIE GANZE BREITE (nur bei oben=True).
+   Vorher stand sie in Spalte 0 von zwei, und die zweite blieb leer. Teuer war
+   nicht das halbe Auswahlfeld, sondern die Rueckwirkung: das Feld
+   "Saugeranzahl" verlangte 232 Bildpunkte fuer Spalte 0, dazu kamen 130 fuer
+   eine Spalte, die in dieser Zeile niemand benutzte - 362 statt 232.
+
+2. ZWISCHEN ZWEI FELDERN EINER ZEILE STEHT KEIN ABSTAND. Laenge und Breite
+   stossen aneinander. Bei oben=True haelt jede Rasterspalte genau ein
+   Element, der Abstand trennte also nichts. Steht die Beschriftung DANEBEN
+   (Paketformular), bleibt er: dort wechseln sich Beschriftung und Feld ab.
+
+3. DIE SPALTE IST SO BREIT WIE IHR INHALT. Die Anfangsbreite wird gemessen
+   (controls.minimumSizeHint() plus Rollbalken) und nicht mehr gesetzt. Eine
+   feste Zahl waere bei jeder Formularaenderung wieder falsch - die alten 460
+   waren am alten Formular gemessen worden.
+
+HINWEISZEILEN. Alle fuenf sind weg, mit ihnen der Baustein Hinweis, die Fabrik
+_hinweis() und die Stylesheet-Regeln fuer role="note" und role="hint" (beide
+ohne Traeger). Die Kurzinfos an den Feldern (hinweis=) bleiben, sie kosten
+keinen Platz. Der Inhalt der drei lebenden Zeilen ist umgezogen:
+
+     Rastermass/lichter Abstand/Hoechstzahl -> drei Zeilen im Ergebnisraster
+     Beschreibung des Saugermusters         -> Tooltip des Auswahlfelds
+     Beschreibung des Palettiermusters      -> Tooltip des Auswahlfelds
+
+NULLTEXTE. "so viele wie moeglich" wurde "maximal", "automatisch (maximal)"
+wurde "automatisch". Ein Zahlenfeld haelt Platz fuer seinen laengsten Text
+frei; die langen Fassungen kosteten 232 statt 134 bzw. 162 Bildpunkte, und in
+der Palettierung stand so ein Feld neben einem zweiten - das allein hielt die
+Spalte bei 396.
+
+GEMERKTE TEILERSTELLUNG. Neuer Schluessel (SPLITTER_KEY). Unter dem alten
+liegt auf jedem benutzten Rechner die Aufteilung des ALTEN Formulars, und eine
+gemerkte Breite gewinnt gegen die Vorgabe - die schmale Spalte waere genau
+dort nicht zu sehen gewesen, wo das Programm benutzt wird.
+
+ZWEI GEGENPROBEN SIND ZUERST DURCHGERUTSCHT.
+  - Der Tooltip-Test prueft, dass die Musterbeschreibung im Auswahlfeld steht.
+    Die erste Fassung verglich nur "nicht leer und nicht der Eintragsname" -
+    und blieb gruen, als die Gegenprobe das Schreiben der Beschreibung ganz
+    entfernte: uebrig blieb der Vorbelegungstext, der ebenfalls nicht leer
+    ist. Verglichen wird jetzt mit dem Text aus dem Katalog.
+  - Der Vorbelegungstext selbst TRAEGT NICHT. Ohne ihn wuerde compact_combo()
+    den sichtbaren Eintrag nachfuehren, haengt dafuer aber schon beim Bau am
+    Signal, waehrend der Beschreibungstext erst in _connect() dazukommt und
+    als Letzter schreibt. Er steht trotzdem da - sonst waere der Tooltip bis
+    zur ersten Auswahl leer -, aber die Begruendung im Code sagt jetzt, dass
+    er nur die Reihenfolge zweier Verbindungen aus dem Spiel nimmt.
+
+NEBENBEI. "Sauger gesamt" zeigte "391 von max. 391"; seit die Hoechstzahl eine
+eigene Zeile direkt darueber hat, stand dieselbe Zahl zweimal untereinander.
+Jetzt nur noch die Zahl.
+
+OFFEN GEBLIEBEN. Zwei Kontrollkaestchen brechen in der schmalen Spalte auf
+zwei Zeilen um ("Zusaetzlichen Loeser verwenden...", "Teilweise aufliegende
+Sauger..."). Das ist die Folge der gewuenschten Breite und sieht sauber aus,
+soll aber nicht unerwaehnt bleiben.
+
+
+GEBAUT AM 2026-11-01: ABSCHNITT 3, URTEIL JE PAKET
+-------------------------------------------------------------------------------
+Der Befund zuerst, gemessen mit den Vorgabewerten und acht Paketen (Platte
+800 x 600, Paket 400 x 300 x 200, SPB2 30, gleichmaessiges Raster):
+
+     Paket 1  bei (-400,   0)  wirksam   0 Sauger  ->     0,0 N
+     Paket 2  bei (   0,   0)  wirksam  88 Sauger  ->  1267,2 N
+     Paket 3  bei ( 400,   0)  wirksam  88 Sauger  ->  1267,2 N
+     Paket 4  bei ( 800,   0)  wirksam   0 Sauger  ->     0,0 N
+     ... ebenso Paket 5 bis 8
+     noetig je Paket: 98,1 N        Gesamturteil vorher: SICHER
+
+Vier Pakete liegen VOLLSTAENDIG ausserhalb der Platte - nicht nur am Rand mit
+weniger Saugern. Die Gesamtbilanz sah das nicht, weil sie summiert: 5068 N aus
+352 Saugern gegen 40 kg. Darin steckt die Annahme, die Platte reiche Kraft von
+einem Paket zum naechsten weiter.
+
+GEBAUT:
+  app/domain/results.py    worst(): die schlechteste von mehreren Ampeln.
+  app/vacuum/models.py     PackageVerdict, VacuumResult.package_verdicts,
+                           bearing_package_count, verdict_of().
+  app/vacuum/physics.py    per_package(): DIESELBE Bilanz wie evaluate(), nur
+                           mit den Saugern ueber einem Paket und der Masse
+                           eines Pakets. Ein zweiter Rechenweg haette der
+                           Gesamtbilanz aus dem falschen Grund widersprechen
+                           koennen.
+  app/vacuum/calculator.py Gesamturteil = worst(Summenurteil, alle Einzelnen),
+                           dazu Warnung mit Paketnummern und Trace-Schritt
+                           "paketbilanz".
+  renderer.py              Rahmen in der Farbe des Urteils, NACH den Saugern
+                           gezeichnet - darunter waere er von ihnen verdeckt.
+                           Die Paketnummer wanderte mit: sie stand zwischen 88
+                           Saugerkreisen und war unlesbar, waehrend die Warnung
+                           sie beim Namen nennt ("Paket 1, 4, 5, 8").
+  vacuum/tab.py            Ergebniszeile "Pakete unter der Platte" wurde
+                           "Pakete, davon tragend" -> "8 / 4", rot wenn nicht
+                           alle tragen. Ohne sie stuende "Max. Paketgewicht
+                           258 kg" neben "Nicht ausreichend" wie ein
+                           Widerspruch.
+  Hilfe + README           eigener Abschnitt mit den Zahlen oben.
+
+SIEBEN GEGENPROBEN, alle gefangen: Gesamturteil nicht herabgestuft, Warnung
+weggelassen, alle Sauger jedem Paket zugezaehlt, Teilauflage immer gezaehlt,
+Rahmen nicht gezeichnet, Rahmen immer neutral, worst() nimmt den letzten.
+
+OFFEN GEBLIEBEN. Die Summenzeilen bleiben, wie sie sind: "Max. Paketgewicht
+258,44 kg" neben "Tatsaechliches Gewicht 160,00 kg" und einem roten Urteil.
+Beide Zahlen stimmen - sie gelten nur fuer die Platte als Ganzes. Wer sie
+paketweise haben will, braucht eine zweite Rueckwaertsrechnung.
+
+
+GEBAUT AM 2026-11-01: ABSCHNITT 4, DER ARBEITSPUNKT DES ERZEUGERS
+-------------------------------------------------------------------------------
+Aus doc/pumps.html ausgelesen: 41 Geraete, davon 28 mit 50-Hz-Angaben. Diese
+28 teilen sich 14 verschiedene Arbeitspunkte - mehrere Baugroessen eines
+Geraets unterscheiden sich in Spannung, Zulassung oder Gewicht, nicht im
+Arbeitspunkt. Die Liste steht als SCHMALZ_OPERATING_POINTS in
+app/vacuum/models.py, mit Leistung und Geraetezahl im Kommentar daneben.
+
+ALS PAAR, nicht als zwei Listen: 510 m3/h gibt es bei 200 UND bei 390 mbar,
+260 m3/h bei 410 und bei 445. Zwei getrennte Auswahlfelder koennten daraus
+Kombinationen bauen, die kein Geraet hat.
+
+DAS ENDVAKUUM WAR BISHER UNSICHTBAR. Es stand nur in der Konfiguration
+(85000 Pa) und deckelte jede Rechnung, ohne im Formular aufzutauchen. Jetzt
+ist es ein Feld neben dem Saugvermoegen; das Auswahlfeld setzt beide.
+
+VORGABE GEAENDERT. Vorher 29,88 m3/h bei 850 mbar - ein Geraet, das es in der
+Liste nicht gibt und das als Seitenkanalgeblaese auch nicht existieren kann.
+Jetzt 510 m3/h bei 390 mbar, der haeufigste Punkt (drei Geraete). Gemessen an
+der Vorgaberechnung:
+
+     erreichtes Vakuum     529  ->  382 mbar
+     Kraft je Sauger      12,69 ->  9,16 N
+     max. Paketgewicht    49,84 -> 35,95 kg
+
+Die Zahlen werden kleiner und richtiger. Das Sollvakuum geht mit (600 -> 390),
+denn kein Geraet der Liste schafft mehr als 445 mbar; bliebe es stehen,
+erschiene bei JEDER Rechnung die Warnung "Sollvakuum wird nicht erreicht".
+
+BEDIENUNG wie beim Rastermass: Auswahlfeld setzt die Zahlen, die Felder
+bleiben frei, eigene Werte heissen "frei eingestellt". Verglichen werden die
+ZAHLEN und kein gemerkter Zustand - 510 bei 200 sind ein anderer Punkt als
+510 bei 390, und von Hand getippte Werte finden ihren Namen wieder.
+
+Das Feld "Volumenstrom" heisst jetzt "Saugvermoegen" - das Wort des
+Datenblatts, und es unterscheidet den Geraetewert von den gerechneten
+Volumenstroemen in der Ergebnisanzeige daneben.
+
+SECHS GEGENPROBEN, alle gefangen: Sollvakuum nicht mitgezogen, nur der Strom
+verglichen, Endvakuum nicht in der Anfrage, doppelter Arbeitspunkt in der
+Liste, alte Vorgabe zurueck, Sollvakuum ueber dem Endvakuum.
+
+
+GEBAUT AM 2026-11-01: ABSCHNITT 5, DER DRITTE TAB
+-------------------------------------------------------------------------------
+Das einzige wirklich neue Stueck Physik des ganzen Umbaus. Tab 2 sagt, WO
+sich das Vakuum einpendelt; Tab 3 sagt, WIE LANGE es dahin braucht.
+
+DIE GLEICHUNG. Alle Volumenstroeme dieser Anwendung sind auf Umgebungsdichte
+bezogen - das steht seit jeher in orifice_flow_m3s(). Damit bleibt eine
+einzige Gleichung uebrig:
+
+     d(dp)/dt = (p_umg / V) * ( S(dp) - Q_leck(dp) )
+
+Zwei Eigenschaften machen sie brauchbar:
+
+  * Sie laeuft GENAU in den Arbeitspunkt von Tab 2 - dort ist S = Q_leck.
+    Beide Tabs benutzen dieselben zwei Funktionen, sie KOENNEN sich nicht
+    widersprechen. Dafuer sind demand_m3s() und balance_vacuum_pa() aus
+    calculator.py nach physics.py gewandert; der Rechner benutzt sie jetzt
+    ebenfalls, die doppelte Bisektion ist weg.
+  * Sie ist in dp autonom, laesst sich also umkehren und als Quadratur
+    rechnen: t(dp) = Integral V / (p_umg * (S - Q_leck)). Kein Verfahren,
+    das divergieren kann, keine Schrittweitensteuerung.
+
+Am Arbeitspunkt wird der Integrand unendlich - die Zeit bis zum exakten
+Endwert ist es auch. Gerechnet wird bis 99,5 Prozent, ausgewiesen werden die
+Zeiten bis 90 und 99 Prozent.
+
+GEMESSEN mit den Vorgabewerten (117 l System, 510 m3/h, 391 Sauger, davon
+274 offen):
+
+     25 Hz    Endvakuum  98 mbar   t90 0,361 s   Saugvermoegen  255 m3/h
+     50 Hz               390 mbar  t90 0,726 s                  510 m3/h
+    100 Hz               390 mbar  t90 0,364 s                 1020 m3/h
+
+Ueber 50 Hz kauft die Drehzahl Zeit, kein Vakuum - so steht es in den
+Datenblaettern (28 Geraete: Strom 60/50 = 1,200 wie erwartet, Vakuum
+60/50 = 0,941 statt 1,440).
+
+NEU ANGELEGT:
+  app/vacuum/evacuation.py       die Quadratur und das Systemvolumen
+  app/gui/evacuation/tab.py      das dritte Tab, mit Regler und Diagramm
+  tests/test_evacuation.py       11 Pruefungen
+  models.py                      SystemVolumeSpec, EvacuationCurve,
+                                 EvacuationPoint, SharedPlate
+  physics.py                     demand_m3s, balance_vacuum_pa,
+                                 pump_at_frequency
+  form_builder.py                Baustein "Regler" (HaloSlider)
+  units.py                       FIELD_SUFFIXES um _l und _hz ergaenzt
+
+DIE PLATTE WIRD BEREITGELEGT, nicht nachgebaut: publish_plate() im Dienst,
+genau wie die Lage der Palettierung. Haette Tab 3 sich seine Platte aus
+denselben Eingaben selbst gebaut, haette er eine eigene Meinung zur
+Saugerzahl - zwei Tabs mit zwei Meinungen ueber dieselbe Platte sind
+schlimmer als ein Tab weniger.
+
+ZWEI GEGENPROBEN SIND ZUERST DURCHGERUTSCHT.
+  - Der Umgebungsdruck im Faktor war durch NICHTS gesichert. Nimmt man ihn
+    heraus, sind alle Zeiten um fuenf Zehnerpotenzen daneben (89804 s statt
+    0,886 s) - und jeder Richtungstest ("doppeltes Volumen, doppelte Zeit")
+    bleibt trotzdem gruen. Jetzt wird die Zeit gegen die geschlossene Loesung
+    geprueft: ohne Leckage ist tau = V * dp_max / (p_umg * S0) und
+    t(90%) = tau * ln(10).
+  - Das blockSignals am Regler TRAEGT NICHT fuer den Wert: Feld und Regler
+    haben dieselbe Aufloesung von einem Zehntelhertz, der Rueckweg traegt
+    dieselbe Zahl ein. Es verhindert die zweite Rechnung je Tastendruck. Der
+    Test zaehlt seitdem die Rechnungen, statt den Wert zu vergleichen, und
+    der Kommentar sagt, was die Zeile wirklich leistet.
+
+OFFEN GEBLIEBEN. Das Innere der Sauger steckt nicht im Volumen - Schmalz
+nennt kein Balgvolumen, und geschaetzt wird hier nichts. Bei 391 Balgsaugern
+ist das kein kleiner Posten; wer es kennt, traegt es als Zusatzvolumen ein.
+Ein Druckverlust im Schlauch wird ebenfalls nicht gerechnet: der Durchmesser
+geht nur ins Volumen ein.
+
+
+GEBAUT AM 2026-11-01: ABSCHNITT 6, AUFRAEUMEN
+-------------------------------------------------------------------------------
+BEHOBEN:
+  * form_builder.baue_gruppe(): zwei Kaestchen nebeneinander ergaben EIN
+    Kaestchen. An der Stelle, wo ein Kaestchen keinen Kopf braucht, stand ein
+    break - das zweite wurde nie gebaut, und sein Name fehlte still in der
+    Oberflaeche. Auffallen konnte das erst beim ersten Zugriff, weit weg von
+    der Ursache. Gegengeprueft: mit dem break faellt der neue Test.
+  * Dreiecksraster.svg: die beiden Beschriftungen standen in
+    rgb(237,237,237), also fast weiss - auf hellem Untergrund unsichtbar.
+    Jetzt dasselbe mittlere Grau wie die Gitterlinien (#9299A2), das auf
+    beiden Fassungen liest.
+  * test_halospectrum.py::test_mittelung_beruhigt_das_bild (vorbestehend,
+    seit Beginn der Sitzung rot): der Test verlangte AVERAGE >= 2, also eine
+    bestimmte VORGABE der Klasse. Die steht auf 1, und der Kommentar daneben
+    sagt "1 = jeder fuer sich" - das ist eine Entscheidung, keine Panne. Der
+    Test schaltet die Mittelung jetzt in einer Unterklasse ein, genau wie sein
+    Gegenstueck sie abschaltet. Die Klassenvorgabe bleibt unangetastet.
+
+ENTFERNT, weil niemand es benutzt:
+  Circle2D und bounding_box (app/domain/geometry.py), LayerPattern
+  (app/domain/layer_patterns.py - der Kommentar direkt darunter sagt, dass
+  eine Strategie eine Funktion ist), log_calculation (app/infra/errors.py),
+  backend_available (app/gui/pallet/scene_3d.py), die Stylesheet-Rolle
+  "caption" ohne Traeger, acht ungenutzte Einfuhren in application.py und
+  cup_patterns.py, vier verwaiste .pyc in der Bibliothek (debouncer,
+  formbuilder, windowstate - Module, die 2026-10-31 zurueck nach TRXing
+  gezogen sind; sie liessen jedes grep danebengreifen).
+
+  app/domain/units.py bleibt vollstaendig, auch die acht Umrechnungen ohne
+  Aufrufer: das ist ein Vokabular, kein toter Code. Wer mbar liest und bar
+  braucht, soll die Funktion finden und nicht erfinden.
+
+ZUSAMMENGEFASST:
+  Die sechs Zeilen, die die Bedienspalte auf ihren Inhalt messen, standen in
+  drei Tabs gleich. Sie heissen jetzt window_state.fit_controls_column() -
+  mitsamt der Begruendung, die vorher dreimal danebenstand.
+
+GEMESSEN, was bei jedem Tastendruck laeuft:
+
+     raster_overview (Vorgabeplatte)                0,02 ms
+     raster_overview (SPB1 10 auf 3000 x 3000,
+                      70225 Sauger - der teuerste
+                      Fall, den die Untergrenze
+                      ueberhaupt zulaesst)          3,37 ms
+     Vakuumverlauf, 400 Stuetzstellen               0,65 ms
+     volle Vakuumrechnung, 8 Pakete, 391 Sauger     9,32 ms  (im Hintergrund)
+
+Nichts davon ist eng: der Verlauf laeuft synchron am Schieberegler und
+braucht ein Zwanzigstel des Bildtakts. Optimiert wurde deshalb nichts -
+Tempo, das niemand vermisst, ist kein Grund, Code schwerer lesbar zu machen.

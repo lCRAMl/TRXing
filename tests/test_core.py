@@ -172,6 +172,21 @@ def test_classify_uses_numeric_thresholds():
     assert classify(actual=99.0, required=100.0) is Status.INSUFFICIENT
 
 
+def test_worst_picks_the_worst_not_the_last():
+    """Eine Gesamtbewertung aus Einzelbewertungen ist kein Mittelwert.
+
+    Ein Paket, das faellt, faellt - auch wenn sieben andere halten.
+    """
+    from app.domain.results import worst
+
+    assert worst(Status.SAFE, Status.SAFE) is Status.SAFE
+    assert worst(Status.SAFE, Status.MARGINAL, Status.SAFE) is Status.MARGINAL
+    assert worst(Status.MARGINAL, Status.INSUFFICIENT) is Status.INSUFFICIENT
+    assert worst(Status.INSUFFICIENT, Status.SAFE) is Status.INSUFFICIENT
+    # Keine Befunde heisst nichts zu beanstanden.
+    assert worst() is Status.SAFE
+
+
 # Einheiten und Trace ----------------------------------------------------------
 
 def test_unit_round_trip():

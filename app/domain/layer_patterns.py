@@ -16,7 +16,7 @@ Zusammengelegt aus engines/patterns/{base,strategies,solver}.py.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable, Protocol
+from typing import Callable
 from app.domain.geometry import Footprint
 import math
 import logging
@@ -113,14 +113,6 @@ class PatternLayout:
     @property
     def used_area_mm2(self) -> float:
         return sum(f.length_mm * f.width_mm for f in self.footprints)
-
-
-class LayerPattern(Protocol):
-    """Vertrag eines Musters."""
-
-    pattern_id: str
-
-    def generate(self, request: PatternRequest) -> PatternLayout: ...
 
 
 #: Eine Strategie ist eine Funktion. Klassen waeren hier nur Verpackung - die

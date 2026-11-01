@@ -336,9 +336,3 @@ def install_excepthooks(reporter: ErrorReporter) -> None:
 
     sys.excepthook = handle_main
     threading.excepthook = handle_thread
-
-
-def log_calculation(source: str, trace_summary: str, **context) -> None:
-    """Einheitliche Protokollzeile fuer eine abgeschlossene Berechnung."""
-    parts = " ".join(str(k) + "=" + str(v) for k, v in context.items())
-    logging.getLogger(source).info(trace_summary + (" " + parts if parts else ""))

@@ -30,7 +30,7 @@ from statistics import median
 from app.domain.geometry import Footprint
 from app.domain.package import PackageSpec
 from app.vacuum.models import SuctionCupSpec, SuctionPlacement
-from app.vacuum.models import VacuumPlateSpec
+from app.vacuum.models import SCHMALZ_RASTER, VacuumPlateSpec
 from app.domain.geometry import rect_contains_rect
 from app.domain.layer_patterns import PatternRequest, generate as generate_pattern
 from app.vacuum import cup_patterns
@@ -55,6 +55,23 @@ DEFAULT_ARRANGEMENT = "grid_spread"
 #: Millimeter uebersteht, steht in Wahrheit kantenbuendig - mit der schaerferen
 #: Toleranz faende die Anzeige dort einen Ueberhang, den niemand messen kann.
 PLACEMENT_TOLERANCE_MM = 1e-6
+
+#: Wie weit das Rastermass unter das Saugeraussenmass fallen darf.
+#:
+#: Ein vorgegebenes Rastermass DARF kleiner sein als der Sauger - die Sauger
+#: ueberlappen sich dann, und genau das soll sich ansehen lassen. Beliebig
+#: weit darf es aber nicht: die Zahl der Saugerpositionen waechst mit dem
+#: Quadrat des Kehrwerts. Gemessen mit SPB1 10 (Aussenmass 11,3 mm) auf einer
+#: Platte 3000 x 3000, Dauer von capacity():
+#:
+#:    11,30 mm       80 937 Positionen      7 ms   Sauger stossen aneinander
+#:     5,65 mm      323 219 Positionen     36 ms   diese Grenze
+#:     2,83 mm    1 292 876 Positionen    141 ms
+#:     1,13 mm    8 080 475 Positionen    926 ms
+#:
+#: Dieser Aufruf laeuft bei JEDEM Tastendruck im Eingabefeld und nicht im
+#: Hintergrund. Bei knapp einer Sekunde steht die Anzeige still.
+MIN_PITCH_RATIO = 0.5
 
 #: Schritte der Suche nach dem Rastermass fuer eine gewuenschte Stueckzahl.
 THINNING_ITERATIONS = 40
@@ -109,6 +126,52 @@ class SuctionLayoutEngine:
         if plate.raster_pitch_mm > 0.0:
             return plate.raster_pitch_mm
         return cup.outer_diameter_mm + max(0.0, plate.min_spacing_mm)
+
+    def min_pitch_mm(self, cup: SuctionCupSpec) -> float:
+        """Kleinstes Rastermass, das sich fuer diesen Sauger einstellen laesst.
+
+        Die Haelfte des Aussenmasses - HOECHSTENS aber das kleinste Rastermass
+        der Bauformen. Der zweite Teil ist kein Schoenheitsfehler, sondern der
+        Grund, warum die Grenze zwei Teile hat: ein SPB1 80 ist 88 mm breit,
+        die Haelfte davon sind 44 mm, und damit waere die Bauform 20T fuer ihn
+        nicht mehr waehlbar. Eine Grenze, die eine Bauform sperrt, die es
+        wirklich gibt, waere die Ablehnung durch die Hintertuer.
+
+        Die Rechenlast bleibt trotzdem beschraenkt. Teuer sind nicht die
+        grossen Sauger, sondern die kleinen: die Positionszahl haengt am
+        ABSOLUTEN Rastermass, nicht am Verhaeltnis. Wo die 20 mm greifen, ist
+        das Mass absolut gross genug; wo der Prozentsatz greift, ist der
+        Sauger klein und die Haelfte seines Aussenmasses die eigentliche
+        Bremse. Gemessen ueber den ganzen Katalog auf 3000 x 3000: hoechstens
+        323 219 Positionen, 36 ms - gegenueber 8 080 475 und 926 ms ohne
+        Grenze.
+        """
+        return min(
+            MIN_PITCH_RATIO * cup.outer_diameter_mm,
+            min(pitch_mm for _code, pitch_mm in SCHMALZ_RASTER),
+        )
+
+    def pitch_too_small_note(self, cup: SuctionCupSpec, plate: VacuumPlateSpec) -> str:
+        """Warum unter dieser Grenze nicht mehr gerechnet wird. Leer, wenn alles gut.
+
+        Abgelehnt und nicht zurechtgebogen: ein stilles Anheben waere genau das
+        Antasten des Rastermasses, das an keiner Stelle passieren soll. In der
+        Oberflaeche kommt es dazu gar nicht - dort nimmt das Eingabefeld
+        kleinere Werte schon nicht an. Diese Pruefung faengt den anderen Weg
+        ab: ein Rastermass aus der Konfiguration.
+        """
+        grenze = self.min_pitch_mm(cup)
+        if plate.raster_pitch_mm <= 0.0 or plate.raster_pitch_mm >= grenze - 1e-9:
+            return ""
+        return (
+            "Das Rastermass " + format(plate.raster_pitch_mm, "g") + " mm unterschreitet "
+            "die Grenze von " + format(grenze, ".2f") + " mm fuer diesen Sauger ("
+            + format(MIN_PITCH_RATIO * 100.0, "g") + " Prozent seines Aussenmasses von "
+            + format(cup.outer_diameter_mm, "g") + " mm, hoechstens das kleinste "
+            "Rastermass der Bauformen). Darunter entstehen Hunderttausende von "
+            "Saugerpositionen, deren Berechnung die Anzeige anhaelt - und eine Platte "
+            "ist das ohnehin nicht mehr. Gerechnet wird deshalb nicht."
+        )
 
     def clearance_mm(self, cup: SuctionCupSpec, plate: VacuumPlateSpec) -> float:
         """Lichter Abstand, der sich aus dem Rastermass ergibt.
@@ -198,6 +261,10 @@ class SuctionLayoutEngine:
         Muster. Die Oberflaeche zeigt ihn an, statt ihn nachzurechnen
         (Spezifikation 37).
         """
+        zu_eng = self.pitch_too_small_note(cup, plate)
+        if zu_eng:
+            return 0, (zu_eng,)
+
         request = self._base_request(cup, plate, package_rects)
         if request is None:
             return 0, (_plate_too_small_note(cup, plate),)
@@ -294,6 +361,10 @@ class SuctionLayoutEngine:
         package_rects: tuple[tuple[float, float, float, float], ...] = (),
     ) -> SuctionLayout:
         """Verteilt Sauger. wanted_count 0 bedeutet Hoechstbestueckung."""
+        zu_eng = self.pitch_too_small_note(cup, plate)
+        if zu_eng:
+            return SuctionLayout(arrangement_id=arrangement_id, notes=(zu_eng,))
+
         request = self._base_request(cup, plate, package_rects)
         if request is None:
             return SuctionLayout(

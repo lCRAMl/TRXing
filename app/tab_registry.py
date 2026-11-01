@@ -224,7 +224,8 @@ def default_modules() -> list[CalculationModule]:
     Modulvertrag ohne die Tabs, und Tests koennen ihn pruefen, ohne die ganze
     Oberflaeche zu bauen.
     """
+    from app.gui.evacuation.tab import EvacuationModule
     from app.gui.pallet.tab import PalletModule
     from app.gui.vacuum.tab import VacuumModule
 
-    return [PalletModule(), VacuumModule()]
+    return [PalletModule(), VacuumModule(), EvacuationModule()]

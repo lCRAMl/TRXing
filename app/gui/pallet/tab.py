@@ -47,10 +47,10 @@ from app.gui.theme import ViewMode
 from app.pallet.models import PalletResult, SharedLayer
 from qt_controls_pyrs import (
     CompactButton, CompactDropdown, CompactRadioButton, StaleBanner,
-    WideResultGrid, compact_combo
+    WideResultGrid
 )
 from app.gui.debounce import Debouncer
-from app.gui.window_state import restore_splitter, save_splitter, store
+from app.gui.window_state import fit_controls_column, save_splitter, store
 from app.gui.pallet.form import PackageForm
 from app.tab_registry import TabHost
 from app.gui.theme import PALETTE
@@ -59,19 +59,35 @@ from app.context import AppContext
 from app.gui.pallet.scene_3d import create_scene
 from app.gui.pallet.renderer import Pallet2DView
 from app.gui.form_builder import (
-    Ganzzahl, Gruppe, Hinweis, Oberflaeche, Schalter, Wahl, Zahl, baue
+    Ganzzahl, Gruppe, Oberflaeche, Schalter, Wahl, Zahl, baue
 )
 
 MODULE_ID = "pallet"
 
-#: Anfangsbreite der Bedienspalte und der Zeichenflaeche in Bildpunkten. Der
-#: Qt Designer speichert die Aufteilung eines Splitters nicht, sie muss nach
-#: setupUi gesetzt werden. Verschiebt der Benutzer den Griff, gilt seine
-#: Aufteilung - diese Zahlen sind nur der erste Vorschlag.
-SPLITTER_SIZES = (600, 850)
+#: Anfangsbreite der Zeichenflaeche in Bildpunkten. Die Bedienspalte bekommt
+#: KEINE Zahl mehr: sie ist beim ersten Start genau so breit, wie ihr
+#: breitestes Element sie macht - gemessen in _configure_layout().
+#:
+#: Vorher stand hier ein Paar wie (460, 830). Die 460 waren gemessen, aber am
+#: alten Formular: mit zwei umbrechenden Hinweiszeilen nebeneinander und einem
+#: Auswahlfeld, das nur die halbe Spalte einnahm. Ohne die Hinweise und mit
+#: Zellen, die ihre Zeile ausfuellen, braucht dieselbe Spalte 294 Bildpunkte.
+#: Eine feste Zahl waere ab jetzt bei jeder Formularaenderung wieder falsch.
+VIEW_WIDTH = 850
 
 #: Abschnitt, unter dem sich der Tab die Aufteilung merkt.
 SETTINGS_SECTION = "PalletTab"
+
+#: Schluessel der gemerkten Teilerstellung.
+#:
+#: Nicht mehr der alte "splitter": dort liegt auf jedem Rechner, der das
+#: Programm schon einmal gestartet hat, die Aufteilung des ALTEN Formulars -
+#: 460 bzw. 600 Bildpunkte fuer eine Spalte, die jetzt 294 braucht. Eine
+#: gemerkte Breite gewinnt gegen die Vorgabe, die schmale Spalte waere also
+#: genau dort nicht zu sehen, wo das Programm benutzt wird. Mit einem neuen
+#: Schluessel fangen beide Tabs einmal von vorn an; was der Benutzer danach
+#: zieht, wird wieder gemerkt.
+SPLITTER_KEY = "splitter_narrow_column"
 
 #: Schalterkennungen der Ansichtswahl. Der Qt Designer legt Radioknoepfe an,
 #: aber keine QButtonGroup mit stabilen Nummern; die Zuordnung Nummer -> Modus
@@ -94,8 +110,17 @@ MISSING_PACKAGE = "Die Paketdaten oben sind unvollstaendig oder ungueltig."
 BEDIENSPALTE = [
     Gruppe("Palettenauswahl", [
         [Wahl("pallet_box", "Palettentyp")],
-        [Wahl("pattern_box", "Palettiermuster")],
-        [Hinweis("", name="pattern_hint")],
+        # Der Hinweis ist der Vorbelegungstext des Tooltips. Er TRAEGT NICHT -
+        # die Gegenprobe ohne ihn blieb gruen: compact_combo() wuerde dann den
+        # sichtbaren Eintrag nachfuehren, haengt dafuer aber schon beim Bau am
+        # Signal, waehrend _on_pattern_changed() erst in
+        # _connect() dazukommt und als Letzter schreibt. Der Text steht
+        # trotzdem da, aus zwei Gruenden: bis zur ersten Auswahl waere der
+        # Tooltip sonst leer, und mit ihm schliesst compact_combo() das
+        # Nachfuehren gar nicht erst an - die Beschreibung haengt dann nicht
+        # an der Reihenfolge zweier Verbindungen.
+        [Wahl("pattern_box", "Palettiermuster",
+              hinweis="Das gewaehlte Muster wird hier beschrieben.")],
     ], name="selection_box", oben=True),
 
     # Was zusammengehoert, steht nebeneinander: die beiden Obergrenzen der
@@ -112,8 +137,12 @@ BEDIENSPALTE = [
         [Zahl("gap", "Spalt", "mm", dict(
             min=0.0, max=200.0, stellen=1, schritt=1.0,
             hinweis="Lichter Mindestabstand zwischen zwei Paketen")),
+         # "maximal" und nicht "so viele wie moeglich": das Feld haelt Platz
+         # fuer seinen laengsten Text frei, und der lange kostete 232 statt
+         # 134 Bildpunkten - neben dem Feld "Spalt" war das die breiteste
+         # Zeile der ganzen Spalte und bestimmte deren Breite.
          Ganzzahl("desired", "Stueckzahl", "Stueck", dict(
-            min=0, max=100000, wert=0, null_text="so viele wie moeglich"))],
+            min=0, max=100000, wert=0, null_text="maximal"))],
         [Schalter("use_solver", "Zusaetzlichen Loeser verwenden (langsamer, oft dichter)")],
     ], name="limits_box", oben=True),
 
@@ -269,27 +298,11 @@ class PalletTab(TabHost):
         self.ui.root.setStretch(2, 1)
         self.ui.splitter.setStretchFactor(0, 0)
         self.ui.splitter.setStretchFactor(1, 1)
-        # Zieht der Benutzer den Griff, gilt seine Aufteilung - auch beim
-        # naechsten Start. SPLITTER_SIZES ist nur der erste Vorschlag.
-        restore_splitter(self.ui.splitter, SETTINGS_SECTION, SPLITTER_SIZES)
 
-        # Die Bedienspalte rollt senkrecht - waagerecht nicht. Eine Rollflaeche
-        # gibt die Mindestbreite ihres Inhalts nicht nach aussen weiter; ohne
-        # diese Zeile laesst sich der Griff des Splitters so weit nach links
-        # ziehen, dass Beschriftungen und Ergebniswerte abgeschnitten werden.
-        # Die Breite des senkrechten Rollbalkens kommt dazu, sonst fehlt genau
-        # sie, sobald er erscheint.
-        scroll = self.ui.controls_scroll
-        scroll.setMinimumWidth(
-            self.ui.controls.minimumSizeHint().width()
-            + scroll.verticalScrollBar().sizeHint().width()
+        fit_controls_column(
+            self.ui.splitter, self.ui.controls_scroll, self.ui.controls,
+            VIEW_WIDTH, SETTINGS_SECTION, key=SPLITTER_KEY,
         )
-
-        # Lange Eintraege duerfen die Bedienspalte nicht auseinanderziehen. Die
-        # Groessenrichtlinie steht bereits in der .ui-Datei; compact_combo
-        # ergaenzt den Tooltip, der den vollstaendigen Text zeigt.
-        compact_combo(self.ui.pallet_box)
-        compact_combo(self.ui.pattern_box)
 
         self._view_group = QButtonGroup(self)
         self._view_group.addButton(self.ui.button_2d, VIEW_ID_2D)
@@ -377,7 +390,7 @@ class PalletTab(TabHost):
         if pattern is None:
             return
         self._context.state.set_pattern_id(pattern.id)
-        self.ui.pattern_hint.setText(pattern.description)
+        self.ui.pattern_box.setToolTip(pattern.description)
         self._debouncer.trigger()
 
     def _sync_state_selection(self) -> None:
@@ -596,7 +609,7 @@ class PalletTab(TabHost):
         self._debouncer.flush()
 
     def shutdown(self) -> None:
-        save_splitter(self.ui.splitter, SETTINGS_SECTION)
+        save_splitter(self.ui.splitter, SETTINGS_SECTION, key=SPLITTER_KEY)
         self._package.shutdown()
         self._debouncer.cancel()
         self._service.cancel()

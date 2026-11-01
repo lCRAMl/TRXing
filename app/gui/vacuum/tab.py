@@ -41,34 +41,46 @@ from PyQt6.QtWidgets import (
 from app.domain.results import Status, classify
 from app.domain.units import m3s_to_m3h, mbar_to_pa, pa_to_mbar
 from app.vacuum.models import RestrictorMode, RestrictorSpec
-from app.vacuum.models import GripDirection, LeakageSpec, VacuumInput, VacuumPlateSpec, VacuumResult
+from app.vacuum.models import GripDirection, LeakageSpec, SharedPlate
+from app.vacuum.models import VacuumInput, VacuumPlateSpec, VacuumResult
 from qt_controls_pyrs import CompactResultGrid, StaleBanner, compact_combo
 from app.gui.debounce import Debouncer
-from app.gui.window_state import restore_splitter, save_splitter, store
+from app.gui.window_state import fit_controls_column, save_splitter, store
 from app.tab_registry import TabHost
 from app.gui.theme import PALETTE
 from app.domain.state import AppStateSnapshot, StateChange
 from app.context import AppContext
 from app.gui.vacuum.renderer import Vacuum2DView
 from app.gui.form_builder import (
-    Ganzzahl, Gruppe, Hinweis, Oberflaeche, Schalter, Wahl, Zahl, baue
+    Ganzzahl, Gruppe, Oberflaeche, Schalter, Wahl, Zahl, baue
 )
 
 MODULE_ID = "vacuum"
 
-#: Anfangsbreite von Bedienspalte und Zeichenflaeche. Der Qt Designer speichert
-#: die Aufteilung eines Splitters nicht; sie wird nach setupUi gesetzt und gilt
-#: nur, bis der Benutzer den Griff verschiebt.
+#: Anfangsbreite der Zeichenflaeche in Bildpunkten. Die Bedienspalte bekommt
+#: KEINE Zahl mehr: sie ist beim ersten Start genau so breit, wie ihr
+#: breitestes Element sie macht - gemessen in _configure_layout().
 #:
-#: Die 460 sind gemessen, nicht geschaetzt: die breiteste Zeile der Bedienspalte
-#: ist das Kontrollkaestchen "Arbeitspunkt loesen statt Sollvakuum annehmen"
-#: neben seiner Beschriftungsspalte. Bleibt darunter, erscheint schon beim
-#: Start ein waagerechter Rollbalken - bei einer Spalte, die ohnehin senkrecht
-#: rollt, sieht das nach einem Fehler aus.
-SPLITTER_SIZES = (460, 830)
+#: Vorher stand hier ein Paar wie (460, 830). Die 460 waren gemessen, aber am
+#: alten Formular: mit zwei umbrechenden Hinweiszeilen nebeneinander und einem
+#: Auswahlfeld, das nur die halbe Spalte einnahm. Ohne die Hinweise und mit
+#: Zellen, die ihre Zeile ausfuellen, braucht dieselbe Spalte 294 Bildpunkte.
+#: Eine feste Zahl waere ab jetzt bei jeder Formularaenderung wieder falsch.
+VIEW_WIDTH = 830
 
 #: Abschnitt, unter dem sich der Tab die Aufteilung merkt.
 SETTINGS_SECTION = "VacuumTab"
+
+#: Schluessel der gemerkten Teilerstellung.
+#:
+#: Nicht mehr der alte "splitter": dort liegt auf jedem Rechner, der das
+#: Programm schon einmal gestartet hat, die Aufteilung des ALTEN Formulars -
+#: 460 bzw. 600 Bildpunkte fuer eine Spalte, die jetzt 294 braucht. Eine
+#: gemerkte Breite gewinnt gegen die Vorgabe, die schmale Spalte waere also
+#: genau dort nicht zu sehen, wo das Programm benutzt wird. Mit einem neuen
+#: Schluessel fangen beide Tabs einmal von vorn an; was der Benutzer danach
+#: zieht, wird wieder gemerkt.
+SPLITTER_KEY = "splitter_narrow_column"
 
 class EinspaltigesRaster(CompactResultGrid):
     """Ergebniswerte untereinander statt nebeneinander.
@@ -131,7 +143,6 @@ def _ampel(vorhanden: float, noetig: float) -> str:
 BEDIENSPALTE = [
     Gruppe("Platte und Sauger", [
         [Wahl("cup_box", "Sauger-Typ")],
-        #[Hinweis("", name="cup_info")],
         # Laenge und Breite gehoeren in eine Zeile, Randabstand und
         # Rastermass in die naechste: beides sind Paare, die man zusammen
         # einstellt und zusammen liest.
@@ -144,7 +155,7 @@ BEDIENSPALTE = [
         # in anderer Schreibweise und damit ein zweites Feld fuer eine Sache.
         # Schmalz kennzeichnet seine Bauformen ueber den Mittenabstand
         # (20T/30T/45T), also tut es das Formular auch. Der lichte Abstand
-        # steht jetzt als ERGEBNIS im Hinweis unter der Saugeranzahl.
+        # steht jetzt als ERGEBNIS rechts in der Ergebnisanzeige.
         [Zahl("edge_margin", "Randabstand", "mm",
               dict(min=0.0, max=500.0, stellen=0, schritt=5.0)),
          Zahl("raster_pitch", "Rastermass", "mm", dict(
@@ -153,11 +164,22 @@ BEDIENSPALTE = [
                     "Kleiner als das Saugeraussenmass ist erlaubt - die\n"
                     "Sauger ueberlappen sich dann, und es gibt eine Warnung."))],
         [Wahl("raster_box", "Bauform des Rasters")],
-        [Wahl("arrangement_box", "Saugermuster")],
-        [Hinweis("", name="arrangement_info")],
+        # Der Hinweis ist der Vorbelegungstext des Tooltips. Er TRAEGT NICHT -
+        # die Gegenprobe ohne ihn blieb gruen: compact_combo() wuerde dann den
+        # sichtbaren Eintrag nachfuehren, haengt dafuer aber schon beim Bau am
+        # Signal, waehrend _on_arrangement_changed() erst in
+        # _connect() dazukommt und als Letzter schreibt. Der Text steht
+        # trotzdem da, aus zwei Gruenden: bis zur ersten Auswahl waere der
+        # Tooltip sonst leer, und mit ihm schliesst compact_combo() das
+        # Nachfuehren gar nicht erst an - die Beschreibung haengt dann nicht
+        # an der Reihenfolge zweier Verbindungen.
+        [Wahl("arrangement_box", "Saugermuster",
+              hinweis="Das gewaehlte Muster wird hier beschrieben.")],
+        # "automatisch" und nicht "automatisch (maximal)": das Feld haelt
+        # Platz fuer seinen laengsten Text frei, und die Klammer kostete
+        # 232 statt 162 Bildpunkte.
         [Ganzzahl("cup_count", "Saugeranzahl", "Stueck", dict(
-            min=0, max=20000, wert=0, null_text="automatisch (maximal)"))],
-        [Hinweis("", name="cup_limit")],
+            min=0, max=20000, wert=0, null_text="automatisch"))],
     ], name="plate_box", oben=True),
 
     Gruppe("Pakete", [
@@ -168,19 +190,28 @@ BEDIENSPALTE = [
                   hinweis="Ordnet die Pakete nach dem in der Palettierung "
                           "gewaehlten Muster an.\n"
                           "Aus: gleichmaessiges Raster.")],
-        #[Hinweis("", name="package_info")],
     ], name="package_box", oben=True),
 
     Gruppe("Vakuum und Sicherheit", [
-        # Vakuum und Volumenstrom sind die beiden Kennwerte des Erzeugers -
-        # sie gehoeren nebeneinander.
-        [Zahl("vacuum", "Vakuum", "mbar", dict(
+        # Der Arbeitspunkt des Erzeugers: ein Paar aus Saugvermoegen und
+        # Endvakuum. Das Auswahlfeld setzt beide Zahlen, die Felder bleiben
+        # frei - wer eigene Werte tippt, bekommt "frei eingestellt".
+        [Wahl("pump_box", "Vakuumerzeuger", zeichen=18,
+              hinweis="Arbeitspunkte der Schmalz-Seitenkanalgeblaese bei 50 Hz.\n"
+                      "Saugvermoegen und Endvakuum gehoeren je Geraet zusammen:\n"
+                      "510 m3/h gibt es bei 200 UND bei 390 mbar.")],
+        [Zahl("flow", "Saugvermoegen", "m3/h", dict(
+            min=0.0, max=2000.0, stellen=2, schritt=10.0,
+            hinweis="Saugvermoegen des Erzeugers bei geringem Unterdruck.")),
+         Zahl("end_vacuum", "Endvakuum", "mbar", dict(
+            min=10.0, max=1000.0, stellen=0, schritt=5.0,
+            hinweis="Hoechstes Vakuum, das der Erzeuger erreicht.\n"
+                    "Es deckelt das Sollvakuum: mehr geht nicht."))],
+        [Zahl("vacuum", "Sollvakuum", "mbar", dict(
             min=10.0, max=1000.0, stellen=0, schritt=25.0,
-            hinweis="Unterdruck gegenueber der Umgebung. "
-                    "Datenblattwerte gelten bei 600 mbar.")),
-         Zahl("flow", "Volumenstrom", "m3/h", dict(
-            min=0.0, max=1000.0, stellen=2, schritt=1.0,
-            hinweis="Nennvolumenstrom des Erzeugers bei geringem Unterdruck."))],
+            hinweis="Unterdruck, mit dem gerechnet werden soll. Die Wahl eines\n"
+                    "Arbeitspunkts zieht ihn auf dessen Endvakuum nach - mehr\n"
+                    "kann man von dem Geraet nicht verlangen."))],
         [Wahl("restrictor_box", "Absperrung je Sauger",
               hinweis="Absperrung je Saugerposition. Ohne Begrenzung reissen unbelegte Sauger\n"
                           "das Vakuum der ganzen Platte ein. Keine Datenblattangabe.")],
@@ -219,25 +250,33 @@ BEDIENSPALTE = [
 #: neben dem Fortschritt, den er abbricht (siehe app/gui/notifications.py).
 ]
 
-def _raster_text(cup, raster) -> str:
-    """Was unter der Saugeranzahl steht.
+def _raster_rows(cup, raster) -> tuple[tuple[str, str, str], ...]:
+    """Was das Raster kostet, als Zeilen der Ergebnisanzeige.
 
-    Drei Angaben in einer Zeile: das Rastermass, der daraus folgende lichte
-    Abstand und die Hoechstzahl. Der lichte Abstand ist hier ein ERGEBNIS und
-    keine Eingabe mehr - wird er negativ, ueberlappen sich die Sauger, und
-    dann steht dort die Ueberlappung statt einer Luecke.
+    Drei Angaben: das Rastermass mit dem Saugeraussenmass dahinter, der
+    daraus folgende lichte Abstand und die Hoechstzahl. Der lichte Abstand
+    ist ein ERGEBNIS und keine Eingabe - wird er negativ, ueberlappen sich
+    die Sauger, und dann steht dort die Ueberlappung statt einer Luecke.
 
-    Gerechnet wird nichts: beide Zahlen kommen fertig aus der Engine
-    (Spezifikation 37), hier werden sie nur benannt.
+    Bis zum 2026-11-01 stand das als Hinweiszeile unter der Saugeranzahl.
+    Dort kostete es Breite in der Bedienspalte, und zwar die teuerste: ein
+    umbrechender Hinweis verlangt 240 Bildpunkte, zweimal nebeneinander hielt
+    er die Spalte bei 386. Im Ergebnisraster rechts kostet er keine.
+
+    Gerechnet wird nichts: die Zahlen kommen fertig aus der Engine
+    (Spezifikation 37), hier werden sie nur benannt. Je Zeile
+    (Name, Wert, Farbe) - die leere Farbe heisst "wie der uebrige Text".
     """
     if raster.clearance_mm < 0.0:
-        luft = "Ueberlappung " + format(-raster.clearance_mm, ".1f") + " mm (!)"
+        luft = ("Ueberlappung " + format(-raster.clearance_mm, ".1f") + " mm",
+                PALETTE.warning)
     else:
-        luft = "lichter Abstand " + format(raster.clearance_mm, ".1f") + " mm"
+        luft = (format(raster.clearance_mm, ".1f") + " mm", "")
     return (
-        "Rastermass " + format(raster.pitch_mm, "g") + " mm minus Aussenmass "
-        + format(cup.outer_diameter_mm, "g") + " mm  =  " + luft
-        + "   |   hoechstens " + str(raster.max_cup_count) + " Sauger auf der Platte."
+        ("pitch", format(raster.pitch_mm, "g") + " mm  (Aussenmass "
+                  + format(cup.outer_diameter_mm, "g") + " mm)", ""),
+        ("clearance", luft[0], luft[1]),
+        ("cup_max", str(raster.max_cup_count) + " Stueck", ""),
     )
 
 
@@ -249,6 +288,13 @@ def _raster_text(cup, raster) -> str:
 RASTER_AUTOMATISCH = -1.0
 RASTER_FREI = -2.0
 
+#: Kennzahl des Eintrags "frei eingestellt" im Erzeugerfeld.
+#:
+#: Die uebrigen Eintraege tragen ihren Platz in SCHMALZ_OPERATING_POINTS als
+#: Kennzahl. Ein Paar liesse sich nicht als currentData() vergleichen, ohne
+#: zwei Gleitkommazahlen auf Gleichheit zu pruefen - der Platz ist eindeutig.
+PUMP_FREI = -1
+
 
 #: Die Zeilen der beiden Ergebnisanzeigen. None ist eine Trennlinie.
 ERGEBNISZEILEN = [
@@ -258,13 +304,19 @@ ERGEBNISZEILEN = [
     ("needed_cups", "Benoetigte wirksame Sauger"),
     None,
     ("arrangement", "Saugermuster"),
+    # Die drei Rasterzeilen fuellt NICHT die Rechnung, sondern
+    # _update_cup_limit() bei jeder Eingabe - sie sind Geometrie der Platte
+    # und stehen deshalb schon da, bevor gerechnet wurde.
+    ("pitch", "Rastermass"),
+    ("clearance", "Lichter Abstand"),
+    ("cup_max", "Sauger hoechstens"),
     ("cups_total", "Sauger gesamt"),
     ("cups_sealed", "Wirksame Sauger"),
     ("cups_partial", "Teilweise aufliegend"),
     ("cups_open", "Offene Sauger"),
     ("area", "Effektive Saugflaeche"),
     None,
-    ("packages", "Pakete unter der Platte"),
+    ("packages", "Pakete, davon tragend"),
 ]
 
 STROMZEILEN = [
@@ -293,6 +345,12 @@ class VacuumTab(TabHost):
         self._result: VacuumResult | None = None
         self._result_revision = -1
         self._needs_recalculation = False
+        #: Die drei Rasterzeilen der Ergebnisanzeige, zuletzt gesetzt von
+        #: _update_cup_limit(). Leer, bis ein Sauger gewaehlt ist.
+        self._raster_values: tuple[tuple[str, str, str], ...] = ()
+        #: Die zuletzt abgeschickte Anfrage. Sie geht mit dem Ergebnis an den
+        #: Vakuumverlauf - ohne sie fehlten ihm Sauger, Leckage und Erzeuger.
+        self._request: VacuumInput | None = None
         self._debouncer = Debouncer(self.calculate, context.debounce_ms, self)
 
         # Zusammensetzung statt Vererbung: die aus der Layoutdatei erzeugten
@@ -371,19 +429,10 @@ class VacuumTab(TabHost):
         self.ui.root.setStretch(1, 1)
         self.ui.splitter.setStretchFactor(0, 0)
         self.ui.splitter.setStretchFactor(1, 1)
-        # Zieht der Benutzer den Griff, gilt seine Aufteilung - auch beim
-        # naechsten Start. SPLITTER_SIZES ist nur der erste Vorschlag.
-        restore_splitter(self.ui.splitter, SETTINGS_SECTION, SPLITTER_SIZES)
 
-        # Die Bedienspalte rollt senkrecht - waagerecht nicht. Eine Rollflaeche
-        # gibt die Mindestbreite ihres Inhalts nicht nach aussen weiter; ohne
-        # diese Zeile laesst sich der Griff so weit nach links ziehen, dass
-        # Beschriftungen abgeschnitten werden. Stand frueher als minimumSize
-        # in der .ui-Datei und ist beim Umzug einmal verlorengegangen.
-        scroll = self.ui.controls_scroll
-        scroll.setMinimumWidth(
-            self.ui.controls.minimumSizeHint().width()
-            + scroll.verticalScrollBar().sizeHint().width()
+        fit_controls_column(
+            self.ui.splitter, self.ui.controls_scroll, self.ui.controls,
+            VIEW_WIDTH, SETTINGS_SECTION, key=SPLITTER_KEY,
         )
 
         # Lange Eintraege duerfen die Bedienspalte nicht auseinanderziehen; die
@@ -419,8 +468,14 @@ class VacuumTab(TabHost):
             field.value_changed.connect(self._on_plate_changed)
 
         self.ui.raster_box.currentIndexChanged.connect(self._on_raster_box_changed)
+        self.ui.pump_box.currentIndexChanged.connect(self._on_pump_box_changed)
 
-        for field in (self.ui.cup_count, self.ui.package_count, self.ui.vacuum, self.ui.flow,
+        # Die beiden Kennwerte des Erzeugers fuehren das Auswahlfeld nach -
+        # sie brauchen deshalb einen eigenen Weg, nicht nur die Neuberechnung.
+        for field in (self.ui.flow, self.ui.end_vacuum):
+            field.value_changed.connect(self._on_pump_values_changed)
+
+        for field in (self.ui.cup_count, self.ui.package_count, self.ui.vacuum,
                       self.ui.permeability, self.ui.safety, self.ui.acceleration, self.ui.friction):
             field.value_changed.connect(lambda *_: self._debouncer.trigger())
 
@@ -462,6 +517,17 @@ class VacuumTab(TabHost):
         self.ui.raster_box.addItem("frei eingestellt", RASTER_FREI)
         self.ui.raster_box.blockSignals(False)
 
+        self.ui.pump_box.blockSignals(True)
+        self.ui.pump_box.clear()
+        for nummer, (strom_m3h, vakuum_mbar) in enumerate(
+                self._service.available_operating_points()):
+            self.ui.pump_box.addItem(
+                format(strom_m3h, "g") + " m3/h bei " + format(vakuum_mbar, "g") + " mbar",
+                nummer,
+            )
+        self.ui.pump_box.addItem("frei eingestellt", PUMP_FREI)
+        self.ui.pump_box.blockSignals(False)
+
         self.ui.restrictor_box.blockSignals(True)
         self.ui.restrictor_box.clear()
         for mode in RestrictorMode:
@@ -491,6 +557,8 @@ class VacuumTab(TabHost):
         self.ui.edge_margin.set_value(defaults.plate.edge_margin_mm)
         self.ui.vacuum.set_value(pa_to_mbar(defaults.target_vacuum_pa))
         self.ui.flow.set_value(m3s_to_m3h(defaults.pump.nominal_flow_m3s))
+        self.ui.end_vacuum.set_value(pa_to_mbar(defaults.pump.max_vacuum_pa))
+        self._show_pump_box()
         self.ui.safety.set_value(defaults.safety_factor)
         self.ui.acceleration.set_value(defaults.acceleration_ms2)
         self.ui.friction.set_value(defaults.friction_factor)
@@ -550,14 +618,6 @@ class VacuumTab(TabHost):
         if cup is None:
             return
         self._context.state.set_suction_cup_id(cup.id)
-        # self.ui.cup_info.setText(
-        #     "Datenblatt: " + format(cup.theoretical_force_n, "g") + " N bei -"
-        #     + format(pa_to_mbar(cup.reference_vacuum_pa) / 1000.0, ".1f").replace(".", ",") + " bar   |   "
-        #     "Dichtlippe " + format(cup.sealing_lip_diameter_mm, "g") + " mm   |   "
-        #     "Aussen unter Vakuum " + format(cup.outer_diameter_mm, "g") + " mm   |   "
-        #     "Bohrung " + format(cup.bore_diameter_mm, "g") + " mm   |   "
-        #     "Abreisskraft " + format(cup.pull_off_force_n, "g") + " N"
-        # )
         self._select_automatic_raster()
         self._update_cup_limit()
         self._debouncer.trigger()
@@ -621,6 +681,69 @@ class VacuumTab(TabHost):
         self.ui.raster_box.setCurrentIndex(index)
         self.ui.raster_box.blockSignals(False)
 
+    def _on_pump_box_changed(self, *_args) -> None:
+        """Ein Arbeitspunkt gewaehlt: beide Kennwerte nachziehen.
+
+        Das Sollvakuum geht mit. Kein Geraet der Liste schafft mehr als
+        445 mbar; bliebe das Sollvakuum auf seinen 600 stehen, stuende bei
+        JEDER Rechnung die Warnung "Sollvakuum wird nicht erreicht" im
+        Protokoll - und eine Warnung, die immer kommt, liest niemand mehr.
+        Das Feld bleibt frei: wer mit weniger rechnen will, stellt weniger ein.
+
+        "frei eingestellt" ist kein Arbeitspunkt, sondern die Anzeige dafuer,
+        dass die Zahlen von Hand kommen - da bleiben die Felder unberuehrt.
+        """
+        nummer = self.ui.pump_box.currentData()
+        if nummer is None or nummer == PUMP_FREI:
+            return
+        punkte = self._service.available_operating_points()
+        if not 0 <= nummer < len(punkte):
+            return
+        strom_m3h, vakuum_mbar = punkte[nummer]
+        for feld, wert in ((self.ui.flow, strom_m3h),
+                           (self.ui.end_vacuum, vakuum_mbar),
+                           (self.ui.vacuum, vakuum_mbar)):
+            feld.blockSignals(True)
+            feld.set_value(wert)
+            feld.blockSignals(False)
+        self._debouncer.trigger()
+
+    def _on_pump_values_changed(self, *_args) -> None:
+        self._show_pump_box()
+        self._debouncer.trigger()
+
+    def _show_pump_box(self) -> None:
+        """Stellt im Auswahlfeld den Arbeitspunkt ein, der zu den Zahlen passt.
+
+        Verglichen werden die ZAHLEN und kein gemerkter Zustand - wie beim
+        Rastermass. Damit stimmt die Anzeige auch, wenn die Werte aus der
+        Konfiguration kommen, und von Hand getippte 510 bei 390 heissen auch
+        so, egal wie sie zustande kamen.
+
+        Verglichen wird auf die halbe Anzeigestelle genau: das Stromfeld
+        fuehrt zwei Nachkommastellen, 510 m3/h liegen dort als 510,00, und
+        ein Arbeitspunkt aus einer Konfiguration mit 0,14166667 m3/s ergibt
+        510,000012. Ein exakter Vergleich waere immer ungleich.
+        """
+        strom = self.ui.flow.value()
+        vakuum = self.ui.end_vacuum.value()
+        strom_genau = 10.0 ** -self.ui.flow.spin.decimals() / 2.0
+        vakuum_genau = 10.0 ** -self.ui.end_vacuum.spin.decimals() / 2.0
+
+        kennung = PUMP_FREI
+        for nummer, (strom_m3h, vakuum_mbar) in enumerate(
+                self._service.available_operating_points()):
+            if abs(strom - strom_m3h) <= strom_genau and abs(vakuum - vakuum_mbar) <= vakuum_genau:
+                kennung = nummer
+                break
+
+        index = self.ui.pump_box.findData(kennung)
+        if index < 0:
+            return
+        self.ui.pump_box.blockSignals(True)
+        self.ui.pump_box.setCurrentIndex(index)
+        self.ui.pump_box.blockSignals(False)
+
     def _on_plate_changed(self, *_args) -> None:
         self._context.state.notify_plate_changed()
         self._update_cup_limit()
@@ -633,7 +756,7 @@ class VacuumTab(TabHost):
         strategy_id = self._current_arrangement()
         for known_id, _label, description in self._service.available_arrangements():
             if known_id == strategy_id:
-                self.ui.arrangement_info.setText(description)
+                self.ui.arrangement_box.setToolTip(description)
                 break
         self._update_cup_limit()
         self._debouncer.trigger()
@@ -671,9 +794,37 @@ class VacuumTab(TabHost):
         raster = self._service.raster_overview(
             cup, self._current_plate(), self._current_arrangement()
         )
+        # Untergrenze des Eingabefelds. Sie haengt am Sauger, deshalb hier und
+        # nicht in der Formularbeschreibung. Nur setzen, wenn sie sich wirklich
+        # aendert: setRange() zieht einen zu kleinen Wert nach und loest dabei
+        # value_changed aus - das liefe sonst bei jedem Durchlauf erneut.
+        #
+        # Verglichen wird mit der AUFLOESUNG des Feldes und nicht auf die
+        # Stelle genau. Das Feld fuehrt eine Nachkommastelle und speichert
+        # eine Grenze von 5,65 mm als 5,70; ein exakter Vergleich waere
+        # dadurch immer ungleich, und setRange() liefe bei jedem Durchlauf.
+        # Die 0,05 mm mehr sind unschaedlich - sie machen die Grenze um eine
+        # halbe Anzeigestelle strenger, nicht lockerer.
+        aufloesung = 10.0 ** -self.ui.raster_pitch.spin.decimals() / 2.0
+        if raster.min_pitch_mm > 0.0 and \
+                abs(self.ui.raster_pitch.spin.minimum() - raster.min_pitch_mm) > aufloesung:
+            self.ui.raster_pitch.configure(minimum=raster.min_pitch_mm)
+
         self._show_raster_box(raster)
         self.ui.cup_count.set_maximum(max(0, raster.max_cup_count))
-        self.ui.cup_limit.setText(_raster_text(cup, raster))
+        self._raster_values = _raster_rows(cup, raster)
+        self._show_raster_values()
+
+    def _show_raster_values(self) -> None:
+        """Schreibt die gemerkten Rasterwerte in die Ergebnisanzeige.
+
+        Gemerkt, weil clear_values() beim Fehlschlag der Rechnung ALLE Zeilen
+        leert - auch diese drei, die mit der Rechnung nichts zu tun haben. Sie
+        kaemen sonst erst beim naechsten Tastendruck in einem Plattenmass
+        wieder, und bis dahin stuende dort nichts, obwohl das Raster feststeht.
+        """
+        for name, wert, farbe in self._raster_values:
+            self.ui.results.set_value(name, wert, farbe)
 
     # Berechnung ---------------------------------------------------------------
 
@@ -709,24 +860,6 @@ class VacuumTab(TabHost):
         count = self.ui.package_count.value()
         if layer is not None and layer.footprints:
             layer_footprints = layer.footprints
-        #     if count <= layer.count:
-        #         self.ui.package_info.setText(
-        #             "Ebene " + str(layer.layer_index + 1) + " aus der Palettierung"
-        #             + (" ('" + layer.pattern_name + "')" if layer.pattern_name else "")
-        #             + ": " + str(count) + " von " + str(layer.count) + " Paketen."
-        #         )
-        #     else:
-        #         self.ui.package_info.setText(
-        #             "Die Ebene hat " + str(layer.count) + " Pakete - fuer " + str(count)
-        #             + " wird nach Muster angeordnet, nicht mehr wie auf der Palette."
-        #         )
-        # elif adopt:
-        #     self.ui.package_info.setText(
-        #         "Noch keine Lage aus der Palettierung - dort zuerst berechnen. "
-        #         "Angeordnet wird solange als gleichmaessiges Raster."
-        #     )
-        # else:
-        #     self.ui.package_info.setText("Anordnung als gleichmaessiges Raster.")
 
         request = VacuumInput(
             package=package,
@@ -739,7 +872,11 @@ class VacuumTab(TabHost):
             arrangement_id=self._current_arrangement(),
             target_vacuum_pa=mbar_to_pa(self.ui.vacuum.value()),
             ambient_pa=self._defaults.ambient_pa,
-            pump=replace(self._defaults.pump, nominal_flow_m3s=self.ui.flow.value() / 3600.0),
+            pump=replace(
+                self._defaults.pump,
+                nominal_flow_m3s=self.ui.flow.value() / 3600.0,
+                max_vacuum_pa=mbar_to_pa(self.ui.end_vacuum.value()),
+            ),
             leakage=self._current_leakage(),
             restrictor=RestrictorSpec(
                 mode=RestrictorMode(self.ui.restrictor_box.currentData()),
@@ -754,6 +891,7 @@ class VacuumTab(TabHost):
             count_partial_as_sealed=self.ui.partial_counts.isChecked(),
             solve_operating_point=self.ui.solve_point.isChecked(),
         )
+        self._request = request
         self._service.calculate_async(request, snapshot.revision)
 
     def _on_started(self, _ticket) -> None:
@@ -768,10 +906,15 @@ class VacuumTab(TabHost):
         self.ui.banner.hide_message()
         self.ui.view.set_result(result)
         self._show_result(result)
+        # Die fertige Platte fuer den Vakuumverlauf bereitlegen - mit der
+        # Anfrage, denn der Verlauf braucht Sauger, Leckage und Erzeuger.
+        self._service.publish_plate(SharedPlate(request=self._request, result=result))
 
     def _on_failed(self, message: str) -> None:
         self.ui.results.clear_values()
         self.ui.flow_results.clear_values()
+        self._show_raster_values()
+        self._service.publish_plate(None)
         self.ui.banner.show_message(message)
 
     # Anzeige ------------------------------------------------------------------
@@ -793,7 +936,10 @@ class VacuumTab(TabHost):
         )
 
         grid.set_value("arrangement", self.ui.arrangement_box.currentText())
-        grid.set_value("cups_total", str(result.total_cup_count) + " von max. " + str(result.max_cup_count))
+        # Nur die Zahl. Das "von max. N" stand hier, solange die Hoechstzahl
+        # sonst nirgends auftauchte; seit sie eine eigene Zeile direkt
+        # darueber hat, stuenden in zwei Zeilen untereinander dieselben 391.
+        grid.set_value("cups_total", str(result.total_cup_count))
         grid.set_value("cups_sealed", str(result.sealed_count),
                        _ampel(result.sealed_count, result.required_cup_count))
         grid.set_value("cups_partial", str(result.partial_count),
@@ -801,7 +947,18 @@ class VacuumTab(TabHost):
         grid.set_value("cups_open", str(result.open_count), PALETTE.error if result.open_count else "")
         grid.set_value("area", format(result.effective_area_mm2 / 100.0, ".1f") + " cm2")
 
-        grid.set_value("packages", str(len(result.package_rects)))
+        # Zwei Zahlen in einer Zeile, weil die zweite die erste erklaert:
+        # sie ist der Grund, wenn die Bewertung schlechter ausfaellt, als die
+        # Zeilen darueber erwarten lassen. "Max. Paketgewicht 258 kg" neben
+        # "Nicht ausreichend" sieht sonst nach einem Widerspruch aus - es ist
+        # aber die Summe ueber alle Sauger, und die haengt nicht ueber jedem
+        # Paket.
+        gesamt = len(result.package_rects)
+        tragend = result.bearing_package_count
+        grid.set_value(
+            "packages", str(gesamt) + " / " + str(tragend),
+            PALETTE.error if tragend < gesamt else "",
+        )
 
         flows = self.ui.flow_results
         reached_target = result.achieved_vacuum_pa >= result.target_vacuum_pa - 1.0
@@ -878,7 +1035,7 @@ class VacuumTab(TabHost):
         self._debouncer.flush()
 
     def shutdown(self) -> None:
-        save_splitter(self.ui.splitter, SETTINGS_SECTION)
+        save_splitter(self.ui.splitter, SETTINGS_SECTION, key=SPLITTER_KEY)
         self._debouncer.cancel()
         self._service.cancel()
 

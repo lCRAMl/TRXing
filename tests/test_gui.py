@@ -25,6 +25,7 @@ pytestmark = pytest.mark.usefixtures("qt_app")
 #: sitzen, sind es zwei - und der Umzug soll an einer Stelle nachzuziehen sein.
 TAB_PALLET = 0
 TAB_VACUUM = 1
+TAB_EVACUATION = 2
 
 
 @pytest.fixture
@@ -64,7 +65,7 @@ def _settle(qt_app, application, timeout_s: float = 10.0) -> None:
 def test_application_starts(application):
     assert application.context is not None
     assert application.registry is not None
-    assert len(application.registry) == 2
+    assert len(application.registry) == 3
 
 
 def test_status_report_is_complete(application):
@@ -72,13 +73,15 @@ def test_status_report_is_complete(application):
     assert report["config_ok"] is True
     assert report["pallets"] >= 4
     assert report["suction_cups"] >= 24
-    assert report["modules"] == ["pallet", "vacuum"]
+    assert report["modules"] == ["pallet", "vacuum", "evacuation"]
 
 
-def test_both_tabs_appear(window):
+def test_every_tab_appears(window):
     tabs = window.centralWidget()
-    assert tabs.count() == 2
-    assert [tabs.tabText(i) for i in range(2)] == ["Palettierung", "Vakuumplatte"]
+    assert tabs.count() == 3
+    assert [tabs.tabText(i) for i in range(3)] == [
+        "Palettierung", "Vakuumplatte", "Vakuumverlauf",
+    ]
 
 
 def test_no_tab_failed_to_build(window, application):
@@ -259,23 +262,6 @@ def test_vacuum_tab_calculates(window, application, qt_app):
     assert tab._result is not None
     assert tab.ui.results._rows["status"].text() in ("Sicher", "Grenzwertig", "Nicht ausreichend")
     assert tab.ui.results._rows["cups_total"].text()
-
-
-def test_vacuum_shows_the_datasheet_values_of_the_cup(window, application, qt_app):
-    """Die Datenblattangaben stehen am Saugerfeld.
-
-    Der frueher danebenstehende Kasten "Annahmen und Herkunft der Werte" ist
-    entfallen; die Annahmen des Rechenmodells fuehrt weiterhin der Rechenweg,
-    nachzulesen unter Hilfe - Rechenwege und Formeln.
-    """
-    tab = window._tab_manager.widget_for("vacuum")
-    tab.calculate()
-    _settle(qt_app, application)
-
-    info = tab.ui.cup_info.text()
-    assert "Datenblatt" in info
-    assert "Dichtlippe" in info
-    assert "Abreisskraft" in info
 
 
 def test_vacuum_result_is_split_over_two_columns(window, application, qt_app):
@@ -610,13 +596,16 @@ def test_the_icon_travels_with_the_package():
     assert "app/gui/icons" in bundled, "Der Symbolordner fehlt in DATA_FILES"
 
 
-def test_the_raster_field_says_what_it_costs(window, qt_app):
-    """Unter der Saugeranzahl steht, was das Rastermass bedeutet.
+def test_the_result_says_what_the_raster_costs(window, qt_app):
+    """Im Ergebnis steht, was das Rastermass bedeutet.
 
     Die haeufigste Frage an dieser Platte ist, warum die Sauger in der
-    Zeichnung nicht aneinanderstossen. Die Antwort ist diese Zeile - und sie
-    ueberzeugt erst mit den Zahlen: Rastermass minus Aussenmass ergibt den
-    lichten Abstand, daneben die Hoechstzahl.
+    Zeichnung nicht aneinanderstossen. Die Antwort sind diese drei Zeilen -
+    und sie ueberzeugen erst mit den Zahlen: Rastermass minus Aussenmass
+    ergibt den lichten Abstand, dazu die Hoechstzahl.
+
+    Bis zum 2026-11-01 stand das als Hinweiszeile unter der Saugeranzahl.
+    Dort kostete es die Bedienspalte 240 Bildpunkte Mindestbreite.
     """
     tab = window._tab_manager.widget_for("vacuum")
     tab.ui.cup_box.setCurrentIndex(tab.ui.cup_box.findData("spb2_25"))
@@ -624,10 +613,35 @@ def test_the_raster_field_says_what_it_costs(window, qt_app):
 
     tab.ui.raster_pitch.spin.setValue(30.0)
     qt_app.processEvents()
-    text = tab.ui.cup_limit.text()
-    assert "30 mm" in text and "28 mm" in text, text
-    assert "lichter Abstand 2.0 mm" in text, text
-    assert "hoechstens" in text, text
+
+    zeilen = tab.ui.results._rows
+    mass = zeilen["pitch"].text()
+    assert "30 mm" in mass and "28 mm" in mass, mass
+    assert zeilen["clearance"].text() == "2.0 mm", zeilen["clearance"].text()
+    assert zeilen["cup_max"].text().split()[0].isdigit(), zeilen["cup_max"].text()
+
+
+def test_the_raster_rows_survive_a_failed_calculation(window, qt_app):
+    """Ein Fehlschlag leert die Ergebnisanzeige - diese drei Zeilen nicht.
+
+    clear_values() leert ALLE Zeilen. Die drei Rasterzeilen gehoeren aber zur
+    Platte und nicht zur Rechnung: sie stehen fest, auch wenn das Paket fehlt.
+    Ohne das Nachschreiben stuende dort ein Strich, bis jemand ein
+    Plattenmass antippt.
+    """
+    tab = window._tab_manager.widget_for("vacuum")
+    tab.ui.raster_pitch.spin.setValue(30.0)
+    qt_app.processEvents()
+    vorher = tab.ui.results._rows["pitch"].text()
+
+    tab._on_failed("Probe: keine Paketdaten")
+
+    assert tab.ui.results._rows["pitch"].text() == vorher, (
+        "Nach dem Fehlschlag steht dort: " + tab.ui.results._rows["pitch"].text()
+    )
+    assert tab.ui.results._rows["max_mass"].text() == "-", (
+        "Die Zeilen der Rechnung muessen dagegen geleert sein"
+    )
 
 
 def test_an_overlapping_raster_is_named_overlap(window, qt_app):
@@ -645,9 +659,44 @@ def test_an_overlapping_raster_is_named_overlap(window, qt_app):
     tab.ui.raster_pitch.spin.setValue(20.0)
     qt_app.processEvents()
 
-    text = tab.ui.cup_limit.text()
-    assert "Ueberlappung 14.0 mm" in text, text
+    from app.gui.theme import PALETTE
+
+    zeile = tab.ui.results._rows["clearance"]
+    assert zeile.text() == "Ueberlappung 14.0 mm", zeile.text()
+    assert _farbe(tab.ui.results, "clearance") == PALETTE.warning, (
+        "Die Ueberlappung muss auffallen"
+    )
     assert tab.ui.cup_count.spin.maximum() > 0, "gezeichnet werden muss trotzdem"
+
+
+def test_the_raster_field_will_not_go_below_the_bound(window, qt_app):
+    """Das Eingabefeld nimmt ein zu kleines Rastermass gar nicht erst an.
+
+    Das ist die eigentliche Bremse: raster_overview() laeuft synchron bei jedem
+    Tastendruck. Mit einem SPB1 10 auf einer grossen Platte und 1 mm Rastermass
+    waeren das acht Millionen Saugerpositionen und knapp eine Sekunde
+    Stillstand - je getipptem Zeichen.
+    """
+    tab = window._tab_manager.widget_for("vacuum")
+    tab.ui.cup_box.setCurrentIndex(tab.ui.cup_box.findData("spb2_30"))
+    qt_app.processEvents()
+
+    # Haelfte von 34,0 mm, und das ist kleiner als die kleinste Bauform.
+    assert tab.ui.raster_pitch.spin.minimum() == pytest.approx(17.0, abs=1e-6)
+
+    tab.ui.raster_pitch.spin.setValue(1.0)
+    qt_app.processEvents()
+    assert tab.ui.raster_pitch.value() == pytest.approx(17.0, abs=1e-6)
+
+    # Ein grosser Sauger darf trotzdem auf 20T - sonst waere die Bauform
+    # fuer ihn gesperrt.
+    tab.ui.cup_box.setCurrentIndex(tab.ui.cup_box.findData("spb1_80"))
+    qt_app.processEvents()
+    assert tab.ui.raster_pitch.spin.minimum() == pytest.approx(20.0, abs=1e-6)
+
+    tab.ui.raster_box.setCurrentIndex(tab.ui.raster_box.findData(20.0))
+    qt_app.processEvents()
+    assert tab.ui.raster_pitch.value() == pytest.approx(20.0, abs=1e-6)
 
 
 def test_a_build_form_sets_the_raster_pitch(window, qt_app):
@@ -860,7 +909,7 @@ def test_kein_rahmen_verdeckt_seine_ueberschrift(window, qt_app):
 
     # Jeder Tab muss einmal sichtbar gewesen sein - ungezeigte Widgets haben
     # noch keine Geometrie, und dann messen wir Nullen.
-    for stelle in (TAB_PALLET, TAB_VACUUM):
+    for stelle in (TAB_PALLET, TAB_VACUUM, TAB_EVACUATION):
         window.centralWidget().setCurrentIndex(stelle)
         qt_app.processEvents()
     qt_app.processEvents()
@@ -1033,3 +1082,329 @@ def test_ein_gutes_ergebnis_faerbt_nur_die_bewertung(window, application, qt_app
         assert _farbe(tab.ui.results, key) not in (PALETTE.ok, PALETTE.error), (
             key + " ist gefaerbt, obwohl nichts zu melden ist"
         )
+
+
+# Die Beschreibung der Auswahl -------------------------------------------------
+
+def test_die_musterbeschreibung_steht_im_tooltip_des_auswahlfelds(window, qt_app):
+    """Seit die Hinweiszeile weg ist, traegt das Auswahlfeld die Beschreibung.
+
+    Verglichen wird mit dem Text AUS DEM KATALOG und nicht nur damit, dass
+    irgendetwas im Tooltip steht. Die erste Fassung tat Letzteres - und blieb
+    gruen, als die Gegenprobe das Schreiben der Beschreibung ganz entfernte:
+    uebrig blieb der Vorbelegungstext aus der Formularbeschreibung, und der
+    ist ebenfalls nicht leer. Der Test prueft seitdem die Beschreibung selbst.
+    """
+    tab = window._tab_manager.widget_for("vacuum")
+    beschreibungen = {kennung: beschreibung
+                      for kennung, _label, beschreibung
+                      in tab._service.available_arrangements()}
+    assert beschreibungen, "ohne Katalog prueft der Test nichts"
+
+    for index in range(tab.ui.arrangement_box.count()):
+        tab.ui.arrangement_box.setCurrentIndex(index)
+        qt_app.processEvents()
+        erwartet = beschreibungen[tab.ui.arrangement_box.currentData()]
+        assert tab.ui.arrangement_box.toolTip() == erwartet, (
+            tab.ui.arrangement_box.currentText() + ": im Tooltip steht '"
+            + tab.ui.arrangement_box.toolTip() + "' statt '" + erwartet + "'"
+        )
+
+
+def test_die_palettiermusterbeschreibung_steht_im_tooltip(window, application, qt_app):
+    """Dasselbe im Palettiertab."""
+    tab = window._tab_manager.widget_for("pallet")
+    beschreibungen = {muster.id: muster.description
+                      for muster in application.settings.get_patterns()}
+    assert beschreibungen, "ohne Katalog prueft der Test nichts"
+
+    for index in range(tab.ui.pattern_box.count()):
+        tab.ui.pattern_box.setCurrentIndex(index)
+        qt_app.processEvents()
+        erwartet = beschreibungen[tab.ui.pattern_box.currentData()]
+        assert tab.ui.pattern_box.toolTip() == erwartet, (
+            tab.ui.pattern_box.currentText() + ": im Tooltip steht '"
+            + tab.ui.pattern_box.toolTip() + "' statt '" + erwartet + "'"
+        )
+
+# Der Rahmen je Paket ----------------------------------------------------------
+
+def _paketansicht(cup, urteile):
+    """Eine Draufsicht mit zwei Paketen und den gegebenen Urteilen."""
+    from app.domain.results import CalculationMeta
+    from app.gui.vacuum.renderer import Vacuum2DView
+    from app.vacuum.models import VacuumPlateSpec, VacuumResult
+
+    ansicht = Vacuum2DView()
+    ansicht.resize(700, 500)
+    ansicht.set_result(VacuumResult(
+        meta=CalculationMeta(module_id="vacuum", algorithm_version="1.0"),
+        plate=VacuumPlateSpec(length_mm=800.0, width_mm=600.0),
+        cup=cup,
+        package_rects=((0.0, 0.0, 400.0, 300.0), (400.0, 300.0, 400.0, 300.0)),
+        package_verdicts=urteile,
+    ))
+    return ansicht
+
+
+def _bildpunkte_in(ansicht, farbe: str) -> int:
+    from PyQt6.QtGui import QColor
+
+    bild = ansicht.grab().toImage()
+    soll = QColor(farbe)
+    return sum(QColor(bild.pixel(x, y)) == soll
+               for y in range(bild.height()) for x in range(bild.width()))
+
+
+def test_der_paketrahmen_traegt_die_farbe_seines_urteils(qt_app, cup_spb2_30):
+    """Gemessen im BILD und nicht an einer Eigenschaft.
+
+    Die Farbe eines Rahmens ist nirgends abfragbar - sie entsteht erst beim
+    Zeichnen. Ein Test, der _VERDICT_COLORS nachschlaegt, wuerde die Tabelle
+    pruefen und nicht die Zeichnung; er bliebe gruen, wenn der Aufruf in
+    paintEvent fehlte.
+
+    Zwei Durchgaenge mit demselben Ergebnis bis auf das Urteil: der
+    Unterschied in der Zahl der Bildpunkte IST die Aussage.
+    """
+    from app.domain.results import Status
+    from app.gui.theme import PALETTE
+    from app.vacuum.models import PackageVerdict
+
+    gut = _paketansicht(cup_spb2_30, (
+        PackageVerdict(index=0, bearing_count=40, status=Status.SAFE),
+        PackageVerdict(index=1, bearing_count=40, status=Status.SAFE),
+    ))
+    qt_app.processEvents()
+    gruen_vorher = _bildpunkte_in(gut, PALETTE.ok)
+    rot_vorher = _bildpunkte_in(gut, PALETTE.error)
+
+    schlecht = _paketansicht(cup_spb2_30, (
+        PackageVerdict(index=0, bearing_count=40, status=Status.SAFE),
+        PackageVerdict(index=1, bearing_count=0, status=Status.INSUFFICIENT),
+    ))
+    qt_app.processEvents()
+    gruen_nachher = _bildpunkte_in(schlecht, PALETTE.ok)
+    rot_nachher = _bildpunkte_in(schlecht, PALETTE.error)
+
+    assert gruen_vorher > 1000, (
+        "Zwei haltende Pakete muessen zwei gruene Rahmen ergeben, gezaehlt: "
+        + str(gruen_vorher)
+    )
+    assert rot_vorher == 0, "ohne Befund darf keine Warnfarbe im Bild stehen"
+    assert rot_nachher > 500, (
+        "Das Paket ohne Sauger bekommt keinen roten Rahmen, gezaehlt: "
+        + str(rot_nachher)
+    )
+    assert gruen_nachher < gruen_vorher, (
+        "Der gruene Rahmen des zweiten Pakets muss verschwunden sein"
+    )
+
+
+def test_ohne_urteil_bleibt_der_rahmen_neutral(qt_app, cup_spb2_30):
+    """Der Renderer entscheidet nichts selbst.
+
+    Ein Ergebnis ohne Urteile - etwa aus einer aelteren Fassung - darf keine
+    Ampelfarbe erfinden. Es bekommt den neutralen Paketrand.
+    """
+    from app.gui.theme import PALETTE
+
+    ohne = _paketansicht(cup_spb2_30, ())
+    qt_app.processEvents()
+
+    assert _bildpunkte_in(ohne, PALETTE.ok) == 0
+    assert _bildpunkte_in(ohne, PALETTE.error) == 0
+    assert _bildpunkte_in(ohne, PALETTE.package_edge) > 500, (
+        "ohne Urteil fehlt der neutrale Rahmen ganz"
+    )
+
+
+# Der Arbeitspunkt des Erzeugers -----------------------------------------------
+
+def test_ein_arbeitspunkt_setzt_beide_kennwerte_und_das_sollvakuum(window, qt_app):
+    """Ein Griff statt dreier - und keine erfundene Kombination.
+
+    Das Sollvakuum geht mit: kein Geraet der Liste schafft mehr als 445 mbar,
+    ein stehengebliebener Sollwert von 600 ergaebe bei jeder Rechnung die
+    Warnung "Sollvakuum wird nicht erreicht".
+    """
+    tab = window._tab_manager.widget_for("vacuum")
+    index = tab.ui.pump_box.findText("260 m3/h bei 445 mbar")
+    assert index >= 0, [tab.ui.pump_box.itemText(i)
+                        for i in range(tab.ui.pump_box.count())]
+
+    tab.ui.pump_box.setCurrentIndex(index)
+    qt_app.processEvents()
+
+    assert tab.ui.flow.value() == pytest.approx(260.0)
+    assert tab.ui.end_vacuum.value() == pytest.approx(445.0)
+    assert tab.ui.vacuum.value() == pytest.approx(445.0)
+
+
+def test_eigene_zahlen_heissen_frei_eingestellt(window, qt_app):
+    """Und wer einen Arbeitspunkt trifft, bekommt dessen Namen zurueck.
+
+    Verglichen werden die ZAHLEN, nicht ein gemerkter Zustand - 510 bei 200
+    sind der eine Punkt, 510 bei 390 der andere. Genau dafuer ist das Paar da.
+    """
+    tab = window._tab_manager.widget_for("vacuum")
+
+    tab.ui.flow.spin.setValue(333.0)
+    qt_app.processEvents()
+    assert tab.ui.pump_box.currentText() == "frei eingestellt"
+
+    tab.ui.flow.spin.setValue(510.0)
+    tab.ui.end_vacuum.spin.setValue(200.0)
+    qt_app.processEvents()
+    assert tab.ui.pump_box.currentText() == "510 m3/h bei 200 mbar"
+
+    tab.ui.end_vacuum.spin.setValue(390.0)
+    qt_app.processEvents()
+    assert tab.ui.pump_box.currentText() == "510 m3/h bei 390 mbar", (
+        "Dasselbe Saugvermoegen bei anderem Endvakuum ist ein ANDERER Punkt"
+    )
+
+
+def test_das_endvakuum_aus_dem_formular_erreicht_die_rechnung(window, application, qt_app):
+    """Sonst stuende die Zahl im Feld und die Rechnung rechnete mit einer anderen."""
+    from app.domain.units import pa_to_mbar
+
+    tab = window._tab_manager.widget_for("vacuum")
+    tab.ui.vacuum.spin.setValue(600.0)
+    tab.ui.end_vacuum.spin.setValue(200.0)
+    tab.calculate()
+    _settle(qt_app, application)
+
+    assert tab._result is not None
+    assert pa_to_mbar(tab._result.achieved_vacuum_pa) <= 201.0, (
+        "Erreicht wurden "
+        + format(pa_to_mbar(tab._result.achieved_vacuum_pa), ".0f")
+        + " mbar, obwohl der Erzeuger bei 200 endet"
+    )
+
+
+# Der Vakuumverlauf ------------------------------------------------------------
+
+def test_der_verlauf_wartet_auf_eine_gerechnete_platte(window, qt_app):
+    """Ohne Platte keine Kurve - und ein Satz, wo sie herkommt.
+
+    Der Tab baut sich die Platte NICHT selbst aus denselben Eingaben; er
+    haette sonst seine eigene Meinung zur Saugerzahl, und zwei Tabs mit zwei
+    Meinungen ueber dieselbe Platte sind schlimmer als ein leerer Tab.
+    """
+    tab = window._tab_manager.widget_for("evacuation")
+    application_dienst = tab._service
+    application_dienst.publish_plate(None)
+    tab.recalculate()
+    qt_app.processEvents()
+
+    assert tab._curve is None
+    assert tab.ui.chart.series_names() == ()
+    assert tab.ui.banner.isVisible() or tab.ui.banner.isVisibleTo(tab)
+
+
+def test_der_verlauf_endet_dort_wo_die_platte_steht(window, application, qt_app):
+    """Die beiden Tabs duerfen sich nicht widersprechen."""
+    from app.domain.units import pa_to_mbar
+
+    vakuum = window._tab_manager.widget_for("vacuum")
+    vakuum.calculate()
+    _settle(qt_app, application)
+    assert vakuum._result is not None
+
+    verlauf = window._tab_manager.widget_for("evacuation")
+    verlauf.recalculate()
+    qt_app.processEvents()
+
+    assert verlauf._curve is not None, "keine Kurve, obwohl eine Platte vorliegt"
+    assert pa_to_mbar(verlauf._curve.final_vacuum_pa) == pytest.approx(
+        pa_to_mbar(vakuum._result.achieved_vacuum_pa), abs=0.1
+    )
+    assert "Vakuum" in verlauf.ui.chart.series_names()
+
+
+def test_regler_und_feld_zeigen_dieselbe_frequenz(window, qt_app):
+    """Beide Wege zur selben Zahl.
+
+    Der Regler kennt nur ganze Zahlen und laeuft deshalb in Zehntelhertz -
+    derselben Aufloesung wie das Feld.
+    """
+    from app.gui.evacuation.tab import FREQUENCY_STEPS_PER_HZ
+
+    tab = window._tab_manager.widget_for("evacuation")
+
+    tab.ui.frequency.spin.setValue(37.5)
+    qt_app.processEvents()
+    assert tab.ui.frequency_slider.value() == 375
+    assert tab.ui.frequency.value() == pytest.approx(37.5), (
+        "Der Regler hat das Feld auf seine ganze Zahl zurueckgezogen"
+    )
+
+    tab.ui.frequency_slider.setValue(62 * FREQUENCY_STEPS_PER_HZ)
+    qt_app.processEvents()
+    assert tab.ui.frequency.value() == pytest.approx(62.0)
+
+
+def test_eine_eingabe_rechnet_einmal_und_nicht_zweimal(window, qt_app):
+    """Feld und Regler fuehren einander nach - ohne sich gegenseitig anzustossen.
+
+    Der Wert bliebe auch ohne blockSignals richtig, weil beide dieselbe
+    Aufloesung haben. Was sich aendert, ist die Zahl der Rechnungen: die
+    Kette Feld -> Regler -> Feld liefe bei jeder getippten Ziffer zweimal
+    durch recalculate(). Gezaehlt wird deshalb, nicht verglichen.
+    """
+    tab = window._tab_manager.widget_for("evacuation")
+    laeufe = []
+    echte = tab.recalculate
+    tab.recalculate = lambda *a, **k: (laeufe.append(1), echte(*a, **k))[1]
+    try:
+        tab.ui.frequency.spin.setValue(42.0)
+        qt_app.processEvents()
+        getippt = len(laeufe)
+
+        laeufe.clear()
+        tab.ui.frequency_slider.setValue(430)
+        qt_app.processEvents()
+        geschoben = len(laeufe)
+    finally:
+        del tab.recalculate
+
+    assert getippt == 1, "Eine getippte Frequenz loest " + str(getippt) + " Rechnungen aus"
+    assert geschoben == 1, "Ein Reglerzug loest " + str(geschoben) + " Rechnungen aus"
+
+
+def test_der_regler_haelt_sich_an_seine_grenzen(window):
+    """25 Hz wegen der Motorkuehlung, 100 Hz so gewuenscht."""
+    from app.gui.evacuation.tab import (
+        FREQUENCY_MAX_HZ, FREQUENCY_MIN_HZ, FREQUENCY_STEPS_PER_HZ,
+    )
+
+    tab = window._tab_manager.widget_for("evacuation")
+
+    assert tab.ui.frequency_slider.minimum() == FREQUENCY_MIN_HZ * FREQUENCY_STEPS_PER_HZ
+    assert tab.ui.frequency_slider.maximum() == FREQUENCY_MAX_HZ * FREQUENCY_STEPS_PER_HZ
+    assert tab.ui.frequency.spin.minimum() == pytest.approx(FREQUENCY_MIN_HZ)
+    assert tab.ui.frequency.spin.maximum() == pytest.approx(FREQUENCY_MAX_HZ)
+
+
+def test_eine_hoehere_frequenz_verkuerzt_die_zeit(window, application, qt_app):
+    """Der Regler muss wirken, nicht nur wackeln."""
+    vakuum = window._tab_manager.widget_for("vacuum")
+    vakuum.calculate()
+    _settle(qt_app, application)
+
+    tab = window._tab_manager.widget_for("evacuation")
+    # Wie beim Aufschlagen des Tabs: die Vorgabefrequenz steht schon auf 50,
+    # eine Zuweisung loeste also kein value_changed aus.
+    tab.recalculate()
+    qt_app.processEvents()
+    langsam = tab._curve.time_to_90_s
+
+    tab.ui.frequency.spin.setValue(100.0)
+    qt_app.processEvents()
+    schnell = tab._curve.time_to_90_s
+
+    assert schnell < langsam, (
+        "Bei doppelter Frequenz dauert es " + format(schnell, ".3f")
+        + " s statt " + format(langsam, ".3f") + " s"
+    )

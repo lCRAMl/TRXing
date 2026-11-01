@@ -58,23 +58,6 @@ class Rect2D:
 
 
 @dataclass(frozen=True, slots=True)
-class Circle2D:
-    """Kreis in der Draufsicht. Beschreibt Saugerflaechen und Dichtlippenringe."""
-
-    center_x_mm: float
-    center_y_mm: float
-    diameter_mm: float
-
-    @property
-    def radius_mm(self) -> float:
-        return self.diameter_mm / 2.0
-
-    @property
-    def area_mm2(self) -> float:
-        return math.pi * self.radius_mm * self.radius_mm
-
-
-@dataclass(frozen=True, slots=True)
 class Footprint:
     """Standflaeche einer Platzierung in der Ebene.
 
@@ -224,19 +207,6 @@ def circle_rect_overlap_area_mm2(
 
     area = _signed(x2, y2) - _signed(x1, y2) - _signed(x2, y1) + _signed(x1, y1)
     return max(0.0, min(area, math.pi * radius_mm * radius_mm))
-
-
-def bounding_box(
-    rects: list[tuple[float, float, float, float]]
-) -> tuple[float, float, float, float]:
-    """Umschliessendes Rechteck als (x, y, laenge, breite)."""
-    if not rects:
-        return (0.0, 0.0, 0.0, 0.0)
-    min_x = min(r[0] for r in rects)
-    min_y = min(r[1] for r in rects)
-    max_x = max(r[0] + r[2] for r in rects)
-    max_y = max(r[1] + r[3] for r in rects)
-    return (min_x, min_y, max_x - min_x, max_y - min_y)
 
 
 def any_overlap(rects: list[tuple[float, float, float, float]], tolerance_mm: float = 1e-6) -> bool:

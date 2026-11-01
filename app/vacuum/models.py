@@ -389,6 +389,10 @@ class RasterOverview:
     #: hinter der Einstellung "automatisch".
     automatic_pitch_mm: float = 0.0
 
+    #: Kleinstes Rastermass, das sich fuer diesen Sauger einstellen laesst.
+    #: Die Oberflaeche setzt damit die Untergrenze ihres Eingabefelds.
+    min_pitch_mm: float = 0.0
+
     #: Hoechstzahl der Sauger mit diesem Raster und diesem Muster.
     max_cup_count: int = 0
 
@@ -412,6 +416,135 @@ class LeakageSpec:
     #: Exponent der Druckskalierung bei FLOW_PER_AREA. 1,0 ist laminar,
     #: 0,5 turbulent. Modellannahme, kein Messwert.
     pressure_exponent_factor: float = 1.0
+
+
+@dataclass(frozen=True, slots=True)
+class SystemVolumeSpec:
+    """Das Volumen, das leergesaugt werden muss.
+
+    Ohne diese Angabe gibt es keine Zeitachse: die Evakuierzeit haengt am
+    Volumen, nicht an der Plattenflaeche. Alle vier Werte sind
+    Anlagenangaben und stehen in keinem Datenblatt.
+
+    Der Schlauchdurchmesser geht NUR ins Volumen ein. Ein Druckverlust im
+    Schlauch wird nicht gerechnet - ein dickerer Schlauch macht die Platte in
+    diesem Modell also langsamer, nicht schneller. In Wirklichkeit ist beides
+    wahr, und bei DN 100 fuer 510 m3/h (rund 18 m/s) ueberwiegt das Volumen.
+
+    `extra_volume_l` ist der Platz fuer das, was das Datenblatt nicht nennt:
+    das Innere der Sauger. Bei 391 Balgsaugern ist das kein kleiner Posten,
+    aber Schmalz nennt kein Balgvolumen - geschaetzt wird hier nichts.
+    Vorgabe 0; dann ist die gerechnete Zeit eher zu kurz als falsch.
+    """
+
+    box_height_mm: float = 80.0
+    hose_length_m: float = 10.0
+    hose_diameter_mm: float = 100.0
+    extra_volume_l: float = 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class EvacuationPoint:
+    """Ein Punkt des Vakuumverlaufs."""
+
+    time_s: float
+    vacuum_pa: float
+    pump_flow_m3s: float
+    leak_m3s: float
+
+
+@dataclass(frozen=True, slots=True)
+class EvacuationCurve:
+    """Der Vakuumverlauf ueber der Zeit, bei EINER Frequenz."""
+
+    points: tuple[EvacuationPoint, ...] = ()
+
+    box_volume_m3: float = 0.0
+    hose_volume_m3: float = 0.0
+    extra_volume_m3: float = 0.0
+
+    frequency_hz: float = 50.0
+    #: Saugvermoegen und Endvakuum des Erzeugers BEI DIESER FREQUENZ.
+    nominal_flow_m3s: float = 0.0
+    max_vacuum_pa: float = 0.0
+
+    #: Der Arbeitspunkt: dort halten sich Angebot und Leckage die Waage.
+    final_vacuum_pa: float = 0.0
+    time_to_90_s: float = 0.0
+    time_to_99_s: float = 0.0
+
+    notes: tuple[str, ...] = ()
+
+    @property
+    def volume_m3(self) -> float:
+        return self.box_volume_m3 + self.hose_volume_m3 + self.extra_volume_m3
+
+    @property
+    def duration_s(self) -> float:
+        return self.points[-1].time_s if self.points else 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class SharedPlate:
+    """Die zuletzt gerechnete Platte, fuer andere Ansichten bereitgelegt.
+
+    Dasselbe Verfahren wie bei der Lage der Palettierung (SharedLayer): der
+    Dienst, der das Ergebnis erzeugt hat, legt es bereit, und wer es braucht,
+    holt es dort ab. Der Vakuumverlauf rechnet damit auf GENAU der Platte, die
+    nebenan angezeigt wird - er baut sich keine zweite aus denselben
+    Eingaben zusammen.
+    """
+
+    request: "VacuumInput"
+    result: "VacuumResult"
+
+
+#: Arbeitspunkte der Schmalz-Seitenkanalgeblaese bei 50 Hz: (m3/h, mbar).
+#:
+#: Kein Pumpenkatalog - das waere eine Geraeteliste, die gepflegt werden muss.
+#: Hier stehen nur die ARBEITSPUNKTE, und zwar die, die es wirklich gibt.
+#: Ausgelesen aus der Schmalz-Uebersicht (doc/pumps.html, 41 Geraete, davon 28
+#: mit 50-Hz-Angaben); die 28 Geraete teilen sich 14 verschiedene Punkte:
+#:
+#:      m3/h   mbar    kW    Geraete
+#:        75    105  0,37      1
+#:        90    330  1,5       2
+#:       130    125  0,75      2
+#:       180    215  1,5       2
+#:       195    440  3,0       2
+#:       260    410  4,0       3
+#:       260    445  4,0       1
+#:       325    265  3,0       2
+#:       375    390  5,5       2
+#:       390    315  4,0       2
+#:       510    200  4,0       2
+#:       510    390 11,0       3     <- Vorgabe, der haeufigste Punkt
+#:       765    280  7,5       2
+#:      1050    290 11,0       2
+#:
+#: Als PAAR und nicht als zwei Listen: 510 m3/h gibt es bei 200 UND bei
+#: 390 mbar, 260 m3/h bei 410 und bei 445. Zwei getrennte Auswahlfelder
+#: koennten daraus Kombinationen bauen, die kein Geraet hat.
+#:
+#: Die Leistung in kW steht nur hier im Kommentar: sie erklaert, warum
+#: dieselben 510 m3/h einmal 4 und einmal 11 kW kosten, geht aber in keine
+#: Rechnung ein.
+SCHMALZ_OPERATING_POINTS: tuple[tuple[float, float], ...] = (
+    (75.0, 105.0),
+    (90.0, 330.0),
+    (130.0, 125.0),
+    (180.0, 215.0),
+    (195.0, 440.0),
+    (260.0, 410.0),
+    (260.0, 445.0),
+    (325.0, 265.0),
+    (375.0, 390.0),
+    (390.0, 315.0),
+    (510.0, 200.0),
+    (510.0, 390.0),
+    (765.0, 280.0),
+    (1050.0, 290.0),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -536,6 +669,37 @@ class ForceBreakdown:
 
 
 @dataclass(frozen=True, slots=True)
+class PackageVerdict:
+    """Ob die Sauger ueber EINEM Paket genuegen, es zu heben.
+
+    Die Gesamtbilanz der Platte beantwortet das nicht. Sie summiert alle
+    Haltekraefte und alle Massen und nimmt damit an, die Platte koenne Kraft
+    von einem Paket zum naechsten weiterreichen - das kann sie nicht. Jedes
+    Paket haengt an genau den Saugern ueber ihm.
+
+    Gemessen am Vorgabefall mit acht Paketen (Platte 800 x 600, Paket
+    400 x 300 x 200, SPB2 30): vier Pakete liegen bei x = -400 und x = 800
+    und damit vollstaendig ausserhalb der Platte, bekommen null Sauger und
+    haengen an nichts. Die Gesamtbewertung meldete trotzdem "Sicher", denn
+    5068 N aus 352 Saugern tragen 40 kg mit Leichtigkeit - nur eben nicht
+    dort, wo sie sitzen.
+    """
+
+    index: int
+    bearing_count: int = 0
+    holding_n: float = 0.0
+    required_n: float = 0.0
+    max_mass_kg: float = 0.0
+    status: Status = Status.INSUFFICIENT
+
+    @property
+    def holds(self) -> bool:
+        """Ob dieses Paket haelt. Grenzwertig zaehlt als haltend - knapp ist
+        nicht dasselbe wie zu wenig."""
+        return self.status is not Status.INSUFFICIENT
+
+
+@dataclass(frozen=True, slots=True)
 class VacuumResult:
     """Ergebnis eines Vakuumlaufs. Enthaelt nur Daten."""
 
@@ -545,6 +709,9 @@ class VacuumResult:
     placements: tuple[SuctionPlacement, ...] = ()
     contacts: tuple[CupContact, ...] = ()
     package_rects: tuple[tuple[float, float, float, float], ...] = ()
+
+    #: Ein Urteil je Paket, in derselben Reihenfolge wie package_rects.
+    package_verdicts: tuple[PackageVerdict, ...] = ()
 
     arrangement_id: str = ""
 
@@ -582,3 +749,13 @@ class VacuumResult:
 
     def indices_with(self, contact: ContactClass) -> tuple[int, ...]:
         return tuple(c.placement_index for c in self.contacts if c.contact is contact)
+
+    @property
+    def bearing_package_count(self) -> int:
+        """Wie viele Pakete ihre Sauger tatsaechlich heben."""
+        return sum(1 for verdict in self.package_verdicts if verdict.holds)
+
+    def verdict_of(self, package_index: int) -> PackageVerdict | None:
+        if 0 <= package_index < len(self.package_verdicts):
+            return self.package_verdicts[package_index]
+        return None

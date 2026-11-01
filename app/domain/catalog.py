@@ -17,7 +17,7 @@ config/settings_service.py.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from app.infra.errors import AppError, ErrorReporter, Severity
@@ -28,6 +28,7 @@ from app.domain.units import lpm_to_m3s
 from app.pallet.models import PalletSpec, PatternSpec, ZMode
 from app.vacuum.models import RestrictorMode, RestrictorSpec, SuctionCupSpec
 from app.vacuum.models import GripDirection, LeakageModel, LeakageSpec, PumpSpec, VacuumPlateSpec
+from app.vacuum.models import SystemVolumeSpec
 import threading
 from app.vacuum.models import SuctionCupSpec
 from app.vacuum.models import PumpSpec, VacuumPlateSpec
@@ -192,6 +193,10 @@ class VacuumDefaults:
     package_count: int = 1
     count_partial_as_sealed: bool = False
     solve_operating_point: bool = True
+    #: Vorgaben des Vakuumverlaufs. Anlagenangaben, keine Datenblattwerte.
+    system_volume: SystemVolumeSpec = field(default_factory=SystemVolumeSpec)
+    frequency_hz: float = 50.0
+
     max_cup_count: int = 2000
     min_plate_edge_mm: float = 50.0
     max_plate_edge_mm: float = 3000.0
@@ -410,6 +415,7 @@ def parse_vacuum_defaults(data: dict, reporter: ErrorReporter) -> VacuumDefaults
     operation = data.get("operation", {}) if isinstance(data.get("operation"), dict) else {}
     limits = data.get("limits", {}) if isinstance(data.get("limits"), dict) else {}
     assumptions = data.get("assumptions", {}) if isinstance(data.get("assumptions"), dict) else {}
+    volume = data.get("system_volume", {}) if isinstance(data.get("system_volume"), dict) else {}
 
     def _guarded(parse: Callable[[], Any], fallback: Any, what: str) -> Any:
         try:
@@ -498,6 +504,13 @@ def parse_vacuum_defaults(data: dict, reporter: ErrorReporter) -> VacuumDefaults
         min_plate_edge_mm=_number(limits, "min_plate_edge_mm", required=False, default=50.0, minimum=1.0),
         max_plate_edge_mm=_number(limits, "max_plate_edge_mm", required=False, default=3000.0, minimum=1.0),
         marginal_margin_ratio=_assumption("marginal_margin_ratio", 0.1),
+        system_volume=SystemVolumeSpec(
+            box_height_mm=_number(volume, "box_height_mm", required=False, default=80.0, minimum=0.0, maximum=2000.0),
+            hose_length_m=_number(volume, "hose_length_m", required=False, default=10.0, minimum=0.0, maximum=200.0),
+            hose_diameter_mm=_number(volume, "hose_diameter_mm", required=False, default=100.0, minimum=1.0, maximum=1000.0),
+            extra_volume_l=_number(volume, "extra_volume_l", required=False, default=0.0, minimum=0.0, maximum=10000.0),
+        ),
+        frequency_hz=_number(volume, "frequency_hz", required=False, default=50.0, minimum=1.0, maximum=200.0),
     )
 
 

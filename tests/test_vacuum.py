@@ -420,6 +420,147 @@ def test_pump_curve_points_are_interpolated():
     assert physics.pump_flow_m3s(pump, 999999.0) == 0.0
 
 
+# Arbeitspunkte der Erzeuger ---------------------------------------------------
+
+def test_die_arbeitspunkte_sind_paare_und_keine_zwei_listen():
+    """Der Grund fuer EIN Auswahlfeld statt zweier.
+
+    Aus doc/pumps.html: 41 Geraete, davon 28 mit 50-Hz-Angaben, die sich
+    14 Arbeitspunkte teilen. Zwei getrennte Felder koennten daraus
+    Kombinationen bauen, die kein Geraet hat - 510 m3/h gibt es bei 200 UND
+    bei 390 mbar, 260 m3/h bei 410 und bei 445.
+    """
+    from app.vacuum.models import SCHMALZ_OPERATING_POINTS as punkte
+
+    assert len(punkte) == 14
+    assert len(set(punkte)) == 14, "ein Arbeitspunkt steht doppelt"
+
+    for strom, vakuum in punkte:
+        assert strom > 0.0 and vakuum > 0.0
+
+    for strom in (510.0, 260.0):
+        gleich = [v for s, v in punkte if s == strom]
+        assert len(gleich) == 2, (
+            str(strom) + " m3/h muss zweimal vorkommen - genau das macht das "
+            "Paar noetig"
+        )
+        assert gleich[0] != gleich[1]
+
+
+def test_das_endvakuum_deckelt_das_sollvakuum(calculator, base_request):
+    """Mehr als das Geraet kann, gibt es nicht - auch wenn man es verlangt."""
+    schwach = replace(base_request.pump, max_vacuum_pa=mbar_to_pa(200.0))
+    result = calculator.calculate(replace(
+        base_request, pump=schwach, target_vacuum_pa=mbar_to_pa(600.0),
+    ))
+
+    assert result.achieved_vacuum_pa <= mbar_to_pa(200.0) + 1.0, (
+        "Erreicht wurden " + format(result.achieved_vacuum_pa / 100.0, ".0f")
+        + " mbar bei einem Endvakuum von 200 mbar"
+    )
+
+
+# Urteil je Paket --------------------------------------------------------------
+
+def test_each_package_is_measured_against_its_own_cups(cup_spb2_30):
+    """Gezaehlt wird nur, was ueber DIESEM Paket sitzt.
+
+    Die Gesamtbilanz summiert Haltekraft und Masse und nimmt damit an, die
+    Platte reiche Kraft von einem Paket zum naechsten weiter. Sie kann das
+    nicht; jedes Paket haengt an genau den Saugern ueber ihm.
+    """
+    from app.vacuum.models import CupContact
+
+    kontakte = (
+        CupContact(placement_index=0, contact=ContactClass.SEALED, package_index=0),
+        CupContact(placement_index=1, contact=ContactClass.SEALED, package_index=0),
+        CupContact(placement_index=2, contact=ContactClass.PARTIAL, package_index=0),
+        # Paket 1 bekommt nichts - weder Sauger noch Teilauflage.
+        CupContact(placement_index=3, contact=ContactClass.OPEN, package_index=-1),
+    )
+    urteile = physics.per_package(
+        contacts=kontakte, package_count=2, cup=cup_spb2_30,
+        vacuum_pa=mbar_to_pa(600), package_mass_kg=1.0, safety_factor=2.0,
+    )
+
+    assert len(urteile) == 2
+    assert urteile[0].bearing_count == 2, "die teilweise aufliegende zaehlt nicht"
+    assert urteile[1].bearing_count == 0
+    assert urteile[0].status is Status.SAFE
+    assert urteile[1].status is Status.INSUFFICIENT, "ohne Sauger haelt nichts"
+    assert urteile[1].holding_n == 0.0
+
+
+def test_partial_cups_count_per_package_when_asked_to(cup_spb2_30):
+    """Dieselbe Entscheidung wie fuer die Platte, nicht eine zweite."""
+    from app.vacuum.models import CupContact
+
+    kontakte = (
+        CupContact(placement_index=0, contact=ContactClass.PARTIAL, package_index=0),
+    )
+    streng = physics.per_package(
+        contacts=kontakte, package_count=1, cup=cup_spb2_30,
+        vacuum_pa=mbar_to_pa(600), package_mass_kg=1.0, safety_factor=2.0,
+    )
+    grosszuegig = physics.per_package(
+        contacts=kontakte, package_count=1, cup=cup_spb2_30,
+        vacuum_pa=mbar_to_pa(600), package_mass_kg=1.0, safety_factor=2.0,
+        count_partial_as_sealed=True,
+    )
+    assert streng[0].bearing_count == 0
+    assert grosszuegig[0].bearing_count == 1
+
+
+def test_the_overall_verdict_follows_the_worst_package(calculator, base_request):
+    """Die Regression, um die es geht.
+
+    Acht Pakete mit den Vorgabemassen: vier davon liegen bei x = -400 und
+    x = 800 und damit vollstaendig ausserhalb der 800 x 600 grossen Platte.
+    Sie bekommen null Sauger. Die Gesamtbilanz meldete trotzdem SICHER, denn
+    sie summiert: die Haltekraft aller Sauger traegt die 40 kg muehelos -
+    nur eben nicht dort, wo die Sauger sitzen.
+
+    Geprueft wird deshalb BEIDES: dass die Summenrechnung weiterhin gut
+    aussieht und das Urteil trotzdem schlecht ist. Ohne die erste Zusicherung
+    wuerde der Test auch dann gruen bleiben, wenn die Platte aus einem ganz
+    anderen Grund nicht mehr traegt.
+    """
+    from app.domain.results import classify as ampel
+
+    result = calculator.calculate(replace(base_request, package_count=8))
+
+    ohne_sauger = [v for v in result.package_verdicts if v.bearing_count == 0]
+    assert len(ohne_sauger) == 4, (
+        "Der Testfall setzt vier Pakete ohne Sauger voraus, gezaehlt wurden "
+        + str(len(ohne_sauger))
+    )
+    assert ampel(result.max_package_mass_kg, result.actual_mass_kg) is Status.SAFE, (
+        "Die Summenrechnung muss weiterhin gut aussehen - sonst prueft der "
+        "Test nicht, was er soll"
+    )
+    assert result.status is Status.INSUFFICIENT, (
+        "Vier Pakete haengen an null Saugern, das Urteil lautet trotzdem "
+        + result.status.label
+    )
+
+
+def test_a_package_that_cannot_be_lifted_is_named_in_the_warnings(calculator, base_request):
+    """Die Farbe im Bild erreicht das Protokoll nicht - die Warnung schon."""
+    result = calculator.calculate(replace(base_request, package_count=8))
+
+    treffer = [w for w in result.warnings if "nicht gehalten" in w]
+    assert treffer, "keine Warnung zu den nicht gehaltenen Paketen:\n" + "\n".join(result.warnings)
+    assert "Paket 1, 4, 5, 8" in treffer[0], treffer[0]
+
+
+def test_every_drawn_package_gets_a_verdict(calculator, base_request):
+    """Sonst bliebe ein Rahmen ohne Farbe - und niemand wuesste, warum."""
+    result = calculator.calculate(replace(base_request, package_count=4))
+
+    assert len(result.package_verdicts) == len(result.package_rects)
+    assert [v.index for v in result.package_verdicts] == list(range(len(result.package_rects)))
+
+
 # Gesamtrechnung ---------------------------------------------------------------
 
 def test_full_calculation_produces_a_consistent_result(calculator, base_request):
@@ -437,6 +578,10 @@ def test_trace_follows_the_specified_path(calculator, base_request):
     assert names == [
         "plattengeometrie", "paketanordnung", "saugerpositionen", "ueberdeckung",
         "wirksame_flaeche", "arbeitspunkt", "haltekraft", "maximale_masse",
+        # Seit dem 2026-11-01: die Bilanz je Paket. Sie steht NACH der
+        # Gesamtkraft, weil sie dasselbe Vakuum und dieselbe Kraft je Sauger
+        # benutzt - nur auf die Sauger ueber einem Paket angewandt.
+        "paketbilanz",
     ]
     assert result.meta.request_id == 9
     assert result.meta.state_revision == 3

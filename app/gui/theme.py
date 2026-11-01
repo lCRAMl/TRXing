@@ -195,8 +195,8 @@ class Palette:
     #: Zeichenflaeche der 2D-Ansichten.
     canvas: str = "#fbfbfc"
     canvas_grid: str = "#e3e6ea"
-    pallet_fill: str = "#d9c39a"
-    pallet_edge: str = "#8a7550"
+    pallet_fill: str = "#9ac7d9"
+    pallet_edge: str = "#50758a"
     package_fill: str = "#c8dcf0"
     package_edge: str = "#4a7ba7"
     package_rotated_fill: str = "#f0dcc8"
@@ -250,8 +250,8 @@ DARK = Palette(
     pallet_edge="#c0a877",
     package_fill="#2f4a63",
     package_edge="#86b4dc",
-    package_rotated_fill="#63472f",
-    package_rotated_edge="#dcae86",
+    package_rotated_fill="#2f4663",
+    package_rotated_edge="#86dcce",
     plate_fill="#33383d",
     plate_edge="#98a1ab",
     cup_sealed="#46b57a",
@@ -310,19 +310,19 @@ Die Farbwerte selbst stehen in app/gui/theme.py - dort, wo auch die
 Renderer sie holen. Hier steht nur, wie Qt sie anwendet. Die Palette wird
 weitergereicht, damit die Bedienelemente einen Importpfad haben.
 
-Zu den Rollen: die Layoutdateien im Qt Designer zeichnen ein Label nur noch mit
-einer Eigenschaft role aus - "note" fuer einen Hinweistext, "unit" fuer eine
-Einheit, "hint" fuer einen Erklaerungsabsatz. Wie das aussieht, entscheidet
-ausschliesslich dieses Stylesheet.
+Zu den Rollen: ein Label wird nur mit einer Eigenschaft role ausgezeichnet -
+"unit" fuer eine Einheit. Wie das aussieht, entscheidet ausschliesslich
+dieses Stylesheet. Die Bildunterschriften der Hilfe sind HTML und benutzen
+die Klasse .caption aus help_dialog.STYLE - eine Qt-Rolle brauchen sie nicht.
 
 Der Grund ist nicht Geschmack: schreibt man die Farbe in jede .ui-Datei, liegt
 sie dreifach vor und ein Themenwechsel erwischt sie nicht. Im Designer stellt
 man so ein, WAS ein Widget ist, nicht wie es aussieht.
 
-Qt wertet Eigenschaftsselektoren wie QLabel[role="note"] beim Setzen des
+Qt wertet Eigenschaftsselektoren wie QLabel[role="unit"] beim Setzen des
 Stylesheets aus. Wird die Rolle spaeter zur Laufzeit geaendert, muss der Stil
-mit unpolish/polish neu angewandt werden - hier kommt sie aus der .ui-Datei und
-steht damit vor dem ersten Anzeigen fest.
+mit unpolish/polish neu angewandt werden - hier wird sie beim Bau des Widgets
+gesetzt und steht damit vor dem ersten Anzeigen fest.
 
 Dunkle Fenster
 --------------
@@ -426,11 +426,15 @@ def stylesheet(palette: Palette = PALETTE) -> str:
         "QHeaderView::section { background: " + palette.surface_alt + "; border: none;"
         " border-right: 1px solid " + palette.border + "; padding: 4px; font-weight: 600; }",
 
-        # Rollen aus den Layoutdateien.
-        'QLabel[role="note"] { color: ' + palette.text_muted + "; font-size: 8pt; }",
+        # Rollen, mit denen ein Label ausgezeichnet wird.
+        #
+        # "note", "hint" und "caption" sind am 2026-11-01 entfallen: die
+        # Hinweiszeilen der Formulare gibt es nicht mehr, und die
+        # Bildunterschriften der Hilfe sind HTML. Es blieb nichts uebrig, was
+        # diese Rollen getragen haette. Eine Regel ohne Traeger faellt
+        # niemandem auf - sie wird nur beim naechsten Lesen fuer benutzt
+        # gehalten. Uebrig ist "unit", gesetzt von qt_controls_pyrs.
         'QLabel[role="unit"] { color: ' + palette.text_muted + "; }",
-        'QLabel[role="hint"] { color: ' + palette.text_muted + "; }",
-        'QLabel[role="caption"] { color: ' + palette.text_muted + "; }",
     ])
 
 

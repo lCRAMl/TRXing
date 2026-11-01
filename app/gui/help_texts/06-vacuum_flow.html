@@ -98,6 +98,44 @@ knicken frueher ein. Sie wird im Rechenweg als Annahme vermerkt, damit niemand
 sie fuer eine Herstellerkennlinie haelt. Wer die echte Kennlinie hat, traegt
 sie als Stuetzpunkte in <code>vacuum_defaults.json</code> ein.</div>
 
+<h2>Woher die beiden Kennwerte kommen</h2>
+<p>Die Kennlinie braucht zwei Zahlen: das Saugvermoegen
+<code>Q_nenn</code> und das Endvakuum <code>dp_max</code>. Beide gehoeren je
+Geraet zusammen und sind deshalb EINE Auswahl im Formular, kein Paar freier
+Zahlen.</p>
+<p>Die Liste stammt aus der Schmalz-Uebersicht der Seitenkanalgeblaese:
+41&nbsp;Geraete, davon 28 mit Angaben bei 50&nbsp;Hz. Diese 28 teilen sich
+<em>14</em> verschiedene Arbeitspunkte &ndash; mehrere Baugroessen eines
+Geraets unterscheiden sich in Spannung, Zulassung oder Gewicht, nicht im
+Arbeitspunkt.</p>
+<<formel
+  m3/h   mbar     kW   Geraete
+    75    105   0,37      1
+    90    330   1,5       2
+   130    125   0,75      2
+   180    215   1,5       2
+   195    440   3,0       2
+   260    410   4,0       3
+   260    445   4,0       1
+   325    265   3,0       2
+   375    390   5,5       2
+   390    315   4,0       2
+   510    200   4,0       2
+   510    390  11,0       3     Vorgabe
+   765    280   7,5       2
+  1050    290  11,0       2
+>>
+<p>Warum als Paar und nicht als zwei Listen: 510&nbsp;m&sup3;/h gibt es bei
+200 <em>und</em> bei 390&nbsp;mbar, 260&nbsp;m&sup3;/h bei 410 und bei
+445&nbsp;mbar. Zwei getrennte Felder koennten daraus Kombinationen bauen, die
+kein Geraet hat.</p>
+<p>Kein Geraet der Liste erreicht mehr als 445&nbsp;mbar. Die Wahl eines
+Arbeitspunkts zieht das Sollvakuum deshalb auf dessen Endvakuum nach &ndash;
+mehr kann man von der Maschine nicht verlangen. Beide Zahlen bleiben frei
+einstellbar; wer eigene Werte eintraegt, sieht im Auswahlfeld
+<em>frei eingestellt</em>.</p>
+<<quelle app/vacuum/models.py | SCHMALZ_OPERATING_POINTS>>
+
 <h2>Der Arbeitspunkt</h2>
 <p>Die naheliegende Rechnung waere: Sollvakuum annehmen, Kraft daraus
 bestimmen, benoetigten Volumenstrom danebenstellen und bei Ueberschreitung
@@ -133,3 +171,64 @@ eine Warnung zu erzeugen.</p>
 <p>Ueber den Schalter <i>Arbeitspunkt loesen</i> laesst sich die einfache
 Betrachtung einschalten; beide Zahlen stehen im Ergebnis nebeneinander.</p>
 <<quelle app/vacuum/calculator.py | _solve_operating_point()>>
+
+<h2>Vakuumverlauf ueber der Zeit</h2>
+<p>Der Arbeitspunkt sagt, <em>wo</em> sich das Vakuum einpendelt. Der dritte
+Tab sagt, <em>wie lange</em> es dahin braucht. Dafuer kommt eine Groesse
+dazu, die in der Kraftrechnung nirgends vorkommt: das Systemvolumen.</p>
+<<formel
+V = Plattenflaeche * Saugkastenhoehe  +  pi/4 * d_Schlauch^2 * l_Schlauch
+    + Zusatzvolumen
+>>
+<p>Alle Volumenstroeme dieser Anwendung sind auf <em>Umgebungsdichte</em>
+bezogen &ndash; Kubikmeter Umgebungsluft je Sekunde, so wie Pumpenkennlinien
+angegeben werden. Mit dieser Festlegung ist die Massenbilanz des Behaelters
+einfach, und es bleibt eine Gleichung uebrig:</p>
+<<formel
+Masse im Behaelter    m = rho_umg * (p_abs / p_umg) * V
+Masse je Zeit heraus  rho_umg * ( S(dp) - Q_leck(dp) )
+
+   =>   d(dp)/dt = (p_umg / V) * ( S(dp) - Q_leck(dp) )
+>>
+<p>Zwei Eigenschaften machen diese Form brauchbar. Erstens laeuft sie
+<em>genau</em> in den Arbeitspunkt des zweiten Tabs: dort ist
+<code>S = Q_leck</code>, die Ableitung also null. Beide Tabs benutzen
+dieselben zwei Funktionen, sie koennen sich nicht widersprechen. Zweitens
+ist die Gleichung in dp autonom und laesst sich umkehren:</p>
+<<formel
+t(dp) = Integral von 0 bis dp  ueber  V / ( p_umg * (S - Q_leck) )
+>>
+<p>Das ist eine gewoehnliche Quadratur ueber eine bekannte Funktion &ndash;
+kein Verfahren, das divergieren kann, und keine Schrittweitensteuerung.</p>
+<p>Nahe am Arbeitspunkt geht <code>S &minus; Q_leck</code> gegen null, der
+Integrand also gegen unendlich: die Zeit bis zum <em>exakten</em> Endwert ist
+unendlich. Das ist keine Schwaeche der Rechnung, sondern die Sache selbst.
+Ausgewiesen werden deshalb die Zeiten bis 90 und 99 Prozent, und das
+Diagramm hinterlegt den Bereich ab 95 Prozent &ndash; dort kauft Warten fast
+nichts mehr.</p>
+<div class="note">Angenommen wird gleichbleibende Temperatur und ein
+Erzeuger, der seine Kennlinie ohne Anlaufzeit faehrt. Beides macht die
+gerechnete Zeit eher zu kurz als zu lang. Das Innere der Sauger steckt NICHT
+im Volumen &ndash; Schmalz nennt kein Balgvolumen; wer es kennt, traegt es
+als Zusatzvolumen ein.</div>
+<<quelle app/vacuum/evacuation.py | curve(), system_volume_m3()>>
+
+<h2>Der Frequenzumrichter</h2>
+<p>Die Aehnlichkeitsgesetze sagen: Volumenstrom proportional zur Drehzahl,
+Druckdifferenz zum Quadrat. Gegen die Datenblaetter gerechnet &ndash;
+28&nbsp;Geraete mit Angaben fuer 50 und 60&nbsp;Hz &ndash; stimmt nur das
+erste:</p>
+<<formel
+Saugvermoegen 60/50   Mittel 1,200   erwartet 1,200   stimmt
+Vakuum        60/50   Mittel 0,941   erwartet 1,440   stimmt NICHT
+>>
+<p>Das Endvakuum <em>sinkt</em> leicht mit der Drehzahl, statt quadratisch zu
+steigen: beim Seitenkanalgeblaese begrenzt die Spaltrueckstroemung und nicht
+die Drehzahl. Oberhalb der Bezugsfrequenz wird das Endvakuum deshalb beim
+Datenblattwert gedeckelt; mit dem reinen Quadratgesetz laegen die
+Evakuierzeiten bei 60&nbsp;Hz um Faktor 1,5 daneben. Unterhalb 50&nbsp;Hz
+gilt das Quadratgesetz &ndash; dort ist die Drehzahl die Grenze.</p>
+<p>Der Regler laeuft von 25 bis 100&nbsp;Hz. Unter 25&nbsp;Hz kuehlt ein
+eigengekuehlter Motor nicht mehr genug; ueber 60&nbsp;Hz gibt es keine
+Datenblattwerte mehr, gerechnet wird dort weiter.</p>
+<<quelle app/vacuum/physics.py | pump_at_frequency()>>

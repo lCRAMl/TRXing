@@ -100,16 +100,27 @@ von Zeilen, aus der `app/gui/form_builder.py` die Bedienelemente baut:
 BEDIENSPALTE = [
     Gruppe("Platte und Sauger", [
         [Wahl("cup_box", "Sauger-Typ")],
-        [Hinweis("", name="cup_info")],
-        [Zahl("plate_length", "Plattenlaenge", "mm",
+        [Zahl("plate_length", "Laenge", "mm",
+              dict(min=10.0, max=3000.0, stellen=0, schritt=10.0)),
+         Zahl("plate_width", "Breite", "mm",
               dict(min=10.0, max=3000.0, stellen=0, schritt=10.0))],
-    ], name="plate_box"),
+    ], name="plate_box", oben=True),
 ]
 ```
 
 Eine Zeile hier ist eine Zeile auf dem Schirm; vier Felder nebeneinander sind
 vier Einträge in einer Liste. Die Namen liegen danach unter `self.ui` —
 `self.ui.plate_length` — wie zuvor.
+
+Zwei Regeln bestimmen die Breite, beide nur bei `oben=True`:
+
+* **Eine Zelle allein in ihrer Zeile nimmt die ganze Breite.** Sonst stünde
+  sie in der ersten von zwei Rasterspalten — das Auswahlfeld „Bauform des
+  Rasters" maß so 232 von 441 Bildpunkten, und die Zeile „Saugeranzahl"
+  verlangte 232 für ihre Spalte plus 130 für eine zweite, die leer blieb.
+* **Zwischen zwei Feldern einer Zeile steht kein Abstand.** Länge und Breite
+  stoßen aneinander. Steht die Beschriftung daneben statt oben, bleibt der
+  Abstand: dort wechseln sich Beschriftung und Feld in den Spalten ab.
 
 **Warum nicht mehr der Qt Designer.** Bis Oktober 2026 lag die Anordnung in
 `.ui`-Dateien, aus denen `pyuic6` Python erzeugte: 1054 Zeilen XML und 687
@@ -130,7 +141,6 @@ Wer die Einheit änderte, musste zwei Dateien anfassen.
 | `Schalter` | `CompactCheckBox` | Kästchen, mit `angehakt` und `hinweis` |
 | `Auswahlknopf` | `CompactRadioButton` | genau einer von mehreren |
 | `Knopf` | `CompactButton` | mit `vorgabe`, `aktiv`, `sichtbar`; in den Tabs zurzeit nicht benutzt — gerechnet wird nach jeder Eingabe |
-| `Hinweis` | `QLabel` (`role="note"`) | Erklärung unter einer Zeile |
 | `Raster` | `CompactResultGrid` | Ergebniswerte; Zeilen trägt der Tab nach |
 | `Platz` | `QWidget` | Platzhalter für Zeichenfläche oder 3D-Szene |
 | `Gruppe` | `CompactGroupBox` | Rahmen mit Überschrift und Zeilen darin; `oben=True` setzt die Beschriftung über das Feld statt daneben |
@@ -207,7 +217,8 @@ Von der Absicht zur Datei. Jede Zeile hat **genau eine** Stelle:
 | **Abstand Beschriftung ↔ Feld** und zwischen zwei Feldern einer Zeile | dieselbe Datei | `COMPACT_SPACING_X` |
 | **Abstand zweier Gruppenrahmen** | dieselbe Datei | `COMPACT_GROUP_SPACING` |
 | Rand und Abstand um die gesamte Tabfläche | `app/gui/vacuum/tab.py`, `app/gui/pallet/tab.py` | `_build_layout()` — `root.setContentsMargins(6,6,6,6)`, `root.setSpacing(4)` |
-| Breite der Bedienspalte beim ersten Start | `app/gui/vacuum/tab.py`, `app/gui/pallet/tab.py` | `SPLITTER_SIZES` — danach gilt, wohin der Benutzer den Griff zieht |
+| Breite der Bedienspalte beim ersten Start | — | wird gemessen: so breit wie das breiteste Element der Spalte. Danach gilt, wohin der Benutzer den Griff zieht |
+| Breite der Zeichenfläche beim ersten Start | `app/gui/vacuum/tab.py`, `app/gui/pallet/tab.py` | `VIEW_WIDTH` |
 | Wie schmal sich die Bedienspalte ziehen lässt | `app/gui/vacuum/tab.py`, `app/gui/pallet/tab.py` | `_configure_layout()` — ergibt sich aus dem breitesten Inhalt |
 | Maße eines einzelnen Elementtyps (Pfeilspalte, Kästchengröße) | `qt_controls_pyrs/compact.py` | die Konstanten der jeweiligen `Compact…`-Klasse |
 | Spaltenzahl einer Ergebnisanzeige | dort, wo sie gebaut wird — z. B. `EinspaltigesRaster` in `app/gui/vacuum/tab.py` | `COLUMNS` in einer eigenen Unterklasse |
@@ -431,8 +442,8 @@ Stelle:
 |---|---|---|
 | **Schriftgröße aller Bedienelemente** | `app/gui/theme.py` | `FONT_SIZE_OFFSET_PT` |
 | **Fenstergröße beim ersten Start** | `app/application.py` | `DEFAULT_SIZE` |
-| Aufteilung Palettierung | `app/gui/pallet/tab.py` | `SPLITTER_SIZES` |
-| Aufteilung Vakuumplatte | `app/gui/vacuum/tab.py` | `SPLITTER_SIZES` |
+| Aufteilung Palettierung | `app/gui/pallet/tab.py` | `VIEW_WIDTH`, `SPLITTER_KEY` |
+| Aufteilung Vakuumplatte | `app/gui/vacuum/tab.py` | `VIEW_WIDTH`, `SPLITTER_KEY` |
 
 `FONT_SIZE_OFFSET_PT` ist die Schriftgröße in Punkten **gegenüber der
 Windows-Vorgabe**: `0` übernimmt sie, `-1` macht die ganze Oberfläche
@@ -503,6 +514,16 @@ nicht.
 Das Rastermaß wird nie angetastet: 30T sind 30 mm, auch wenn der Sauger mehr
 bräuchte. Ein anderer Sauger stellt die Bauform auf *automatisch* zurück.
 
+Nach unten gibt es allerdings eine Grenze, und ihr Grund ist Rechenzeit: die
+Zahl der Saugerpositionen wächst mit dem Quadrat des Kehrwerts vom Rastermaß,
+und sie wird bei jedem Tastendruck im Feld neu bestimmt. Ein SPB1 10 auf einer
+Platte 3000 × 3000 mm käme bei 1,13 mm auf über acht Millionen Positionen und
+knapp eine Sekunde Stillstand je getipptem Zeichen. Das kleinste einstellbare
+Rastermaß ist deshalb `min(0,5 · Dmax(S); 20 mm)` — die Hälfte des Außenmaßes,
+höchstens aber das kleinste Rastermaß der Bauformen, damit 20T auch für einen
+SPB1 80 (88 mm) wählbar bleibt. Damit bleiben über den ganzen Katalog höchstens
+323 219 Positionen übrig.
+
 Das Muster verteilt nur, was das Rastermaß übriglässt: *gleichmäßig verteilt*
 zieht die Sauger über die ganze Platte auseinander, *dicht an dicht* zieht
 dieselbe Anzahl in die Mitte zusammen, und das *Dreiecksraster* gewinnt
@@ -522,6 +543,71 @@ entstehen so 3 × 2 und 4 × 2. Gemessen wird der Abstand zur Plattenmitte in
 Rasterzellen statt in Millimetern — sonst entschiede das Seitenverhältnis des
 Kartons über die Richtung, und ein Paket 400 × 300 baute einen hohen schmalen
 Stapel auf.
+
+### Der Vakuumerzeuger ist ein Arbeitspunkt, kein Katalog
+
+Die Kennlinie braucht zwei Zahlen: Saugvermögen und Endvakuum. Beide gehören
+je Gerät zusammen und stehen deshalb als **ein** Auswahlfeld im Formular.
+
+Die Liste kommt aus der Schmalz-Übersicht der Seitenkanalgebläse: 41 Geräte,
+davon 28 mit 50-Hz-Angaben, die sich **14 Arbeitspunkte** teilen. Mehr als eine
+Geräteliste braucht die Rechnung nicht — und eine Geräteliste müsste gepflegt
+werden.
+
+Als Paar und nicht als zwei Listen, weil es sonst Kombinationen gäbe, die kein
+Gerät hat: 510 m³/h gibt es bei 200 **und** bei 390 mbar, 260 m³/h bei 410 und
+bei 445.
+
+Vorgabe ist **510 m³/h bei 390 mbar** — der häufigste Punkt, drei Geräte teilen
+ihn. Kein Gerät der Liste schafft mehr als 445 mbar, deshalb zieht die Wahl
+eines Arbeitspunkts auch das Sollvakuum nach. Beide Zahlen bleiben frei
+einstellbar; wer eigene einträgt, sieht *frei eingestellt*.
+
+### Jedes Paket wird einzeln bewertet
+
+Die Kraftbilanz der Platte summiert: alle Haltekräfte gegen alle Massen.
+Darin steckt eine Annahme, die nicht stimmt — dass die Platte Kraft von einem
+Paket zum nächsten weiterreichen könnte. Jedes Paket hängt an genau den
+Saugern über ihm.
+
+Gemessen mit den Vorgabewerten und acht Paketen: vier liegen vollständig
+außerhalb der 800 × 600 großen Platte und bekommen **null Sauger**. Die
+Summenrechnung meldete trotzdem *Sicher* — 5068 N aus 352 Saugern tragen
+40 kg mühelos, nur eben nicht dort, wo die Sauger sitzen.
+
+Deshalb bekommt jedes gezeichnete Paket seine eigene Bilanz:
+
+| was | wo |
+|---|---|
+| Rahmenfarbe je Paket | grün hält, gelb knapp, rot hält nicht |
+| Zahl der haltenden Pakete | Ergebniszeile **Pakete, davon tragend** |
+| welche Pakete es sind | Warnung im Protokoll, mit Paketnummer |
+| Gesamturteil | das **schlechteste** Einzelurteil, nie ein Mittelwert |
+
+Das Vakuum ist dabei für alle gleich: es gibt nur eine Platte und einen
+Erzeuger. Ein offener Sauger über Paket 1 senkt also auch die Haltekraft über
+Paket 8.
+
+### Der dritte Tab: Vakuumverlauf über der Zeit
+
+Tab 2 sagt, **wo** sich das Vakuum einpendelt. Tab 3 sagt, **wie lange** es
+dahin braucht — und was der Frequenzumrichter daran ändert.
+
+Dafür kommt eine Größe dazu, die in der Kraftrechnung nirgends vorkommt: das
+Systemvolumen aus Saugkasten, Schlauch und Zusatzvolumen. Ohne sie gibt es
+keine Zeitachse. Die Vorbelegung (80 mm Kasten, 10 m Schlauch, DN 100) ist
+eine Anlagenangabe und kein Datenblattwert.
+
+Gerechnet wird auf der Platte, die Tab 2 zuletzt fertiggestellt hat — sie
+liegt im Dienst bereit. Tab 3 baut sich **keine zweite Platte** aus denselben
+Eingaben zusammen; er hätte sonst seine eigene Meinung zur Saugerzahl. Beide
+Tabs benutzen dieselben zwei Funktionen für Kennlinie und Leckage, deshalb
+läuft die Kurve genau in den Arbeitspunkt, den Tab 2 anzeigt.
+
+Der Frequenzregler läuft stufenlos von 25 bis 100 Hz. Das Saugvermögen folgt
+der Drehzahl, das Endvakuum **nicht** — gemessen an 28 Geräten mit Angaben für
+50 und 60 Hz steigt es nicht quadratisch, sondern sinkt leicht. Oberhalb 50 Hz
+bleibt es deshalb beim Datenblattwert.
 
 ### Rechenwege und Formeln
 

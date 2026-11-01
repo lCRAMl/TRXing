@@ -124,7 +124,43 @@ Rasterplaetze leer bleiben, nicht dadurch, dass das Rastermass waechst. Das hat
 einen Preis: abgeraeumt wird von der obersten Reihe her, die Bestueckung ist
 danach nicht mehr ueber die ganze Platte verteilt. Bei einer festen Bauform ist
 die Vollbestueckung ohnehin der Regelfall.</p>
-<<quelle app/vacuum/layout.py | SuctionLayoutEngine.pitch_mm(), clearance_mm(), overlap_note()>><<quelle app/vacuum/models.py | SCHMALZ_RASTER, VacuumPlateSpec.raster_pitch_mm>>
+<h3>Wie weit das Raster enger werden darf</h3>
+<p>Nach unten gibt es eine Grenze, und ihr Grund ist Rechenzeit. Die Zahl der
+Saugerpositionen waechst mit dem Quadrat des Kehrwerts vom Rastermass &ndash;
+und sie wird bei jedem Tastendruck im Eingabefeld neu bestimmt, nicht im
+Hintergrund:</p>
+<<formel
+SPB1 10 (Aussenmass 11,3 mm) auf einer Platte 3000 x 3000:
+
+  11,30 mm        80 937 Positionen       7 ms   Sauger stossen aneinander
+   5,65 mm       323 219 Positionen      36 ms   die Grenze
+   2,83 mm     1 292 876 Positionen     141 ms
+   1,13 mm     8 080 475 Positionen     926 ms
+>>
+<p>Die Grenze ist die <b>Haelfte des Aussenmasses</b> &ndash; hoechstens aber
+das kleinste Rastermass der Bauformen, also 20 mm:</p>
+<<formel
+kleinstes Rastermass  =  min( 0,5 * Dmax(S) ,  20 mm )
+
+SPB1 10, Dmax 11,3:   min(  5,65 ; 20 )  =   5,65 mm
+SPB2 30, Dmax 34,0:   min( 17,00 ; 20 )  =  17,00 mm
+SPB1 80, Dmax 88,0:   min( 44,00 ; 20 )  =  20,00 mm
+>>
+<p>Der zweite Teil ist kein Schoenheitsfehler. Ein SPB1 80 ist 88 mm breit, die
+Haelfte davon sind 44 mm &ndash; mit der Prozentregel allein waere die Bauform
+20T fuer ihn nicht mehr einstellbar, und eine Grenze, die eine Bauform sperrt,
+die es wirklich gibt, waere die Ablehnung durch die Hintertuer.</p>
+<p>Teuer sind dabei nicht die grossen Sauger, sondern die kleinen: die
+Positionszahl haengt am <i>absoluten</i> Rastermass und nicht am Verhaeltnis.
+Wo die 20 mm greifen, ist das Mass gross genug; wo der Prozentsatz greift, ist
+der Sauger klein. Ueber den ganzen Katalog gemessen bleiben so hoechstens
+323 219 Positionen uebrig statt ueber acht Millionen.</p>
+<p>Das Eingabefeld nimmt kleinere Werte gar nicht erst an. Kommt ein zu kleines
+Rastermass auf anderem Weg herein &ndash; aus der Konfiguration etwa &ndash;,
+wird es <b>abgelehnt und nicht stillschweigend angehoben</b>. Sonst stuende im
+Feld eine Zahl und auf der Platte eine andere.</p>
+
+<<quelle app/vacuum/layout.py | SuctionLayoutEngine.pitch_mm(), clearance_mm(), overlap_note(), min_pitch_mm()>><<quelle app/vacuum/models.py | SCHMALZ_RASTER, VacuumPlateSpec.raster_pitch_mm>>
 
 <h3>Warum die dichteste Packung mehr aufnimmt</h3>
 <p>Gleich grosse Kreise lassen sich im Quadratraster nur bis zu einem

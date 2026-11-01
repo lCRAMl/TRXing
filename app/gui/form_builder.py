@@ -54,9 +54,9 @@ from PyQt6.QtWidgets import (
 
 from qt_controls_pyrs import (
     COMPACT_GROUP_SPACING, COMPACT_SPACING, COMPACT_SPACING_X,
-    COMPACT_WRAP_WIDTH, CompactButton, CompactCheckBox, CompactDropdown,
+    CompactButton, CompactCheckBox, CompactDropdown,
     CompactGroupBox, CompactIntField, CompactLineEdit, CompactNumberField,
-    CompactRadioButton, CompactResultGrid, compact_combo
+    CompactRadioButton, CompactResultGrid, HaloSlider, compact_combo
 )
 
 
@@ -112,6 +112,26 @@ class Text:
 
 
 @dataclass(frozen=True, slots=True)
+class Regler:
+    """Ein Schieberegler ueber die ganze Breite.
+
+    Die Spanne steht in GANZEN Schritten, weil QSlider nur ganze Zahlen
+    kennt. Wer Zehntel braucht, rechnet im Tab um - die Umrechnung ist
+    Fachwissen und gehoert nicht in den Formularbau.
+
+    Ohne Beschriftung spannt der Regler die ganze Zeile; mit Beschriftung
+    steht sie wie bei jedem anderen Baustein darueber oder daneben.
+    """
+
+    name: str
+    beschriftung: str = ""
+    min: int = 0
+    max: int = 100
+    wert: int = 0
+    hinweis: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class Schalter:
     """Ein Kaestchen zum Anhaken. Die Beschriftung steht daneben, nicht davor."""
 
@@ -146,14 +166,6 @@ class Knopf:
     aktiv: bool = True
     sichtbar: bool = True
     hinweis: str = ""
-
-
-@dataclass(frozen=True, slots=True)
-class Hinweis:
-    """Ein Erklaerungstext unter einer Zeile. Laeuft ueber die ganze Breite."""
-
-    text: str
-    name: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -257,17 +269,6 @@ def _beschriftung(text: str) -> QLabel:
     return label
 
 
-def _hinweis(text: str) -> QLabel:
-    label = QLabel(text)
-    label.setWordWrap(True)
-    label.setMinimumWidth(COMPACT_WRAP_WIDTH)
-    label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-    # Die Rolle greift das Stylesheet ab - so bleiben Hinweise ueberall gleich
-    # blass, ohne dass hier eine Farbe steht.
-    label.setProperty("role", "note")
-    return label
-
-
 def _zelle(baustein: Any, ziel: Oberflaeche) -> tuple[QWidget | None, QWidget]:
     """(Beschriftung, Bedienelement) eines Bausteins. Beschriftung darf fehlen."""
     if isinstance(baustein, Zahl):
@@ -297,6 +298,16 @@ def _zelle(baustein: Any, ziel: Oberflaeche) -> tuple[QWidget | None, QWidget]:
         setattr(ziel, baustein.name, feld)
         return _beschriftung(baustein.beschriftung), feld
 
+    if isinstance(baustein, Regler):
+        regler = HaloSlider(Qt.Orientation.Horizontal)
+        regler.setRange(baustein.min, baustein.max)
+        regler.setValue(baustein.wert)
+        if baustein.hinweis:
+            regler.setToolTip(baustein.hinweis)
+        setattr(ziel, baustein.name, regler)
+        beschriftung = _beschriftung(baustein.beschriftung) if baustein.beschriftung else None
+        return beschriftung, regler
+
     if isinstance(baustein, Schalter):
         box = CompactCheckBox(baustein.beschriftung)
         box.setChecked(baustein.angehakt)
@@ -323,12 +334,6 @@ def _zelle(baustein: Any, ziel: Oberflaeche) -> tuple[QWidget | None, QWidget]:
         setattr(ziel, baustein.name, knopf)
         return None, knopf
 
-    if isinstance(baustein, Hinweis):
-        label = _hinweis(baustein.text)
-        if baustein.name:
-            setattr(ziel, baustein.name, label)
-        return None, label
-
     if isinstance(baustein, Raster):
         raster = CompactResultGrid(baustein.titel)
         setattr(ziel, baustein.name, raster)
@@ -344,7 +349,7 @@ def _zelle(baustein: Any, ziel: Oberflaeche) -> tuple[QWidget | None, QWidget]:
 
 def _spannt_volle_breite(baustein: Any) -> bool:
     """Ob die Zelle allein in ihrer Zeile steht und sie ganz ausfuellt."""
-    return isinstance(baustein, (Hinweis, Raster, Platz))
+    return isinstance(baustein, (Raster, Platz))
 
 
 def baue_gruppe(gruppe: Gruppe, ziel: Oberflaeche) -> CompactGroupBox:
@@ -354,7 +359,12 @@ def baue_gruppe(gruppe: Gruppe, ziel: Oberflaeche) -> CompactGroupBox:
         setattr(ziel, gruppe.name, box)
 
     raster = QGridLayout(box)
-    raster.setHorizontalSpacing(COMPACT_SPACING_X)
+    # Kein waagerechter Abstand, wo die Beschriftung OBEN steht: dort haelt
+    # jede Rasterspalte genau ein Bedienelement, und zwei Felder einer Zeile -
+    # Laenge und Breite - sollen unmittelbar nebeneinander liegen. Steht die
+    # Beschriftung DANEBEN, wechseln sich Beschriftung und Feld in den Spalten
+    # ab; dort trennt der Abstand das eine Paar vom naechsten und bleibt.
+    raster.setHorizontalSpacing(0 if gruppe.oben else COMPACT_SPACING_X)
     raster.setVerticalSpacing(COMPACT_SPACING)
 
     breiteste = max((len(zeile) for zeile in gruppe.zeilen), default=1)
@@ -364,16 +374,38 @@ def baue_gruppe(gruppe: Gruppe, ziel: Oberflaeche) -> CompactGroupBox:
         # eigenen Zeile darueber. Zwei Rasterzeilen je Formularzeile.
         for nummer, zeile in enumerate(gruppe.zeilen):
             kopf, feld = nummer * 2, nummer * 2 + 1
+            # Eine Zelle ALLEIN in ihrer Zeile nimmt die ganze Breite.
+            #
+            # Vorher stand sie in Spalte 0 und die zweite Spalte blieb leer:
+            # das Auswahlfeld "Bauform des Rasters" mass damit 232 von 441
+            # Bildpunkten, und rechts daneben war nichts. Schlimmer war die
+            # Rueckwirkung auf die Breite - die 232 Bildpunkte des Feldes
+            # "Saugeranzahl" (sein Nulltext ist lang) legten Spalte 0 fest,
+            # dazu kamen 130 fuer Spalte 1, die niemand brauchte. Mit der
+            # Spannweite kostet dieselbe Zeile 232 statt 362.
+            spannweite = breiteste if len(zeile) == 1 else 1
             for spalte, baustein in enumerate(zeile):
                 label, widget = _zelle(baustein, ziel)
-                if _spannt_volle_breite(baustein) or label is None:
-                    # Hinweise, Kaestchen und Raster brauchen keinen Kopf -
-                    # sie bringen ihre Beschriftung selbst mit oder sind eine.
+                if _spannt_volle_breite(baustein):
+                    # Ein Ergebnisraster oder ein Platzhalter fuellt seine
+                    # Zeile allein; was danach stuende, haette keinen Platz.
                     raster.addWidget(widget, kopf, 0, 2, breiteste)
                     break
+                if label is None:
+                    # Kaestchen brauchen keinen Kopf - sie bringen ihre
+                    # Beschriftung selbst mit und belegen beide Rasterzeilen
+                    # ihrer Spalte.
+                    #
+                    # Hier stand bis zum 2026-11-01 ein break. Zwei Kaestchen
+                    # nebeneinander ergaben damit ein Kaestchen: das zweite
+                    # wurde nie gebaut, und sein Name fehlte still in der
+                    # Oberflaeche - auffallen konnte das erst viel spaeter,
+                    # beim ersten Zugriff.
+                    raster.addWidget(widget, kopf, spalte, 2, spannweite)
+                    continue
                 label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
-                raster.addWidget(label, kopf, spalte)
-                raster.addWidget(widget, feld, spalte)
+                raster.addWidget(label, kopf, spalte, 1, spannweite)
+                raster.addWidget(widget, feld, spalte, 1, spannweite)
         for spalte in range(breiteste):
             raster.setColumnStretch(spalte, 1)
         return box
