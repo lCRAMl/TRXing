@@ -1,5 +1,5 @@
 """Tab 2 - Vakuumplatte.
-
+arrangement_info
 Der Tab stellt die Eingaben zu einem VacuumInput zusammen, ruft den
 VacuumService und zeigt das Ergebnis. Keine Formel steht hier - weder fuer die
 Kraft noch fuer die Leckage, und auch die Bewertung Sicher/Grenzwertig/Nicht
@@ -131,21 +131,28 @@ def _ampel(vorhanden: float, noetig: float) -> str:
 BEDIENSPALTE = [
     Gruppe("Platte und Sauger", [
         [Wahl("cup_box", "Sauger-Typ")],
-        [Hinweis("", name="cup_info")],
+        #[Hinweis("", name="cup_info")],
         # Laenge und Breite gehoeren in eine Zeile, Randabstand und
-        # Saugerabstand in die naechste: beides sind Paare, die man zusammen
+        # Rastermass in die naechste: beides sind Paare, die man zusammen
         # einstellt und zusammen liest.
         [Zahl("plate_length", "Laenge", "mm",
               dict(min=10.0, max=3000.0, stellen=0, schritt=10.0)),
          Zahl("plate_width", "Breite", "mm",
               dict(min=10.0, max=3000.0, stellen=0, schritt=10.0))],
+        # Das Rastermass ist der MITTENabstand, nicht die Luecke dazwischen.
+        # Bis zum 2026-11-01 stand hier der lichte Abstand - dieselbe Groesse
+        # in anderer Schreibweise und damit ein zweites Feld fuer eine Sache.
+        # Schmalz kennzeichnet seine Bauformen ueber den Mittenabstand
+        # (20T/30T/45T), also tut es das Formular auch. Der lichte Abstand
+        # steht jetzt als ERGEBNIS im Hinweis unter der Saugeranzahl.
         [Zahl("edge_margin", "Randabstand", "mm",
               dict(min=0.0, max=500.0, stellen=0, schritt=5.0)),
-         Zahl("min_spacing", "Saugerabstand", "mm", dict(
-            min=0.0, max=500.0, stellen=0, schritt=1.0,
-            hinweis="Lichter Abstand zwischen den Aussenmassen zweier Sauger.\n"
-                    "0 bedeutet: die Sauger stossen aneinander."))],
-        [Hinweis("", name="min_spacing_info")],
+         Zahl("raster_pitch", "Rastermass", "mm", dict(
+            min=1.0, max=500.0, stellen=1, schritt=1.0,
+            hinweis="Mittenabstand zweier Sauger, von Mitte zu Mitte.\n"
+                    "Kleiner als das Saugeraussenmass ist erlaubt - die\n"
+                    "Sauger ueberlappen sich dann, und es gibt eine Warnung."))],
+        [Wahl("raster_box", "Bauform des Rasters")],
         [Wahl("arrangement_box", "Saugermuster")],
         [Hinweis("", name="arrangement_info")],
         [Ganzzahl("cup_count", "Saugeranzahl", "Stueck", dict(
@@ -161,7 +168,7 @@ BEDIENSPALTE = [
                   hinweis="Ordnet die Pakete nach dem in der Palettierung "
                           "gewaehlten Muster an.\n"
                           "Aus: gleichmaessiges Raster.")],
-        [Hinweis("", name="package_info")],
+        #[Hinweis("", name="package_info")],
     ], name="package_box", oben=True),
 
     Gruppe("Vakuum und Sicherheit", [
@@ -211,6 +218,37 @@ BEDIENSPALTE = [
 #: fuer veraltet, bis er geklickt hat. Der Abbruch steht in der Statusleiste,
 #: neben dem Fortschritt, den er abbricht (siehe app/gui/notifications.py).
 ]
+
+def _raster_text(cup, raster) -> str:
+    """Was unter der Saugeranzahl steht.
+
+    Drei Angaben in einer Zeile: das Rastermass, der daraus folgende lichte
+    Abstand und die Hoechstzahl. Der lichte Abstand ist hier ein ERGEBNIS und
+    keine Eingabe mehr - wird er negativ, ueberlappen sich die Sauger, und
+    dann steht dort die Ueberlappung statt einer Luecke.
+
+    Gerechnet wird nichts: beide Zahlen kommen fertig aus der Engine
+    (Spezifikation 37), hier werden sie nur benannt.
+    """
+    if raster.clearance_mm < 0.0:
+        luft = "Ueberlappung " + format(-raster.clearance_mm, ".1f") + " mm (!)"
+    else:
+        luft = "lichter Abstand " + format(raster.clearance_mm, ".1f") + " mm"
+    return (
+        "Rastermass " + format(raster.pitch_mm, "g") + " mm minus Aussenmass "
+        + format(cup.outer_diameter_mm, "g") + " mm  =  " + luft
+        + "   |   hoechstens " + str(raster.max_cup_count) + " Sauger auf der Platte."
+    )
+
+
+#: Kennzahlen der beiden Zustaende im Bauform-Auswahlfeld.
+#:
+#: Sie stehen an derselben Stelle wie ein Rastermass in mm, sind aber keines.
+#: Negativ, weil ein Rastermass nie negativ wird - damit lassen sie sich mit
+#: keiner echten Bauform verwechseln.
+RASTER_AUTOMATISCH = -1.0
+RASTER_FREI = -2.0
+
 
 #: Die Zeilen der beiden Ergebnisanzeigen. None ist eine Trennlinie.
 ERGEBNISZEILEN = [
@@ -377,8 +415,10 @@ class VacuumTab(TabHost):
         # Die Plattenmasse aendern, wie viele Sauger ueberhaupt passen - sie
         # brauchen deshalb einen eigenen Weg, nicht nur die Neuberechnung.
         for field in (self.ui.plate_length, self.ui.plate_width,
-                      self.ui.edge_margin, self.ui.min_spacing):
+                      self.ui.edge_margin, self.ui.raster_pitch):
             field.value_changed.connect(self._on_plate_changed)
+
+        self.ui.raster_box.currentIndexChanged.connect(self._on_raster_box_changed)
 
         for field in (self.ui.cup_count, self.ui.package_count, self.ui.vacuum, self.ui.flow,
                       self.ui.permeability, self.ui.safety, self.ui.acceleration, self.ui.friction):
@@ -413,6 +453,15 @@ class VacuumTab(TabHost):
             self.ui.arrangement_box.addItem(label, strategy_id)
         self.ui.arrangement_box.blockSignals(False)
 
+        self.ui.raster_box.blockSignals(True)
+        self.ui.raster_box.clear()
+        self.ui.raster_box.addItem("automatisch (aus dem Sauger)", RASTER_AUTOMATISCH)
+        for code, pitch_mm in self._service.available_rasters():
+            self.ui.raster_box.addItem(
+                code + "  -  " + format(pitch_mm, "g") + " mm", pitch_mm)
+        self.ui.raster_box.addItem("frei eingestellt", RASTER_FREI)
+        self.ui.raster_box.blockSignals(False)
+
         self.ui.restrictor_box.blockSignals(True)
         self.ui.restrictor_box.clear()
         for mode in RestrictorMode:
@@ -440,7 +489,6 @@ class VacuumTab(TabHost):
         self.ui.plate_length.set_value(defaults.plate.length_mm)
         self.ui.plate_width.set_value(defaults.plate.width_mm)
         self.ui.edge_margin.set_value(defaults.plate.edge_margin_mm)
-        self.ui.min_spacing.set_value(defaults.plate.min_spacing_mm)
         self.ui.vacuum.set_value(pa_to_mbar(defaults.target_vacuum_pa))
         self.ui.flow.set_value(m3s_to_m3h(defaults.pump.nominal_flow_m3s))
         self.ui.safety.set_value(defaults.safety_factor)
@@ -462,6 +510,12 @@ class VacuumTab(TabHost):
             self.ui.grip_box.setCurrentIndex(grip_index)
 
         self._on_cup_changed()
+
+        # NACH _on_cup_changed(), denn das stellt auf "automatisch". Gibt die
+        # Konfiguration ein Rastermass vor, soll ihres gelten.
+        if defaults.plate.raster_pitch_mm > 0.0:
+            self.ui.raster_pitch.set_value(defaults.plate.raster_pitch_mm)
+
         self._on_arrangement_changed()
         self._on_leakage_changed()
         self._on_grip_changed()
@@ -477,7 +531,11 @@ class VacuumTab(TabHost):
             width_mm=self.ui.plate_width.value(),
             thickness_mm=self._defaults.plate.thickness_mm,
             edge_margin_mm=self.ui.edge_margin.value(),
-            min_spacing_mm=self.ui.min_spacing.value(),
+            # Der lichte Abstand steht nicht mehr im Formular. Er bleibt als
+            # Grundlage von "automatisch" erhalten und kommt aus der
+            # Konfiguration; eingestellt wird das Rastermass selbst.
+            min_spacing_mm=self._defaults.plate.min_spacing_mm,
+            raster_pitch_mm=self.ui.raster_pitch.value(),
         )
 
     def _current_leakage(self) -> LeakageSpec:
@@ -492,16 +550,76 @@ class VacuumTab(TabHost):
         if cup is None:
             return
         self._context.state.set_suction_cup_id(cup.id)
-        self.ui.cup_info.setText(
-            "Datenblatt: " + format(cup.theoretical_force_n, "g") + " N bei -"
-            + format(pa_to_mbar(cup.reference_vacuum_pa) / 1000.0, ".1f").replace(".", ",") + " bar   |   "
-            "Dichtlippe " + format(cup.sealing_lip_diameter_mm, "g") + " mm   |   "
-            "Aussen unter Vakuum " + format(cup.outer_diameter_mm, "g") + " mm   |   "
-            "Bohrung " + format(cup.bore_diameter_mm, "g") + " mm   |   "
-            "Abreisskraft " + format(cup.pull_off_force_n, "g") + " N"
-        )
+        # self.ui.cup_info.setText(
+        #     "Datenblatt: " + format(cup.theoretical_force_n, "g") + " N bei -"
+        #     + format(pa_to_mbar(cup.reference_vacuum_pa) / 1000.0, ".1f").replace(".", ",") + " bar   |   "
+        #     "Dichtlippe " + format(cup.sealing_lip_diameter_mm, "g") + " mm   |   "
+        #     "Aussen unter Vakuum " + format(cup.outer_diameter_mm, "g") + " mm   |   "
+        #     "Bohrung " + format(cup.bore_diameter_mm, "g") + " mm   |   "
+        #     "Abreisskraft " + format(cup.pull_off_force_n, "g") + " N"
+        # )
+        self._select_automatic_raster()
         self._update_cup_limit()
         self._debouncer.trigger()
+
+    def _select_automatic_raster(self) -> None:
+        """Stellt das Rastermass auf den Wert des gewaehlten Saugers.
+
+        Bei JEDEM Saugerwechsel - so ausdruecklich gewuenscht. Der Preis steht
+        hier, damit er nicht vergessen wird: wer zwei Sauger bei festem 30T
+        vergleichen will, muss die Bauform nach jedem Wechsel erneut waehlen.
+        """
+        cup = self._current_cup()
+        if cup is None:
+            return
+        mass = self._service.raster_overview(
+            cup, self._current_plate(), self._current_arrangement()
+        ).automatic_pitch_mm
+        if mass <= 0.0:
+            return
+        self.ui.raster_pitch.blockSignals(True)
+        self.ui.raster_pitch.set_value(mass)
+        self.ui.raster_pitch.blockSignals(False)
+
+    def _on_raster_box_changed(self, *_args) -> None:
+        """Eine Bauform gewaehlt: das Rastermass nachziehen.
+
+        "frei eingestellt" ist kein Mass, sondern die Anzeige dafuer, dass die
+        Zahl von Hand kommt - da bleibt das Feld unberuehrt.
+        """
+        mass = self.ui.raster_box.currentData()
+        if mass is None or mass == RASTER_FREI:
+            return
+        if mass == RASTER_AUTOMATISCH:
+            self._select_automatic_raster()
+        else:
+            self.ui.raster_pitch.blockSignals(True)
+            self.ui.raster_pitch.set_value(mass)
+            self.ui.raster_pitch.blockSignals(False)
+        self._on_plate_changed()
+
+    def _show_raster_box(self, raster) -> None:
+        """Stellt im Auswahlfeld die Bauform ein, die zum Mass gehoert.
+
+        Verglichen werden die MASSE, nicht ein gemerkter Zustand. Damit stimmt
+        die Anzeige auch, wenn der Wert von woanders kommt - aus der
+        Vorbelegung, vom Saugerwechsel oder aus der Konfiguration. Und wenn
+        ein von Hand getipptes Mass einer Bauform entspricht, heisst es auch
+        so: 30 mm SIND 30T, egal wie sie zustande kamen.
+        """
+        if abs(raster.pitch_mm - raster.automatic_pitch_mm) < 0.05:
+            kennung = RASTER_AUTOMATISCH
+        elif self.ui.raster_box.findData(raster.pitch_mm) >= 0:
+            kennung = raster.pitch_mm
+        else:
+            kennung = RASTER_FREI
+
+        index = self.ui.raster_box.findData(kennung)
+        if index < 0:
+            return
+        self.ui.raster_box.blockSignals(True)
+        self.ui.raster_box.setCurrentIndex(index)
+        self.ui.raster_box.blockSignals(False)
 
     def _on_plate_changed(self, *_args) -> None:
         self._context.state.notify_plate_changed()
@@ -540,51 +658,22 @@ class VacuumTab(TabHost):
         self._debouncer.trigger()
 
     def _update_cup_limit(self) -> None:
+        """Bauform nachfuehren und zeigen, was das Raster kostet.
+
+        Ein einziger Dienstaufruf fuer alles. Frueher standen hier zwei -
+        einer fuer die Hoechstzahl, einer fuer den Vergleich mit Abstand null -
+        und beide liefen bei jedem Tastendruck in einem Plattenmass.
+        """
         cup = self._current_cup()
         if cup is None:
             return
-        plate = self._current_plate()
-        arrangement = self._current_arrangement()
 
-        maximum = self._service.max_cup_count(cup, plate, arrangement)
-        self.ui.cup_count.set_maximum(max(0, maximum))
-        self.ui.cup_limit.setText(
-            "Mit diesem Muster passen hoechstens " + str(maximum) + " Sauger auf die Platte."
+        raster = self._service.raster_overview(
+            cup, self._current_plate(), self._current_arrangement()
         )
-        self._update_spacing_hint(cup, plate, arrangement, maximum)
-
-    def _update_spacing_hint(self, cup, plate, arrangement: str, maximum: int) -> None:
-        """Was der eingestellte Saugerabstand kostet - in Saugern.
-
-        Die haeufigste Frage an dieser Platte ist, warum die Sauger in der
-        Zeichnung nicht aneinanderstossen. Die Antwort ist dieses Feld, und sie
-        ueberzeugt erst mit der Zahl daneben: bei einer Platte 800 x 600 mit
-        SPB2 30 kosten 10 mm Abstand 157 von 391 moeglichen Saugern.
-
-        Die Vergleichszahl kommt aus derselben Verteilung wie die obere Grenze,
-        nur mit Abstand null - gerechnet wird sie in der Engine, nicht hier
-        (Spezifikation 37).
-        """
-        if plate.min_spacing_mm <= 0.0:
-            self.ui.min_spacing_info.setText(
-                "Die Sauger stossen mit ihrem Aussenmass aneinander - "
-                "dichter laesst sich die Platte nicht bestuecken."
-            )
-            return
-
-        touching = self._service.max_cup_count(
-            cup, replace(plate, min_spacing_mm=0.0), arrangement
-        )
-        text = (
-            "Lichter Abstand zwischen zwei Saugeraussenkanten. Das Rastermass ist "
-            "Aussenmass " + format(cup.outer_diameter_mm, "g") + " mm plus dieser Wert."
-        )
-        if touching > maximum:
-            text += (
-                " Mit 0 mm stossen sie aneinander - dann passen "
-                + str(touching) + " statt " + str(maximum) + " Sauger auf die Platte."
-            )
-        self.ui.min_spacing_info.setText(text)
+        self._show_raster_box(raster)
+        self.ui.cup_count.set_maximum(max(0, raster.max_cup_count))
+        self.ui.cup_limit.setText(_raster_text(cup, raster))
 
     # Berechnung ---------------------------------------------------------------
 
@@ -620,24 +709,24 @@ class VacuumTab(TabHost):
         count = self.ui.package_count.value()
         if layer is not None and layer.footprints:
             layer_footprints = layer.footprints
-            if count <= layer.count:
-                self.ui.package_info.setText(
-                    "Ebene " + str(layer.layer_index + 1) + " aus der Palettierung"
-                    + (" ('" + layer.pattern_name + "')" if layer.pattern_name else "")
-                    + ": " + str(count) + " von " + str(layer.count) + " Paketen."
-                )
-            else:
-                self.ui.package_info.setText(
-                    "Die Ebene hat " + str(layer.count) + " Pakete - fuer " + str(count)
-                    + " wird nach Muster angeordnet, nicht mehr wie auf der Palette."
-                )
-        elif adopt:
-            self.ui.package_info.setText(
-                "Noch keine Lage aus der Palettierung - dort zuerst berechnen. "
-                "Angeordnet wird solange als gleichmaessiges Raster."
-            )
-        else:
-            self.ui.package_info.setText("Anordnung als gleichmaessiges Raster.")
+        #     if count <= layer.count:
+        #         self.ui.package_info.setText(
+        #             "Ebene " + str(layer.layer_index + 1) + " aus der Palettierung"
+        #             + (" ('" + layer.pattern_name + "')" if layer.pattern_name else "")
+        #             + ": " + str(count) + " von " + str(layer.count) + " Paketen."
+        #         )
+        #     else:
+        #         self.ui.package_info.setText(
+        #             "Die Ebene hat " + str(layer.count) + " Pakete - fuer " + str(count)
+        #             + " wird nach Muster angeordnet, nicht mehr wie auf der Palette."
+        #         )
+        # elif adopt:
+        #     self.ui.package_info.setText(
+        #         "Noch keine Lage aus der Palettierung - dort zuerst berechnen. "
+        #         "Angeordnet wird solange als gleichmaessiges Raster."
+        #     )
+        # else:
+        #     self.ui.package_info.setText("Anordnung als gleichmaessiges Raster.")
 
         request = VacuumInput(
             package=package,

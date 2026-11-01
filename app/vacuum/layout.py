@@ -7,6 +7,11 @@ entsteht, steht in app/vacuum/cup_patterns.py; hier steht nur, wie aus
 Plattengeometrie und Saugergroesse die nutzbare Spanne wird und wie eine
 gewuenschte Stueckzahl getroffen wird.
 
+Bei der Stueckzahl ist zwischen zwei Arten von Mustern zu unterscheiden. Ein
+freies Muster wird ueber sein Rastermass ausgeduennt (siehe _thin_to); ein
+festes Raster - die Bauformen 20T/30T/45T - darf das nicht, weil sein
+Rastermass die Bauform ist. Es bleibt stehen, und Plaetze bleiben leer.
+
 package_layout ordnet die zu hebenden Pakete an. Spezifikation 18 verlangt,
 dass dafuer das in der Palettierung gewaehlte Muster verwendbar ist, ohne die
 Palettierlogik zu duplizieren - hier passiert genau das.
@@ -73,17 +78,69 @@ class SuctionLayout:
         return len(self.placements)
 
 
+def _plate_too_small_note(cup: SuctionCupSpec, plate: VacuumPlateSpec) -> str:
+    """Die Platte nimmt nicht einen einzigen Sauger auf.
+
+    Eine Meldung, zwei Aufrufer: capacity_with_notes() braucht sie fuer den
+    Hinweis unter dem Eingabefeld, distribute() fuer das leere Ergebnis. Zweimal
+    hingeschrieben liefen die beiden Texte auseinander.
+    """
+    return (
+        "Die Platte ist fuer diesen Sauger zu klein: benoetigt werden mindestens "
+        + format(cup.outer_diameter_mm + 2.0 * plate.edge_margin_mm, ".0f")
+        + " mm Kantenlaenge."
+    )
+
+
 class SuctionLayoutEngine:
     """Verteilt Sauger auf einer rechteckigen Platte."""
 
-    def minimum_pitch_mm(self, cup: SuctionCupSpec, plate: VacuumPlateSpec) -> float:
-        """Kleinster Mittenabstand zweier Sauger.
+    def pitch_mm(self, cup: SuctionCupSpec, plate: VacuumPlateSpec) -> float:
+        """Mittenabstand zweier Sauger - vorgegeben oder aus dem Sauger.
 
-        Massgeblich ist das Aussenmass unter Vakuum (Dmax(S) aus dem
-        Datenblatt), nicht die Nenngroesse: der Sauger weitet sich beim
-        Ansaugen. Dazu der geforderte lichte Mindestabstand.
+        Ist ein Rastermass vorgegeben (die Bauformen 20T/30T/45T oder ein
+        freies Mass), gilt es unveraendert. Das ist der ganze Sinn einer
+        Bauform: sie steht fest, auch wenn der Sauger nicht hineinpasst.
+
+        Sonst wird gerechnet. Massgeblich ist dann das Aussenmass unter Vakuum
+        (Dmax(S) aus dem Datenblatt), nicht die Nenngroesse: der Sauger weitet
+        sich beim Ansaugen. Dazu der geforderte lichte Mindestabstand.
         """
+        if plate.raster_pitch_mm > 0.0:
+            return plate.raster_pitch_mm
         return cup.outer_diameter_mm + max(0.0, plate.min_spacing_mm)
+
+    def clearance_mm(self, cup: SuctionCupSpec, plate: VacuumPlateSpec) -> float:
+        """Lichter Abstand, der sich aus dem Rastermass ergibt.
+
+        Die Umkehrung von pitch_mm(): Rastermass minus Aussenmass. Bei einem
+        vorgegebenen Raster ist der lichte Abstand kein Eingabewert mehr,
+        sondern ein Ergebnis - und er darf negativ werden. Negativ heisst,
+        dass sich die Sauger um diesen Betrag ueberlappen.
+        """
+        return self.pitch_mm(cup, plate) - cup.outer_diameter_mm
+
+    def overlap_note(self, cup: SuctionCupSpec, plate: VacuumPlateSpec) -> str:
+        """Die Warnung zu einem Raster, das enger ist als der Sauger.
+
+        Leer, wenn nichts ueberlappt. Der Text geht denselben Weg wie jeder
+        andere Verteilungshinweis: ueber die Warnungen des Ergebnisses in den
+        Melder und damit ins Protokoll und ins Problemfenster.
+
+        Dass die Rechnung trotzdem alle Sauger als wirksam zaehlt, steht
+        ausdruecklich im Text. Ohne diesen Satz waere die angezeigte Haltekraft
+        eine Zahl, die niemand einordnen kann.
+        """
+        luft = self.clearance_mm(cup, plate)
+        if luft >= 0.0:
+            return ""
+        return (
+            "Das Rastermass " + format(self.pitch_mm(cup, plate), "g") + " mm ist kleiner "
+            "als das Aussenmass des Saugers unter Vakuum (" + format(cup.outer_diameter_mm, "g")
+            + " mm). Die Sauger ueberlappen sich um " + format(-luft, ".1f")
+            + " mm; so laesst sich die Platte nicht bauen. Die Rechnung zaehlt sie "
+            "trotzdem alle als wirksam - die Haltekraft ist deshalb zu hoch."
+        )
 
     def _base_request(
         self,
@@ -92,7 +149,7 @@ class SuctionLayoutEngine:
         package_rects: tuple[tuple[float, float, float, float], ...] = (),
     ) -> ArrangementRequest | None:
         """Nutzbare Spanne der Platte. None, wenn kein Sauger daraufpasst."""
-        pitch = self.minimum_pitch_mm(cup, plate)
+        pitch = self.pitch_mm(cup, plate)
         if pitch <= 0.0:
             return None
 
@@ -124,10 +181,30 @@ class SuctionLayoutEngine:
         weniger. Die Oberflaeche braucht den Wert, um die Obergrenze des
         Eingabefelds zu setzen, bevor gerechnet wird.
         """
+        return self.capacity_with_notes(cup, plate, arrangement_id, package_rects)[0]
+
+    def capacity_with_notes(
+        self,
+        cup: SuctionCupSpec,
+        plate: VacuumPlateSpec,
+        arrangement_id: str = DEFAULT_ARRANGEMENT,
+        package_rects: tuple[tuple[float, float, float, float], ...] = (),
+    ) -> tuple[int, tuple[str, ...]]:
+        """Hoechstzahl der Sauger UND der Grund, wenn es keine gibt.
+
+        Die Zahl allein genuegt seit den festen T-Rastern nicht mehr. Dort ist
+        "hoechstens 0 Sauger" keine Auskunft, sondern eine Sackgasse: der Grund
+        liegt im Verhaeltnis von Saugermass zu Rastermass, und den kennt nur das
+        Muster. Die Oberflaeche zeigt ihn an, statt ihn nachzurechnen
+        (Spezifikation 37).
+        """
         request = self._base_request(cup, plate, package_rects)
         if request is None:
-            return 0
-        return cup_patterns.generate(arrangement_id, request).count
+            return 0, (_plate_too_small_note(cup, plate),)
+        arrangement = cup_patterns.generate(arrangement_id, request)
+        ueberlappung = self.overlap_note(cup, plate)
+        notes = ((ueberlappung,) if ueberlappung else ()) + arrangement.notes
+        return arrangement.count, notes
 
     def _thin_to(
         self, arrangement_id: str, request: ArrangementRequest, wanted: int
@@ -221,13 +298,14 @@ class SuctionLayoutEngine:
         if request is None:
             return SuctionLayout(
                 arrangement_id=arrangement_id,
-                notes=("Die Platte ist fuer diesen Sauger zu klein: benoetigt werden mindestens "
-                       + format(cup.outer_diameter_mm + 2.0 * plate.edge_margin_mm, ".0f")
-                       + " mm Kantenlaenge.",),
+                notes=(_plate_too_small_note(cup, plate),),
             )
 
         full = cup_patterns.generate(arrangement_id, request)
         notes = list(full.notes)
+        ueberlappung = self.overlap_note(cup, plate)
+        if ueberlappung:
+            notes.insert(0, ueberlappung)
         capacity = full.count
         if capacity == 0:
             return SuctionLayout(
@@ -247,7 +325,30 @@ class SuctionLayoutEngine:
             target = MAX_CUP_POSITIONS
 
         if 0 < target < capacity:
-            result = self._thin_to(arrangement_id, request, target)
+            if plate.raster_pitch_mm > 0.0:
+                # Ein vorgegebenes Rastermass laesst sich nicht ausduennen.
+                # _thin_to() wuerde es vergroessern, bis die Stueckzahl passt -
+                # und aus 30T wuerde ein Raster, das es nicht gibt. Also bleibt
+                # das Raster stehen, und Plaetze bleiben leer.
+                #
+                # Das hat einen Preis, und er steht im Kommentar zu _thin_to():
+                # abgeraeumt wird von der obersten Reihe her, die Bestueckung
+                # ist danach nicht mehr ueber die ganze Platte verteilt. Ohne
+                # vorgegebenes Raster ist das vermeidbar, hier nicht - entweder
+                # das Rastermass oder die Verteilung gibt nach. Eine Stueckzahl
+                # VORZUGEBEN ist bei einer festen Bauform ohnehin die Ausnahme;
+                # der Regelfall ist die Vollbestueckung.
+                result = replace(
+                    full, centers=self._drop_surplus(full.centers, capacity - target)
+                )
+                notes.append(
+                    "Das Rastermass " + format(plate.raster_pitch_mm, "g") + " mm ist "
+                    "vorgegeben und wird nicht aufgeweitet. Von den " + str(capacity)
+                    + " Rasterplaetzen sind " + str(target) + " besetzt, die uebrigen bleiben "
+                    "leer - die Sauger stehen damit nicht ueber die ganze Platte verteilt."
+                )
+            else:
+                result = self._thin_to(arrangement_id, request, target)
         else:
             result = full
             if 0 < target != capacity:

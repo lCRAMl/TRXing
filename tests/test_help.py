@@ -255,6 +255,58 @@ def test_a_chapter_without_a_title_line_says_so():
             _lies_kapitel(datei)
 
 
+def test_every_image_marker_points_to_an_existing_file():
+    """Ein Bild, das es nicht gibt, wird zum leeren Platzhalter.
+
+    Und zwar lautlos: QTextBrowser meldet nichts, das Kapitel laesst sich
+    weiter oeffnen, und an der Stelle steht ein graues Kaestchen. Genau wie bei
+    den Quelltextverweisen faellt das sonst erst jemandem auf, der die Hilfe
+    liest.
+    """
+    from app.gui.help_dialog import help_texts_dir
+
+    gefunden = []
+    for datei in sorted(help_texts_dir().glob("*.html")):
+        for treffer in re.findall(r"<<bild\s+(.*?)>>", datei.read_text(encoding="utf-8")):
+            name = treffer.split("|")[0].strip()
+            gefunden.append(name)
+            assert (help_texts_dir() / name).is_file(), (
+                datei.name + " verweist auf ein fehlendes Bild: " + name
+            )
+    assert gefunden, "Es muss mindestens ein Bild geben"
+
+
+def test_the_image_becomes_a_resolvable_url():
+    """Die Marke muss zu einem <img> mit absoluter Datei-URL werden.
+
+    Ein relativer Pfad reicht nicht: das Dokument geht ueber setHtml() in die
+    Anzeige und hat dort kein Basisverzeichnis. Gegenprobe zu genau diesem
+    Fehler - mit <img src="Dreiecksraster.svg"> bliebe das Bild leer.
+    """
+    from urllib.parse import unquote, urlparse
+
+    dokument = full_document()
+    treffer = re.findall(r'<img src="([^"]+)"', dokument)
+    assert treffer, "Im Dokument steht kein Bild"
+    assert "<<bild" not in dokument, "Eine Bildmarke ist nicht aufgeloest worden"
+
+    for url in treffer:
+        assert url.startswith("file:"), "Keine absolute Datei-URL: " + url
+        pfad = urlparse(url)
+        ort = pathlib.Path(unquote("//" + pfad.netloc + pfad.path
+                                   if pfad.netloc else pfad.path.lstrip("/")))
+        assert ort.is_file(), "Datei-URL zeigt ins Leere: " + url
+
+
+def test_the_image_files_travel_with_the_package():
+    """Die Bilder liegen im selben Ordner wie die Kapitel - und nur deshalb
+    werden sie mitgepackt. Wandern sie woandershin, fehlt ein --add-data."""
+    from app.gui.help_dialog import help_texts_dir
+
+    bilder = sorted(help_texts_dir().glob("*.svg"))
+    assert bilder, "Es liegt kein Bild bei den Kapiteltexten"
+
+
 def test_the_help_texts_travel_with_the_package():
     """Das Bauskript nimmt den Ordner mit.
 

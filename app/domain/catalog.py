@@ -425,6 +425,7 @@ def parse_vacuum_defaults(data: dict, reporter: ErrorReporter) -> VacuumDefaults
             thickness_mm=_number(plate_raw, "thickness_mm", required=False, default=15.0, minimum=0.0, maximum=500.0),
             edge_margin_mm=_number(plate_raw, "edge_margin_mm", required=False, default=20.0, minimum=0.0, maximum=1000.0),
             min_spacing_mm=_number(plate_raw, "min_spacing_mm", required=False, default=5.0, minimum=0.0, maximum=1000.0),
+            raster_pitch_mm=_number(plate_raw, "raster_pitch_mm", required=False, default=0.0, minimum=0.0, maximum=1000.0),
         ),
         VacuumPlateSpec(800.0, 600.0),
         "Abschnitt 'plate'",

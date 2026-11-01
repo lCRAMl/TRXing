@@ -43,13 +43,88 @@ und Montagewerkzeug brauchen Platz.</div>
     <td>Quadratraster ueber die ganze Platte gespreizt</td><td>Bezug</td></tr>
 <tr><td>Raster, dicht an dicht</td>
     <td>Quadratraster am Mindestabstand, mittig</td><td>gleich</td></tr>
-<tr><td>Dichteste Packung</td>
+<tr><td>Dreiecksraster (dichteste Packung)</td>
     <td>versetzte Reihen (Dreiecksgitter)</td><td>rund +15 %</td></tr>
 <tr><td>Nur am Rand</td>
     <td>aeusserer Ring des Rasters, Mitte frei</td><td>deutlich weniger</td></tr>
 <tr><td>Nur ueber den Paketen</td>
     <td>dichteste Packung, auf die Kartonflaechen beschraenkt</td><td>je nach Belegung</td></tr>
 </table>
+
+<h3>Das Dreiecksraster</h3>
+<<bild Dreiecksraster.svg | Versetzte Reihen. Jede Saugstelle hat sechs Nachbarn im gleichen Abstand; drei benachbarte Stellen bilden ein gleichseitiges Dreieck (blau) - daher der Name.>>
+<p>Die Punkte sind die Saugstellen. Jede zweite Reihe ist um ein halbes
+Rastermass eingerueckt und rutscht dadurch so weit nach oben, dass der Abstand
+zu den beiden Nachbarn darueber genauso gross ist wie der zu den Nachbarn
+daneben. Aus vier gleich weit entfernten Nachbarn im Quadratraster werden so
+sechs &ndash; und genau daher kommen die rund fuenfzehn Prozent mehr Sauger.</p>
+
+<h3>Was das Bild mit der Angabe 30T zu tun hat</h3>
+<p>Schmalz kennzeichnet die Leichtbau-Lagengreifer ZLW mit einem Code aus Zahl
+und Buchstabe. <b>Das T ist die Anordnung im Bild</b> &ndash; der Hersteller
+nennt sie in den Produktdaten ausdruecklich <i>Dreieck</i>. <b>Die Zahl ist die
+Kantenlaenge des blauen Dreiecks</b>, also der Abstand zweier benachbarter
+Saugstellen von Mitte zu Mitte. Bei 30T sind alle drei Kanten 30 mm lang.</p>
+<p>Alles Uebrige folgt daraus, und die Zeichnung ist dabei massstaeblich: ein
+Schritt nach rechts misst 60 Bildpunkte, ein Schritt in die naechste Reihe 52.
+Das Verhaeltnis ist sqrt(3)/2 = 0,866 &ndash; die Hoehe eines gleichseitigen
+Dreiecks.</p>
+<<formel
+Kante des Dreiecks   =  Rastermass t          30T:  30,00 mm
+Versatz zur Seite    =  t / 2                 30T:  15,00 mm
+Abstand der Reihen   =  t * sqrt(3)/2         30T:  25,98 mm
+>>
+<table>
+<tr><th>Code</th><th>Kante (Rastermass)</th><th>Versatz</th><th>Reihenabstand</th></tr>
+<tr><td>20T</td><td>20,0 mm</td><td>10,0 mm</td><td>17,32 mm</td></tr>
+<tr><td>30T</td><td>30,0 mm</td><td>15,0 mm</td><td>25,98 mm</td></tr>
+<tr><td>45T</td><td>45,0 mm</td><td>22,5 mm</td><td>38,97 mm</td></tr>
+</table>
+<p>Eine einzige Zahl beschreibt also das ganze Raster. Deshalb gibt es im
+Programm auch kein eigenes <i>Schmalz-Muster</i>: die Bauformen legen genau das
+Gitter aus dem Bild, das die dichteste Packung ohnehin legt. Sie geben nur das
+Rastermass vor. Gemessen: ein SPB2 25 mit 2 mm lichtem Abstand und die Bauform
+30T ergeben beide 30,0 mm Rastermass und dieselben 660 Sauger auf einer Platte
+850 x 650.</p>
+
+<h3>Woher feststeht, dass die Zahl der Mittenabstand ist</h3>
+<p>Die Bestelltabelle nennt nur <i>Abstand der Saugstellen in mm</i> und laesst
+offen, welcher Abstand gemeint ist. Entschieden wird es durch ein Geraet, das
+der Hersteller wirklich verkauft:</p>
+<<formel
+ZLW FL 850x650 SE SPB2 40 45T       SPB2 40:  Dmax(S) = 44,5 mm
+
+als Mittenabstand    45,0 - 44,5 =  0,5 mm Luft     -> baubar, knapp
+als lichter Abstand  45,0 + 44,5 = 89,5 mm Mitte    -> gaebe es nicht
+>>
+
+<h3>Rastermass und lichter Abstand</h3>
+<p>Eingestellt wird das <b>Rastermass</b>, also der Mittenabstand. Der lichte
+Abstand &ndash; die Luecke zwischen zwei Saugern &ndash; ist kein Eingabewert,
+sondern faellt heraus:</p>
+<<formel
+lichter Abstand  =  Rastermass  -  Aussenmass unter Vakuum
+
+SPB2 25 in 30T:    30,0 - 28,0 =    2,0 mm    passt
+SPB2 30 in 45T:    45,0 - 34,0 =   11,0 mm    passt reichlich
+SPB2 30 in 20T:    20,0 - 34,0 =  -14,0 mm    Ueberlappung
+>>
+<p class="warn">Ein negativer Wert ist erlaubt. Das Programm zeichnet das
+Raster trotzdem, damit es sich ansehen laesst, und schreibt eine Warnung ins
+Protokoll. In der Warnung steht ausdruecklich, dass die Rechnung alle Sauger
+als wirksam zaehlt und die angezeigte Haltekraft deshalb zu hoch ist. Eine so
+gebaute Platte gibt es nicht &ndash; die Sauger liessen sich nicht montieren.</p>
+<p>Das Rastermass wird dabei nie angetastet: 30T sind 30 mm, auch wenn der
+Sauger mehr braeuchte, und auch wenn er weniger braucht. Auf das Saugermass
+auszuweichen waere die bequemere Antwort &ndash; aber dann stuende im
+Auswahlfeld <i>30T</i>, und auf der Platte laegen 34 mm.</p>
+<p>Aus demselben Grund laesst sich ein vorgegebenes Raster nicht ausduennen.
+Eine Stueckzahl unterhalb der Rasterkapazitaet entsteht dadurch, dass
+Rasterplaetze leer bleiben, nicht dadurch, dass das Rastermass waechst. Das hat
+einen Preis: abgeraeumt wird von der obersten Reihe her, die Bestueckung ist
+danach nicht mehr ueber die ganze Platte verteilt. Bei einer festen Bauform ist
+die Vollbestueckung ohnehin der Regelfall.</p>
+<<quelle app/vacuum/layout.py | SuctionLayoutEngine.pitch_mm(), clearance_mm(), overlap_note()>><<quelle app/vacuum/models.py | SCHMALZ_RASTER, VacuumPlateSpec.raster_pitch_mm>>
 
 <h3>Warum die dichteste Packung mehr aufnimmt</h3>
 <p>Gleich grosse Kreise lassen sich im Quadratraster nur bis zu einem

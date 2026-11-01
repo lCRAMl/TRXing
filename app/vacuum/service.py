@@ -11,6 +11,8 @@ keinen Hintergrundjob.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from PyQt6.QtCore import QObject
 
 from app.domain.catalog import VacuumDefaults
@@ -18,6 +20,8 @@ from app.domain.catalog import SettingsService
 from app.infra.errors import ErrorReporter
 from app.infra.jobs import RequestGate
 from app.vacuum.models import SuctionCupSpec
+from app.vacuum.models import SCHMALZ_RASTER
+from app.vacuum.models import RasterOverview
 from app.vacuum.models import GripDirection, VacuumInput
 from app.vacuum.calculator import VacuumError, berechne_vakuum
 from app.vacuum.physics import (
@@ -61,15 +65,33 @@ class VacuumService(CalculationService):
     def defaults(self) -> VacuumDefaults:
         return self._settings.get_vacuum_defaults()
 
-    def max_cup_count(self, cup: SuctionCupSpec, plate, arrangement_id: str = "grid_spread") -> int:
-        """Hoechstzahl der Sauger fuer dieses Muster auf dieser Platte.
+    def raster_overview(
+        self, cup: SuctionCupSpec, plate, arrangement_id: str = "grid_spread"
+    ) -> RasterOverview:
+        """Alles, was die Oberflaeche ueber das eingestellte Raster anzeigt.
 
-        Wird gebraucht, um die Obergrenze des Eingabefelds zu setzen, bevor
-        gerechnet wird - sonst kann der Benutzer eine Zahl eintragen, die die
-        Platte nie aufnimmt. Die Zahl haengt vom Muster ab: die dichteste
-        Packung nimmt rund fuenfzehn Prozent mehr auf als ein Quadratraster.
+        Rastermass, lichter Abstand, das Mass der Einstellung "automatisch",
+        die Hoechstzahl und die Hinweise - in einem Aufruf. Die Oberflaeche
+        rechnet davon nichts selbst nach (Spezifikation 37).
         """
-        return self._layout_engine.capacity(cup, plate, arrangement_id)
+        engine = self._layout_engine
+        anzahl, hinweise = engine.capacity_with_notes(cup, plate, arrangement_id)
+        return RasterOverview(
+            pitch_mm=engine.pitch_mm(cup, plate),
+            clearance_mm=engine.clearance_mm(cup, plate),
+            automatic_pitch_mm=engine.pitch_mm(cup, replace(plate, raster_pitch_mm=0.0)),
+            max_cup_count=anzahl,
+            notes=hinweise,
+        )
+
+    def available_rasters(self) -> tuple[tuple[str, float], ...]:
+        """Die Rastermasse der Lagengreifer-Bauformen als (Code, mm).
+
+        Die Oberflaeche fuellt daraus ihr Auswahlfeld, ohne die Masse selbst zu
+        kennen. Eine weitere Bauform ist damit ein Eintrag in SCHMALZ_RASTER
+        und sonst nichts.
+        """
+        return SCHMALZ_RASTER
 
     def available_arrangements(self) -> tuple[tuple[str, str, str], ...]:
         """Die waehlbaren Saugermuster als (Kennung, Beschriftung, Erklaerung).

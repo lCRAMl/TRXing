@@ -450,45 +450,62 @@ einzelne Größe muss dafür nirgends nachgezogen werden.
 Im Vakuumtab legt das Auswahlfeld **Saugermuster** fest, wie die Sauger auf der
 Platte sitzen:
 
-| Muster | Anzahl (800 × 600 mm, SPB2 30) |
+| Muster | Anzahl (800 × 600 mm, SPB2 30, Rastermaß automatisch) |
 |---|---|
-| Raster, gleichmäßig verteilt | 234 |
-| Raster, dicht an dicht | 234 |
-| **Dichteste Packung (maximale Anzahl)** | **263** |
-| Nur am Rand | 58 |
+| Raster, gleichmäßig verteilt | 391 |
+| Raster, dicht an dicht | 391 |
+| **Dreiecksraster (dichteste Packung)** | **460** |
+| Nur am Rand | 76 |
 | Nur über den Paketen | je nach Belegung |
 
-Die dichteste Packung nutzt versetzte Reihen im Dreiecksgitter — gleich große
-Kreise lassen sich so bis 90,7 % statt 78,5 % der Fläche packen, das sind rund
-15 % mehr Sauger und damit die größte erreichbare Auflage- und Wirkfläche.
+Das Dreiecksraster nutzt versetzte Reihen — gleich große Kreise lassen sich so
+bis 90,7 % statt 78,5 % der Fläche packen, das sind rund 15 % mehr Sauger und
+damit die größte erreichbare Auflage- und Wirkfläche.
 
 *Nur über den Paketen* ist der Fall für eine Platte, die für ein bekanntes
 Produkt gebaut wird: unbelegte Positionen entfallen ganz, und der
 Fremdluftbedarf geht auf null.
 
-### Wie viele Sauger auf die Platte passen
+### Das Rastermaß
 
-Den größten Hebel hat **nicht** das Muster, sondern das Feld **Saugerabstand**:
-das lichte Maß zwischen zwei Saugeraußenkanten. Das Rastermaß ist Außenmaß
-*plus* Saugerabstand — bei einem SPB2 30 also 34,0 mm + Abstand. Das Feld sagt
-unter sich selbst, was der eingestellte Wert kostet: „Mit 0 mm stoßen sie
-aneinander — dann passen 391 statt 234 Sauger auf die Platte.".
+Den größten Hebel hat **nicht** das Muster, sondern das Feld **Rastermaß**: der
+Mittenabstand zweier Sauger. Daneben steht die **Bauform**, die ihn setzt:
 
-| Saugerabstand | Raster, dicht an dicht | Dichteste Packung |
-|---|---|---|
-| 10 mm (Vorgabe) | 234 | 263 |
-| 0 mm | **391** | **428** |
+| Bauform | Rastermaß | lichter Abstand | Sauger |
+|---|---|---|---|
+| automatisch | 34,0 mm | 0,0 mm | 460 |
+| 45T | 45,0 mm | 11,0 mm | 263 |
+| 30T | 30,0 mm | −4,0 mm | 572 |
+| 20T | 20,0 mm | −14,0 mm | 1271 |
 
-Bei 0 mm stoßen die Außenmaße direkt aneinander — die Legende der Draufsicht
-schreibt das dann ausdrücklich dazu. Ob das zulässig ist, entscheidet der
-Aufbau: Anschlussnippel, Schlauchführung und Montagewerkzeug brauchen
-Zwischenraum. Die Vorgabe von 10 mm steht in
-`config/vacuum_defaults.json` unter `plate.min_spacing_mm` und lässt sich im
-Feld *Saugerabstand* jederzeit überschreiben.
+*automatisch* rechnet das Maß aus dem Sauger: Außenmaß unter Vakuum (Dmax(S),
+bei einem SPB2 30 also 34,0 mm) plus dem lichten Mindestabstand aus
+`config/vacuum_defaults.json` (`plate.min_spacing_mm`, Vorgabe 0). Die Sauger
+stoßen dann mit ihrem Außenmaß aneinander — ob das zulässig ist, entscheidet
+der Aufbau: Anschlussnippel, Schlauchführung und Montagewerkzeug brauchen
+Zwischenraum.
+
+**20T, 30T und 45T** sind die Bauformen der Schmalz-Leichtbau-Lagengreifer ZLW.
+Der Hersteller nennt die Anordnung *Dreieck*, die Zahl ist der Abstand der
+Saugstellen in mm. Das ist genau dasselbe Gitter, das die dichteste Packung
+ohnehin legt — vorgegeben ist allein das Maß. Ein eigenes „Schmalz-Muster" wäre
+deshalb eine Dublette: ein SPB2 25 mit 2 mm lichtem Abstand und die Bauform 30T
+ergeben beide 30,0 mm und dieselben Positionen.
+
+Der lichte Abstand ist **kein Eingabewert mehr**, sondern fällt aus dem
+Rastermaß heraus: Rastermaß minus Außenmaß. Wird er negativ, überlappen sich
+die Sauger. Das ist **erlaubt** — die Platte wird trotzdem gezeichnet, damit
+sich das Raster ansehen lässt —, erzeugt aber eine Warnung im Protokoll. In ihr
+steht ausdrücklich, dass die Rechnung alle Sauger als wirksam zählt und die
+angezeigte Haltekraft deshalb zu hoch ist. Eine so gebaute Platte gibt es
+nicht.
+
+Das Rastermaß wird nie angetastet: 30T sind 30 mm, auch wenn der Sauger mehr
+bräuchte. Ein anderer Sauger stellt die Bauform auf *automatisch* zurück.
 
 Das Muster verteilt nur, was das Rastermaß übriglässt: *gleichmäßig verteilt*
 zieht die Sauger über die ganze Platte auseinander, *dicht an dicht* zieht
-dieselbe Anzahl in die Mitte zusammen, und die *dichteste Packung* gewinnt
+dieselbe Anzahl in die Mitte zusammen, und das *Dreiecksraster* gewinnt
 durch versetzte Reihen rund 15 % mehr Plätze.
 
 ### Die Platte darf kleiner sein als das Paket

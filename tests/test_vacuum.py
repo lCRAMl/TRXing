@@ -45,6 +45,33 @@ def base_request(package, plate, cup_spb2_30, settings):
     )
 
 
+def test_an_overlapping_raster_warns_in_the_result(calculator, base_request):
+    """Die Ueberlappung muss bis ins Protokoll durchkommen.
+
+    Der Weg ist lang und an jeder Station abreissbar: die Verteilung schreibt
+    einen Hinweis, der Rechner haengt ihn an result.warnings, und der Tab
+    meldet jede Warnung dem Melder - erst dort wird daraus ein Eintrag im
+    Protokoll und im Problemfenster. Geprueft wird hier die mittlere Station,
+    weil sie die einzige ohne Oberflaeche ist.
+
+    SPB2 30 ist 34,0 mm breit; in einem 20-mm-Raster ueberlappt er um 14 mm.
+    """
+    eng = replace(base_request.plate, min_spacing_mm=0.0, raster_pitch_mm=20.0)
+    result = calculator.calculate(replace(base_request, plate=eng))
+
+    treffer = [w for w in result.warnings if "ueberlappen" in w]
+    assert treffer, "Keine Warnung zur Ueberlappung: " + str(result.warnings)
+    assert "14.0 mm" in treffer[0], treffer[0]
+    assert result.total_cup_count > 0, "gerechnet werden muss trotzdem"
+
+
+def test_a_raster_that_fits_warns_about_nothing(calculator, base_request):
+    """Gegenstueck - sonst waere die Warnung oben kein Nachweis."""
+    weit = replace(base_request.plate, min_spacing_mm=0.0, raster_pitch_mm=45.0)
+    result = calculator.calculate(replace(base_request, plate=weit))
+    assert not [w for w in result.warnings if "ueberlappen" in w]
+
+
 # Kraftmodell ------------------------------------------------------------------
 
 @pytest.mark.parametrize(

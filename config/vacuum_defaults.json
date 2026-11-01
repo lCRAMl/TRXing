@@ -26,14 +26,23 @@
     "(SuctionLayoutEngine._base_request in app/vacuum/layout.py), sonst",
     "haengt der aeusserste Sauger ueber die Plattenkante. Bei einem SPB2 30",
     "wirken deshalb 17 mm. An der Saugerzahl aendert dieser Wert allein",
-    "nichts - die 391 kommen vom Saugerabstand."
+    "nichts - die 391 kommen vom Saugerabstand.",
+    "",
+    "raster_pitch_mm ist der vorgegebene Mittenabstand zweier Sauger. 0 heisst",
+    "'automatisch': dann gilt Aussenmass unter Vakuum plus min_spacing_mm, und",
+    "min_spacing_mm ist der Wert, der das Formular nicht mehr hat. Ein Wert",
+    "groesser 0 setzt ein festes Raster - die Schmalz-Bauformen 20T/30T/45T",
+    "sind 20, 30 und 45 mm (siehe SCHMALZ_RASTER in app/vacuum/models.py).",
+    "Ein Wert KLEINER als das Aussenmass des Saugers ist erlaubt; die Sauger",
+    "ueberlappen sich dann, die Verteilung warnt, und gezeichnet wird trotzdem."
   ],
   "plate": {
     "length_mm": 800,
     "width_mm": 600,
     "thickness_mm": 15,
     "edge_margin_mm": 0,
-    "min_spacing_mm": 0
+    "min_spacing_mm": 0,
+    "raster_pitch_mm": 0
   },
 
   "operation": {

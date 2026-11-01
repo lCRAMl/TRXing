@@ -93,6 +93,27 @@ def _formula(*lines: str) -> str:
     )
 
 
+def _image(name: str, caption: str = "") -> str:
+    """Ein Bild aus help_texts/, mit Beschriftung darunter.
+
+    Der Pfad wird HIER zur absoluten Datei-URL gemacht und nicht im Kapitel
+    hingeschrieben. QTextBrowser bekommt das Dokument ueber setHtml() und hat
+    damit kein Basisverzeichnis, an dem es einen relativen Pfad aufloesen
+    koennte - ein <img src="bild.svg"> bliebe ein leerer Platzhalter. Im
+    gepackten Programm liegt der Ordner ausserdem woanders, deshalb ueber
+    help_texts_dir() und nicht ueber eine feste Zeichenkette.
+
+    Breite und Hoehe stehen ausdruecklich dabei: ein SVG mit width="100%"
+    gibt QImageReader keine verwertbare Groesse, und das Bild faellt auf den
+    Platzhalter zurueck.
+    """
+    url = (help_texts_dir() / name).as_uri()
+    block = ('<p><img src="' + url + '" width="430" height="220"></p>')
+    if caption:
+        block += '<p class="caption">' + caption + "</p>"
+    return block
+
+
 def _source(path: str, detail: str = "") -> str:
     """Verweis auf die Stelle im Quelltext, an der die Formel steht."""
     return ('<p class="source"><b>Im Quelltext:</b> <code>' + path + '</code>'
@@ -118,6 +139,7 @@ h2 { font-size: 12pt; margin-top: 20px; margin-bottom: 4px;
      border-bottom: 1px solid """ + PALETTE.border + """; padding-bottom: 3px; }
 h3 { font-size: 10.5pt; margin-top: 14px; margin-bottom: 2px; }
 p { margin: 5px 0; }
+.caption { font-size: 9pt; color: """ + PALETTE.text_muted + """; margin-top: 0; }
 table.formula { margin: 9px 0; }
 table.formula td { background: """ + PALETTE.surface_alt + """; border: none;
                    border-left: 3px solid """ + PALETTE.accent + """;
@@ -181,8 +203,9 @@ def help_texts_dir() -> Path:
     return Path(__file__).resolve().parent / HELP_TEXTS_DIRNAME
 
 
-#: Eine Marke: <<formel ...>> oder <<quelle pfad | detail>>.
-_MARKE = re.compile(r"<<(formel|quelle)\s(.*?)>>", re.DOTALL)
+#: Eine Marke: <<formel ...>>, <<quelle pfad | detail>> oder
+#: <<bild datei | Beschriftung>>.
+_MARKE = re.compile(r"<<(formel|quelle|bild)\s(.*?)>>", re.DOTALL)
 
 #: Trennt Pfad und Erklaerung in einer Quellmarke.
 _QUELLTRENNER = " | "
@@ -196,6 +219,10 @@ def _loese_marke(treffer: re.Match[str]) -> str:
         # INNERHALB eines Formelblocks ist gewollt und soll bleiben.
         koerper = inhalt.removeprefix("\n").removesuffix("\n")
         return _formula(*koerper.split("\n"))
+
+    if art == "bild":
+        name, _, beschriftung = inhalt.partition(_QUELLTRENNER)
+        return _image(name.strip(), beschriftung.strip())
 
     pfad, _, detail = inhalt.partition(_QUELLTRENNER)
     return _source(pfad, detail)

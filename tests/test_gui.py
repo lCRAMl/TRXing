@@ -610,23 +610,87 @@ def test_the_icon_travels_with_the_package():
     assert "app/gui/icons" in bundled, "Der Symbolordner fehlt in DATA_FILES"
 
 
-def test_the_spacing_field_says_what_it_costs(window, qt_app):
-    """Der Saugerabstand zeigt unter sich, was der eingestellte Wert kostet.
+def test_the_raster_field_says_what_it_costs(window, qt_app):
+    """Unter der Saugeranzahl steht, was das Rastermass bedeutet.
 
-    Die haeufigste Frage an der Draufsicht ist, warum die Sauger nicht
-    aneinanderstossen. Die Antwort ist dieses Feld - und sie ueberzeugt erst
-    mit der Zahl daneben.
+    Die haeufigste Frage an dieser Platte ist, warum die Sauger in der
+    Zeichnung nicht aneinanderstossen. Die Antwort ist diese Zeile - und sie
+    ueberzeugt erst mit den Zahlen: Rastermass minus Aussenmass ergibt den
+    lichten Abstand, daneben die Hoechstzahl.
     """
     tab = window._tab_manager.widget_for("vacuum")
-
-    tab.ui.min_spacing.spin.setValue(10.0)
+    tab.ui.cup_box.setCurrentIndex(tab.ui.cup_box.findData("spb2_25"))
     qt_app.processEvents()
-    spaced = tab.ui.min_spacing_info.text()
-    assert "0 mm" in spaced and "statt" in spaced, spaced
 
-    tab.ui.min_spacing.spin.setValue(0.0)
+    tab.ui.raster_pitch.spin.setValue(30.0)
     qt_app.processEvents()
-    assert "stossen" in tab.ui.min_spacing_info.text()
+    text = tab.ui.cup_limit.text()
+    assert "30 mm" in text and "28 mm" in text, text
+    assert "lichter Abstand 2.0 mm" in text, text
+    assert "hoechstens" in text, text
+
+
+def test_an_overlapping_raster_is_named_overlap(window, qt_app):
+    """Ein zu enges Raster wird gezeichnet - und als Ueberlappung benannt.
+
+    Frueher lehnte das Programm die Kombination ab. Jetzt entsteht die Platte,
+    und der Hinweis sagt statt eines lichten Abstands, um wie viel sich die
+    Sauger ueberlappen. Ohne dieses Wort stuende dort eine negative Luecke, und
+    das liest niemand als Fehler.
+    """
+    tab = window._tab_manager.widget_for("vacuum")
+    tab.ui.cup_box.setCurrentIndex(tab.ui.cup_box.findData("spb2_30"))
+    qt_app.processEvents()
+
+    tab.ui.raster_pitch.spin.setValue(20.0)
+    qt_app.processEvents()
+
+    text = tab.ui.cup_limit.text()
+    assert "Ueberlappung 14.0 mm" in text, text
+    assert tab.ui.cup_count.spin.maximum() > 0, "gezeichnet werden muss trotzdem"
+
+
+def test_a_build_form_sets_the_raster_pitch(window, qt_app):
+    """Die Auswahl 30T schreibt 30 mm ins Feld - das ist ihre ganze Aufgabe."""
+    from app.gui.vacuum.tab import RASTER_AUTOMATISCH
+
+    tab = window._tab_manager.widget_for("vacuum")
+    tab.ui.cup_box.setCurrentIndex(tab.ui.cup_box.findData("spb2_25"))
+    qt_app.processEvents()
+
+    index = tab.ui.raster_box.findData(30.0)
+    assert index >= 0, "Die Bauform 30T steht nicht im Auswahlfeld"
+    tab.ui.raster_box.setCurrentIndex(index)
+    qt_app.processEvents()
+    assert tab.ui.raster_pitch.value() == pytest.approx(30.0, abs=1e-6)
+
+    # Zurueck auf automatisch: das Mass des Saugers, hier Dmax 28,0 mm.
+    tab.ui.raster_box.setCurrentIndex(tab.ui.raster_box.findData(RASTER_AUTOMATISCH))
+    qt_app.processEvents()
+    assert tab.ui.raster_pitch.value() == pytest.approx(28.0, abs=1e-6)
+
+
+def test_changing_the_cup_returns_to_the_automatic_raster(window, qt_app):
+    """Ein anderer Sauger stellt das Rastermass zurueck - so gewuenscht.
+
+    Der Preis steht im Quelltext: zwei Sauger bei festem 30T zu vergleichen
+    geht dadurch nicht ohne erneute Wahl. Dieser Test haelt die Entscheidung
+    fest, damit sie nicht versehentlich zurueckgedreht wird.
+    """
+    from app.gui.vacuum.tab import RASTER_AUTOMATISCH
+
+    tab = window._tab_manager.widget_for("vacuum")
+    tab.ui.cup_box.setCurrentIndex(tab.ui.cup_box.findData("spb2_25"))
+    qt_app.processEvents()
+    tab.ui.raster_box.setCurrentIndex(tab.ui.raster_box.findData(45.0))
+    qt_app.processEvents()
+    assert tab.ui.raster_pitch.value() == pytest.approx(45.0, abs=1e-6)
+
+    tab.ui.cup_box.setCurrentIndex(tab.ui.cup_box.findData("spb2_30"))
+    qt_app.processEvents()
+
+    assert tab.ui.raster_pitch.value() == pytest.approx(34.0, abs=1e-6)
+    assert tab.ui.raster_box.currentData() == RASTER_AUTOMATISCH
 
 
 def test_a_single_value_can_be_coloured(window, qt_app):

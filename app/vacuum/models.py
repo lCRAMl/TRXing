@@ -268,6 +268,29 @@ statt nur eine Warnung zu erzeugen, waehrend das Ergebnis weiter mit dem
 Sollvakuum glaenzt. Das Sollvakuum bleibt als Vergleichswert erhalten.
 """
 
+#: Die Rastermasse der Schmalz-Leichtbau-Lagengreifer ZLW, als (Code, mm).
+#:
+#: Die Bestelltabelle der Baureihe fuehrt sie unter der Spaltenueberschrift
+#: "Abstand der Saugstellen in mm"; die einzelnen Varianten nennen die
+#: Anordnung "Dreieck, 30 mm" beziehungsweise "Dreieck, 45 mm". Es ist also
+#: dasselbe Dreiecksgitter, das die dichteste Packung ohnehin legt - vorgegeben
+#: ist allein das Rastermass.
+#:
+#: WELCHER Abstand die Zahl ist, sagt die Quelle nicht. Entschieden wird es
+#: durch ein Geraet, das es wirklich gibt: ZLW FL 850x650 SE SPB2 40 45T. Der
+#: SPB2 40 hat Dmax(S) = 44,5 mm. Als MITTENabstand gelesen bleiben in einem
+#: 45-mm-Raster 0,5 mm Luft, und die Bauform geht auf; als lichter Abstand
+#: gelesen waere der Mittenabstand 89,5 mm, und das Geraet gaebe es nicht.
+#:
+#: Quelle: www.schmalz.com, Produktseite "Leichtbau-Lagengreifer ZLW",
+#: Abschnitte "Bestellinformationen" und "Technische Daten".
+SCHMALZ_RASTER: tuple[tuple[str, float], ...] = (
+    ("20T", 20.0),
+    ("30T", 30.0),
+    ("45T", 45.0),
+)
+
+
 @dataclass(frozen=True, slots=True)
 class VacuumPlateSpec:
     """Geometrie der Saugerplatte."""
@@ -280,7 +303,34 @@ class VacuumPlateSpec:
     edge_margin_mm: float = 20.0
 
     #: Lichter Mindestabstand zwischen zwei Saugeraussenkanten.
+    #:
+    #: Nur noch die Grundlage des Rastermasses "automatisch". Sobald
+    #: raster_pitch_mm gesetzt ist, steht der lichte Abstand nicht mehr am
+    #: Anfang der Rechnung, sondern faellt als Ergebnis hinten heraus:
+    #: Rastermass minus Aussenmass. Er kann dann auch negativ werden.
     min_spacing_mm: float = 5.0
+
+    #: Vorgegebener Mittenabstand zweier Sauger. 0 heisst: aus dem Sauger
+    #: gerechnet, also Aussenmass unter Vakuum plus min_spacing_mm.
+    #:
+    #: Das ist die Stelle, an der die Schmalz-Bauformen 20T/30T/45T eingreifen
+    #: (siehe SCHMALZ_RASTER). Ein Wert kleiner als das Aussenmass des Saugers
+    #: ist ERLAUBT - die Sauger ueberlappen sich dann, und die Verteilung meldet
+    #: es als Warnung. Gezeichnet wird trotzdem, damit sich das Raster ansehen
+    #: laesst.
+    raster_pitch_mm: float = 0.0
+
+    @property
+    def raster_label(self) -> str:
+        """Die Schmalz-Kennzeichnung des eingestellten Rastermasses.
+
+        Leer, wenn das Mass keiner Bauform entspricht - dann ist es ein freies
+        Raster, und es waere falsch, ihm einen Herstellercode anzuhaengen.
+        """
+        for code, pitch_mm in SCHMALZ_RASTER:
+            if abs(pitch_mm - self.raster_pitch_mm) < 1e-9:
+                return code
+        return ""
 
     @property
     def area_mm2(self) -> float:
@@ -314,6 +364,35 @@ class LeakageModel(Enum):
             LeakageModel.FLOW_PER_AREA: "Strom je Flaeche bei Bezugsdruck",
             LeakageModel.PRESSURE_LINEAR: "Druckproportional (Darcy)",
         }[self]
+
+
+@dataclass(frozen=True, slots=True)
+class RasterOverview:
+    """Was die Oberflaeche ueber das eingestellte Raster anzeigt.
+
+    Drei Zahlen und die Hinweise dazu, in einem Zug geholt. Einzeln abgefragt
+    wuerde die Verteilung dreimal durchgerechnet - und das bei jedem
+    Tastendruck in einem Plattenmass.
+
+    Gerechnet wird all das in der Engine, nicht im Tab (Spezifikation 37). Der
+    lichte Abstand ist hier ausdruecklich ein ERGEBNIS: er faellt aus dem
+    Rastermass heraus, statt es zu bestimmen, und darf negativ sein.
+    """
+
+    #: Mittenabstand, mit dem tatsaechlich verteilt wird.
+    pitch_mm: float = 0.0
+
+    #: Rastermass minus Aussenmass. Negativ heisst Ueberlappung.
+    clearance_mm: float = 0.0
+
+    #: Das Rastermass, das sich allein aus dem Sauger ergaebe - der Wert
+    #: hinter der Einstellung "automatisch".
+    automatic_pitch_mm: float = 0.0
+
+    #: Hoechstzahl der Sauger mit diesem Raster und diesem Muster.
+    max_cup_count: int = 0
+
+    notes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

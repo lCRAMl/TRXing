@@ -15,12 +15,27 @@ nur bis zu einem Flaechenanteil von pi/4 = 78,5 Prozent packen, versetzt
 dagegen bis pi/(2*sqrt(3)) = 90,7 Prozent. Auf derselben Platte passen damit
 rund fuenfzehn Prozent mehr Sauger - und weil jeder Sauger dieselbe wirksame
 Flaeche hat, ist das unmittelbar mehr Auflage- und Wirkflaeche.
+
+Jedes Muster nimmt request.pitch_mm als Rastermass, ohne zu fragen, woher es
+kommt. WOHER es kommt, entscheidet app/vacuum/layout.py: entweder aus dem
+Sauger gerechnet (Aussenmass unter Vakuum plus lichter Mindestabstand) oder
+vorgegeben - als Bauform 20T/30T/45T der Lagengreifer oder als freies Mass.
+
+Das ist der Grund, warum es hier KEIN eigenes "Schmalz-Muster" gibt. Die
+Bauformen legen genau das Dreiecksgitter, das hexagonal() ohnehin legt; sie
+geben nur das Rastermass vor. Ein eigener Registryeintrag dafuer waere eine
+Dublette - gemessen: SPB2 25 mit lichtem Abstand 2 mm und die Bauform 30T
+ergeben beide 30,0 mm Rastermass und dieselben 660 Sauger.
+
+Ein vorgegebenes Rastermass darf kleiner sein als der Sauger. Die Sauger
+ueberlappen sich dann, und das ist ausdruecklich erlaubt: das Raster laesst
+sich so ansehen. Gemeldet wird es von SuctionLayoutEngine.overlap_note().
 """
 
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Callable
 
 
@@ -181,7 +196,7 @@ def grid_dense(request: ArrangementRequest) -> Arrangement:
 
 @register(
     "hexagonal",
-    "Dichteste Packung (maximale Anzahl)",
+    "Dreiecksraster (dichteste Packung)",
     "Versetzte Reihen im gleichseitigen Dreieck. Die dichteste Anordnung "
     "gleich grosser Kreise ueberhaupt: rund 15 Prozent mehr Sauger als im "
     "Quadratraster und damit die groesste erreichbare Auflage- und Wirkflaeche.",

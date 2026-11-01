@@ -453,6 +453,86 @@ GEWONNEN: zwei Paketringe sind weg. "(programm) <-> pallet" und
 dokumentierten Ringen sind drei geblieben.
 
 
+2026-11-01  DREIECKSRASTER: DAS RASTERMASS WIRD EINE EINGABE
+===============================================================================
+Die Lagengreifer-Bauformen von Schmalz (20T, 30T, 45T) sind dazugekommen - aber
+NICHT als eigene Muster. Das war der erste Versuch und ein Fehler.
+
+ERSTER VERSUCH, verworfen: drei Registryeintraege triangular_20t/30t/45t mit
+festem Rastermass. Der Benutzer hat die Dublette gesehen, bevor sie sich
+festsetzen konnte: hexagonal() rechnet genau das Gitter, das Schmalz "Dreieck"
+nennt. Gemessen auf 850 x 650 mit SPB2 25 (Dmax 28,0):
+
+   Dichteste Packung, lichter Abstand 2 mm   30,0 mm Rastermass   660 Sauger
+   Dreiecksraster 30T                        30,0 mm Rastermass   660 Sauger
+
+Dieselben Positionen, Sauger fuer Sauger. Die Bauform ist kein anderes Muster,
+sie gibt nur das Rastermass vor.
+
+ENDSTAND: das Rastermass wurde zur Eingabe der PLATTE.
+
+   VacuumPlateSpec.raster_pitch_mm   0 = aus dem Sauger, sonst das feste Mass
+   SCHMALZ_RASTER                    (("20T",20.0),("30T",30.0),("45T",45.0))
+   SuctionLayoutEngine.pitch_mm()    Vorgabe schlaegt Rechnung
+   .clearance_mm()  .overlap_note()  der lichte Abstand als ERGEBNIS
+
+Der Musterkasten hat dadurch wieder fuenf Eintraege statt acht, "Dichteste
+Packung" heisst jetzt "Dreiecksraster (dichteste Packung)", und die
+Sonderbehandlung je Muster in distribute() haengt nicht mehr am Musternamen,
+sondern an der Platte - sie gilt damit fuer jedes Muster.
+
+IM FORMULAR ist "Saugerabstand" (lichter Abstand) verschwunden und durch
+"Rastermass" (Mittenabstand) ersetzt, darunter die Auswahl
+automatisch/20T/30T/45T/frei. Zwei Felder fuer dieselbe Groesse waeren
+dieselbe Dublette noch einmal gewesen. min_spacing_mm bleibt im Datenmodell und
+in der Konfiguration: es ist die Grundlage von "automatisch".
+
+DIE QUELLE LAESST EINE FRAGE OFFEN, ein Geraet beantwortet sie. Die
+Bestelltabelle nennt "Abstand der Saugstellen in mm", ohne zu sagen welcher.
+Schmalz verkauft aber ZLW FL 850x650 SE SPB2 40 45T, und der SPB2 40 ist unter
+Vakuum 44,5 mm breit: als Mittenabstand bleiben 0,5 mm Luft, als lichter
+Abstand waere der Mittenabstand 89,5 mm und das Geraet gaebe es nicht. Die Zahl
+ist der Mittenabstand. Festgehalten in
+test_a_device_the_manufacturer_really_sells_is_buildable.
+
+ENTSCHIEDEN (vom Benutzer):
+   Rand des Saugers      Dmax(S), Aussenmass unter Vakuum - unveraendert
+   Rastermass            wird nie angetastet, in keine Richtung
+   Ueberlappung          ERLAUBT. Wird gezeichnet, warnt im Protokoll
+   Haltekraft            wird voll gerechnet, die Warnung sagt dass sie zu
+                         hoch ist
+   Saugerwechsel         stellt das Rastermass auf "automatisch" zurueck
+                         Preis: zwei Sauger bei festem 30T vergleichen geht
+                         nur mit erneuter Wahl der Bauform
+
+DIE WARNUNG BRAUCHTE KEINE NEUE MECHANIK. Der Weg stand schon:
+   layout.distribute()  ->  notes
+   calculator.py:162    ->  result.warnings
+   tab.py:753           ->  reporter.warning("vacuum", ...)
+   errors.py            ->  Protokolldatei + Problemfenster + Zaehler
+
+IN DER HILFE steht jetzt doc/Dreiecksraster.svg, mit der Erklaerung, dass die
+T-Zahl die Kantenlaenge des eingezeichneten Dreiecks ist und Versatz wie
+Reihenabstand daraus folgen. Dafuer gibt es eine dritte Marke neben <<formel>>
+und <<quelle>>: <<bild datei | Beschriftung>>. Sie baut die absolute Datei-URL,
+weil QTextBrowser das Dokument ueber setHtml() bekommt und keinen relativen
+Pfad aufloesen kann - ein <img src="bild.svg"> bliebe ein leerer Platzhalter.
+Das Bild liegt in app/gui/help_texts/ und wird dadurch ohne neuen
+--add-data-Eintrag mitgepackt.
+
+ZWEI LEHREN AUS DEN GEGENPROBEN (6 eingebaute Fehler, alle gefangen):
+
+1. Ein Testname ist eine Behauptung. Der Test, der "nie aufweiten" heissen
+   sollte, hat das Aufweiten NICHT gefangen - unterhalb des Rastermasses sind
+   beide Fassungen gleich. Angesprochen hat ein anderer. Seitdem heisst er
+   nach dem, was er wirklich prueft.
+
+2. Eine Pruefung mit O(n^2)-Abstandssuche und 0,5 mm Probewert HAENGT beim
+   eingebauten Fehler, statt zu scheitern (1,9 Mio. Positionen). Gemessen wird
+   seitdem ueber die Gitterschritte, n log n. Wer eine Gegenprobe nicht laufen
+   lassen kann, hat keine.
+
+
 WAS ALS NAECHSTES ANSTEHT
 ===============================================================================
 Zuerst die offene Entscheidung aus Punkt 3 oben: wie die kompilierte Fassung
